@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS blocks (
+    number BIGINT PRIMARY KEY,
+    hash TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks(hash);
