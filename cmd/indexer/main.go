@@ -8,18 +8,29 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	err := godotenv.Load()
-	if err != nil {
-		logger.Error("Failed to load .env")
-		return
-	}
+	level := &slog.LevelVar{}
+	level.Set(slog.LevelInfo)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	}))
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	audiusURL := os.Getenv("AUDIUS_URL")
+	logLevel := os.Getenv("LOG_LEVEL")
+
+	if logLevel == "debug" {
+		level.Set(slog.LevelDebug)
+	}
+	if logLevel == "info" {
+		level.Set(slog.LevelInfo)
+	}
+	if logLevel == "error" {
+		level.Set(slog.LevelError)
+	}
 
 	cfg := &indexer.Config{
 		DatabaseURL: databaseURL,

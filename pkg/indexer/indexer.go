@@ -12,6 +12,7 @@ import (
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Config holds indexer configuration
@@ -26,6 +27,12 @@ type Indexer struct {
 	sdk    *sdk.OpenAudioSDK
 	pool   *pgxpool.Pool
 	logger *slog.Logger
+}
+
+type BlockNotFound struct{}
+
+func (e *BlockNotFound) Error() string {
+	return "block not found"
 }
 
 // New creates a new indexer instance
@@ -84,60 +91,115 @@ func (d *Indexer) Run(ctx context.Context) error {
 			d.logger.Info("Indexer shutting down...")
 			return ctx.Err()
 		default:
-			blockNumber = d.indexBlock(ctx, blockNumber)
+			err := d.indexBlock(ctx, blockNumber)
+			if err != nil {
+				if _, ok := err.(*BlockNotFound); ok {
+					time.Sleep(1 * time.Second)
+					continue
+				}
+				d.logger.Error("Failed to index block", "blockNumber", blockNumber, "error", err)
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			d.logger.Debug("Successfully indexed block", "blockNumber", blockNumber)
+			blockNumber++
 		}
 	}
 }
 
-func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) (nextBlockNumber int64) {
-	d.logger.Info("Indexing block...", "blockNumber", blockNumber)
-
+func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) error {
 	block, err := d.sdk.Core.GetBlock(context.Background(), connect.NewRequest(&corev1.GetBlockRequest{
 		Height: blockNumber,
 	}))
 	if err != nil {
 		d.logger.Error("Failed to fetch block", "blockNumber", blockNumber, "error", err)
-		return blockNumber
+		return err
 	}
 
 	if block.Msg.Block.Height < 0 {
-		d.logger.Info("No block found, sleeping...", "blockNumber", blockNumber)
-		time.Sleep(1 * time.Second)
-		return blockNumber
+		return &BlockNotFound{}
 	}
-
-	dbTx, err := d.pool.Begin(ctx)
-	if err != nil {
-		d.logger.Error("Failed to begin database transaction", "error", err)
-		return blockNumber
-	}
-	defer dbTx.Rollback(ctx)
 
 	for _, tx := range block.Msg.Block.Transactions {
-		// Process each transaction here
-		_ = tx // Placeholder to avoid unused variable error
+		err = d.indexTransaction(ctx, tx, block.Msg.Block.Height)
+		if err != nil {
+			d.logger.Error("Failed to index transaction", "error", err, "transaction", tx.Transaction.GetSignature())
+			d.addToRetryQueue(ctx, tx, err.Error())
+			continue
+		}
 	}
 
 	sql := `
 		INSERT INTO ` + db.Table_Blocks + ` (number, hash) VALUES ($1, $2)
 		ON CONFLICT DO NOTHING;
 	`
-	_, err = dbTx.Exec(ctx, sql, block.Msg.Block.Height, block.Msg.Block.Hash)
+	_, err = d.pool.Exec(ctx, sql, block.Msg.Block.Height, block.Msg.Block.Hash)
 	if err != nil {
-		d.logger.Error("Failed to insert block into database", "blockNumber", blockNumber, "error", err)
-		return blockNumber
+		return fmt.Errorf("failed to insert block into database: %w", err)
 	}
 
-	err = dbTx.Commit(ctx)
-	if err != nil {
-		d.logger.Error("Failed to commit database transaction", "error", err)
-		return blockNumber
-	}
-
-	d.logger.Info("Successfully indexed block", "blockNumber", blockNumber, "blockHash", block.Msg.Block.Hash)
-	return blockNumber + 1
+	return nil
 }
 
 func (d *Indexer) Close() {
 	d.pool.Close()
+}
+
+func (d *Indexer) indexTransaction(ctx context.Context, tx *corev1.Transaction, blockNumber int64) error {
+	dbTx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin database transaction: %w", err)
+	}
+	defer dbTx.Rollback(ctx)
+
+	switch tx.Transaction.Transaction.(type) {
+	case *corev1.SignedTransaction_ManageEntity:
+		err := d.indexManageEntityTransaction(ctx, dbTx, tx, blockNumber)
+		if err != nil {
+			return fmt.Errorf("failed to index ManageEntity transaction: %w", err)
+		}
+	}
+
+	err = dbTx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit database transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx, transaction *corev1.Transaction, blockNumber int64) error {
+	entity := transaction.Transaction.GetManageEntity()
+	d.logger.Debug("manageEntity", "entityType", entity.EntityType, "entityId", entity.EntityId, "action", entity.Action, "metadata", entity.Metadata, "signer", entity.Signer)
+
+	var err error
+	switch entity.EntityType {
+	case "Track":
+		err = d.indexTrackManageEntity(ctx, sqlTx, entity, blockNumber)
+	case "User":
+		err = d.indexUserManageEntity(ctx, sqlTx, entity, blockNumber)
+	}
+
+	return err
+}
+
+func (d *Indexer) addToRetryQueue(ctx context.Context, tx *corev1.Transaction, errMsg string) {
+	txJson, err := protojson.Marshal(tx.Transaction)
+	if err != nil {
+		d.logger.Error("Failed to marshal transaction for retry queue", "error", err)
+		return
+	}
+	sql := `
+		INSERT INTO retry_queue (signature, transaction, error)
+		VALUES ($1, $2, $3)
+		ON CONFLICT (signature) DO UPDATE SET 
+			transaction = EXCLUDED.transaction,
+			error = EXCLUDED.error,
+			updated_at = NOW()
+		;
+	`
+	_, err = d.pool.Exec(ctx, sql, tx.Transaction.GetSignature(), string(txJson), errMsg)
+	if err != nil {
+		d.logger.Error("Failed to insert failed transaction into retry queue", "error", err)
+	}
 }
