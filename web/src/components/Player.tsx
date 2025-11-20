@@ -1,0 +1,247 @@
+import styled from 'styled-components'
+import { usePlayer } from '../contexts/PlayerContext'
+
+const PlayerFooter = styled.footer`
+  height: 90px;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2rem;
+  gap: 2rem;
+
+  @media (max-width: 1024px) {
+    padding: 0 1rem;
+    gap: 1rem;
+  }
+`
+
+const PlayerTrackInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 200px;
+
+  @media (max-width: 768px) {
+    min-width: 150px;
+  }
+`
+
+const PlayerArtwork = styled.div`
+  width: 50px;
+  height: 50px;
+  background: #333333;
+  border-radius: 0;
+  flex-shrink: 0;
+`
+
+const PlayerDetails = styled.div`
+  min-width: 0;
+`
+
+const PlayerTitle = styled.div`
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const PlayerArtist = styled.div`
+  font-size: 0.75rem;
+  color: #808080;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const PlayerMain = styled.div`
+  flex: 1;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`
+
+const PlayerControls = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+`
+
+const ControlBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  color: #808080;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: oklch(71.4% 0.203 305.504);
+  }
+`
+
+const ControlBtnMain = styled.button`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid oklch(71.4% 0.203 305.504);
+  color: oklch(71.4% 0.203 305.504);
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+
+  &:hover {
+    background: oklch(71.4% 0.203 305.504);
+    color: #000000;
+    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
+  }
+`
+
+const ProgressBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`
+
+const TimeLabel = styled.span`
+  font-size: 0.75rem;
+  color: #808080;
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+`
+
+const ProgressTrack = styled.div`
+  flex: 1;
+  height: 4px;
+  background: #333333;
+  cursor: pointer;
+  position: relative;
+`
+
+const ProgressFill = styled.div`
+  height: 100%;
+  background: oklch(71.4% 0.203 305.504);
+  transition: width 0.1s linear;
+`
+
+const PlayerExtras = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  min-width: 200px;
+  justify-content: flex-end;
+
+  @media (max-width: 768px) {
+    min-width: 100px;
+  }
+`
+
+const VolumeControl = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  @media (max-width: 1024px) {
+    gap: 0.5rem;
+  }
+`
+
+const VolumeLabel = styled.span`
+  font-size: 0.75rem;
+  color: #808080;
+  letter-spacing: 1px;
+  font-weight: 600;
+
+  @media (max-width: 1024px) {
+    display: none;
+  }
+`
+
+const VolumeSlider = styled.input`
+  width: 100px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333333;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: oklch(71.4% 0.203 305.504);
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: oklch(71.4% 0.203 305.504);
+    cursor: pointer;
+    border: none;
+    border-radius: 0;
+  }
+
+  @media (max-width: 1024px) {
+    width: 60px;
+  }
+`
+
+export default function Player() {
+  const { currentTrack, isPlaying, togglePlay } = usePlayer()
+
+  return (
+    <PlayerFooter>
+      <PlayerTrackInfo>
+        <PlayerArtwork></PlayerArtwork>
+        <PlayerDetails>
+          <PlayerTitle>{currentTrack?.title || 'No track selected'}</PlayerTitle>
+          <PlayerArtist>{currentTrack?.artist || 'Select a track to play'}</PlayerArtist>
+        </PlayerDetails>
+      </PlayerTrackInfo>
+      
+      <PlayerMain>
+        <PlayerControls>
+          <ControlBtn>⏮</ControlBtn>
+          <ControlBtnMain onClick={togglePlay}>
+            {isPlaying ? '⏸' : '▶'}
+          </ControlBtnMain>
+          <ControlBtn>⏭</ControlBtn>
+        </PlayerControls>
+        
+        <ProgressBar>
+          <TimeLabel>0:00</TimeLabel>
+          <ProgressTrack>
+            <ProgressFill style={{ width: '35%' }}></ProgressFill>
+          </ProgressTrack>
+          <TimeLabel>{currentTrack?.duration || '0:00'}</TimeLabel>
+        </ProgressBar>
+      </PlayerMain>
+
+      <PlayerExtras>
+        <VolumeControl>
+          <VolumeLabel>VOL</VolumeLabel>
+          <VolumeSlider type="range" min="0" max="100" defaultValue="70" />
+        </VolumeControl>
+      </PlayerExtras>
+    </PlayerFooter>
+  )
+}

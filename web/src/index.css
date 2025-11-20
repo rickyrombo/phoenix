@@ -1,0 +1,63 @@
+/* CSS Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Hackerman Color Palette */
+  --primary-accent: oklch(71.4% 0.203 305.504);
+  --accent-hover: oklch(75% 0.22 305.504);
+  --dark-bg: #000000;
+  --darker-bg: #0a0a0a;
+  --surface-bg: #1a1a1a;
+  --text-primary: #ffffff;
+  --text-secondary: #808080;
+  --border-color: #333333;
+  --grid-color: #1a1a1a;
+  
+  /* Typography */
+  font-family: 'Kode Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #000000;
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+a {
+  color: var(--primary-purple);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--secondary-purple);
+}
+
+button {
+  font-family: inherit;
+}
