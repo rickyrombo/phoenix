@@ -9,6 +9,7 @@ const StyledHeader = styled.header`
   padding: 0 2rem;
   gap: 2rem;
   z-index: 100;
+  border-bottom: 1px solid #1a1a1a;
 `
 
 const HeaderCenter = styled.div`

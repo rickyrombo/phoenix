@@ -17,17 +17,14 @@ const StyledSidebar = styled.nav<{ $isCollapsed: boolean }>`
 `
 
 const CollapseButton = styled.button`
-  position: absolute;
-  top: 1rem;
-  right: 0.5rem;
   background: transparent;
   border: none;
   color: #606060;
-  font-size: 1.125rem;
+  font-size: 1.5rem;
   cursor: pointer;
   padding: 0.5rem;
   transition: all 0.2s;
-  z-index: 10;
+  margin-left: auto;
 
   &:hover {
     color: oklch(71.4% 0.203 305.504);
@@ -39,10 +36,15 @@ const Logo = styled.div<{ $isCollapsed: boolean }>`
   font-size: ${props => props.$isCollapsed ? '1.25rem' : '1.5rem'};
   letter-spacing: 2px;
   color: oklch(71.4% 0.203 305.504);
-  padding: 1.5rem;
+  padding: ${props => props.$isCollapsed ? '1.5rem' : '1rem 2rem'};
   text-align: ${props => props.$isCollapsed ? 'center' : 'left'};
   border-bottom: 1px solid #1a1a1a;
   margin-bottom: 1rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
 `
 
 const NavList = styled.ul`
@@ -99,10 +101,12 @@ interface SidebarProps {
 export default function Sidebar({ navItems, isCollapsed, onToggle }: SidebarProps) {
   return (
     <StyledSidebar $isCollapsed={isCollapsed}>
-      <Logo $isCollapsed={isCollapsed}>{isCollapsed ? 'A' : 'AUDIUS'}</Logo>
-      <CollapseButton onClick={onToggle} title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-        {isCollapsed ? '»' : '«'}
-      </CollapseButton>
+      <Logo $isCollapsed={isCollapsed}>
+        <span>{isCollapsed ? 'A' : 'AUDIUS'}</span>
+        <CollapseButton onClick={onToggle} title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+          {isCollapsed ? '»' : '«'}
+        </CollapseButton>
+      </Logo>
       <NavList>
         {navItems.map((item, index) => (
           <NavItem key={index} $isCollapsed={isCollapsed}>
