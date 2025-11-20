@@ -130,7 +130,6 @@ CREATE TABLE IF NOT EXISTS retry_queue (
 
 CREATE TABLE IF NOT EXISTS waveforms (
     cid TEXT PRIMARY KEY,
-    track_id INT,
     peaks REAL[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

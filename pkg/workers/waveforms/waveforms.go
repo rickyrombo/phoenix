@@ -10,7 +10,9 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -65,7 +67,7 @@ func NewJob(cfg *Config) (*Job, error) {
 	return &Job{
 		batchSize: cfg.BatchSize,
 		buckets:   cfg.Buckets,
-		client:    &http.Client{Timeout: 30 * time.Second},
+		client:    &http.Client{Timeout: 60 * time.Second},
 		pool:      pool,
 		sdk:       openAudioSdk,
         delegatePrivateKey: cfg.DelegatePrivateKey,
@@ -102,16 +104,14 @@ func (j *Job) Run(ctx context.Context) error {
 			go func(t waveformTask) {
 				defer wg.Done()
 				defer func() { <-sem }()
-				j.ProcessWaveform(ctx, t.TrackID, &t.CID)
+				j.ProcessCID(ctx, t.CID)
 			}(t)
 		}
 		wg.Wait()
     }
 }
 
-func (j *Job) ProcessWaveform(ctx context.Context, trackID int, cid *string) error {
-	cids := make([]string, 0, 2)
-	if cid == nil {
+func (j *Job) ProcessTrack(ctx context.Context, trackID int) error {
 		sql := `SELECT track_cid, preview_cid FROM tracks WHERE id = $1 LIMIT 1;`
 
 		var trackCID, previewCID string
@@ -119,37 +119,65 @@ func (j *Job) ProcessWaveform(ctx context.Context, trackID int, cid *string) err
 		if err != nil {
 			return fmt.Errorf("failed to fetch track cids: %w", err)
 		}
+        cids := []string{trackCID, previewCID}
+        for _, cid := range cids {
+            if cid == "" {
+                continue
+            }
+            if err := j.ProcessCID(ctx, cid); err != nil {
+                return err
+            }
+        }
+        return nil
+}
 
-		cids = append(cids, trackCID, previewCID)
-	} else {
-		cids = append(cids, *cid)
-	}
-	for _, cid := range cids {
-        if cid == "" {
-            continue
-        }
-        signature, err := signStreamRequest(cid, trackID, 0, j.delegatePrivateKey)
-        if err != nil {
-            return fmt.Errorf("failed to sign stream request: %w", err)
-        }
-        r, err := j.sdk.Mediorum.StreamTrack(cid, &mediorum.StreamOptions{
-            Signature: string(signature),
-        })
-        if err != nil {
-            return fmt.Errorf("failed to get cid data: %w", err)
-        }
-        defer r.Close()
+func (j *Job) ProcessCID(ctx context.Context, cid string) error {
+    logger := j.logger.With(slog.String("cid", cid))
+    
+    signature, err := signStreamRequest(cid, j.delegatePrivateKey)
+    if err != nil {
+        return fmt.Errorf("failed to sign stream request: %w", err)
+    }
 
-        peaks, err := computeWaveformFromMP3Stream(r, j.buckets)
-        if err != nil {
-            return fmt.Errorf("failed to compute waveform: %w", err)
-        }
+    logger.Debug("Begin streaming")
+    r, err := j.sdk.Mediorum.StreamTrack(cid, &mediorum.StreamOptions{
+        Signature: string(signature),
+    })
+    if err != nil {
+        return fmt.Errorf("failed to get cid data: %w", err)
+    }
 
-        if err := upsertWaveform(ctx, j.pool, cid, trackID, peaks); err != nil {
-            return fmt.Errorf("failed to upsert waveform: %w", err)
-        }
-	}
-	return nil
+    logger.Debug("Creating temp file")
+    tmp, err := os.CreateTemp("", "waveform-*.mp3")
+    if err != nil {
+        r.Close()
+        return fmt.Errorf("create temp file: %w", err)
+    }
+    tmpPath := tmp.Name()
+    // ensure temp file is cleaned up
+    defer func() {
+        logger.Debug("Cleaning up temp file and closing stream")
+        tmp.Close()
+        os.Remove(tmpPath)
+        r.Close()
+    }()
+
+    logger.Debug("Copying to temp file", slog.String("temp_path", tmpPath))
+    if _, err := io.Copy(tmp, r); err != nil {
+        return fmt.Errorf("copy to temp file: %w", err)
+    }
+
+    logger.Debug("Computing waveform from temp file")
+    peaks, err := computeWaveformFromMP3File(tmpPath, j.buckets)
+    if err != nil {
+        return fmt.Errorf("failed to compute waveform: %w", err)
+    }
+
+    logger.Debug("Upserting waveform")
+    if err := upsertWaveform(ctx, j.pool, cid, peaks); err != nil {
+        return fmt.Errorf("failed to upsert waveform: %w", err)
+    }
+    return nil
 }
 
 // waveformTask represents a single track -> cid work unit.
@@ -183,17 +211,19 @@ func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]w
     return tasks, nil
 }
 
-func upsertWaveform(ctx context.Context, db *pgxpool.Pool, cid string, trackID int, peaks []float32) error {
-        upsertSQL := `
-            INSERT INTO waveforms (cid, track_id, peaks)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (cid) DO UPDATE SET
-                track_id = EXCLUDED.track_id,
-                peaks = EXCLUDED.peaks,
-                updated_at = NOW();
-            `
-        if _, err := db.Exec(ctx, upsertSQL, cid, trackID, peaks); err != nil {
-            return fmt.Errorf("failed to upsert waveform for cid %s: %w", cid, err)
+func upsertWaveform(ctx context.Context, db *pgxpool.Pool, cid string, peaks []float32) error {
+    upsertSQL := `
+        INSERT INTO waveforms (cid, peaks)
+        VALUES (@cid, @peaks)
+        ON CONFLICT (cid) DO UPDATE SET
+            peaks = EXCLUDED.peaks,
+            updated_at = NOW();
+        `
+    if _, err := db.Exec(ctx, upsertSQL, pgx.NamedArgs{
+        "cid": cid,
+        "peaks": peaks,
+    }); err != nil {
+        return fmt.Errorf("failed to upsert waveform for cid %s: %w", cid, err)
 	}
 	return nil
 }
@@ -339,13 +369,11 @@ func computeWaveformFromMP3Stream(r io.Reader, buckets int) ([]float32, error) {
     return out, nil
 }
 
-func signStreamRequest(cid string, trackId int, userId int, privateKey string) ([]byte, error) {
+func signStreamRequest(cid string, privateKey string) ([]byte, error) {
     timestamp := time.Now().Unix() * 1000
 	data := map[string]interface{}{
 		"cid":       cid,
 		"timestamp": timestamp,
-		"trackId":   trackId,
-		"userId":    userId,
 	}
 
 	signature, err := generateSignature(data, privateKey)
@@ -390,4 +418,133 @@ func generateSignature(data map[string]interface{}, privateKey string) (string, 
 	}
 
 	return hexutil.Encode(signature), nil
+}
+
+// probeAudioFile uses ffprobe to determine sample rate and duration for an
+// audio file. It returns sampleRate (hz) and duration (seconds).
+func probeAudioFile(path string) (int, float64, error) {
+    // sample rate
+    cmd := exec.Command("ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=sample_rate", "-of", "default=noprint_wrappers=1:nokey=1", path)
+    out, err := cmd.Output()
+    if err != nil {
+        return 0, 0, fmt.Errorf("ffprobe sample_rate: %w", err)
+    }
+    srStr := strings.TrimSpace(string(out))
+    sr, err := strconv.Atoi(srStr)
+    if err != nil {
+        return 0, 0, fmt.Errorf("parse sample_rate: %w", err)
+    }
+
+    // duration
+    cmd2 := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path)
+    out2, err := cmd2.Output()
+    if err != nil {
+        return 0, 0, fmt.Errorf("ffprobe duration: %w", err)
+    }
+    durStr := strings.TrimSpace(string(out2))
+    dur, err := strconv.ParseFloat(durStr, 64)
+    if err != nil {
+        return 0, 0, fmt.Errorf("parse duration: %w", err)
+    }
+
+    return sr, dur, nil
+}
+
+// computeWaveformFromMP3File decodes the given mp3 file with ffmpeg and maps
+// samples to `buckets` using an exact per-sample mapping derived from
+// sample count (duration * sampleRate). This produces consistent results
+// with wavesurfer-style binning.
+func computeWaveformFromMP3File(path string, buckets int) ([]float32, error) {
+    sampleRate, duration, err := probeAudioFile(path)
+    if err != nil {
+        // fallback: stream decode without precise sample count
+        f, ferr := os.Open(path)
+        if ferr != nil {
+            return nil, fmt.Errorf("probe failed: %v, and failed to open file: %w", err, ferr)
+        }
+        defer f.Close()
+        return computeWaveformFromMP3Stream(f, buckets)
+    }
+
+    totalSamples := int64(math.Round(duration * float64(sampleRate)))
+    if totalSamples <= 0 {
+        // fallback to streaming
+        f, ferr := os.Open(path)
+        if ferr != nil {
+            return nil, fmt.Errorf("invalid sample count and open failed: %w", ferr)
+        }
+        defer f.Close()
+        return computeWaveformFromMP3Stream(f, buckets)
+    }
+
+    // Prepare buckets accumulators
+    sums := make([]float64, buckets)
+    counts := make([]int64, buckets)
+
+    // Run ffmpeg to output s16le mono at the probed sample rate
+    cmd := exec.Command("ffmpeg", "-hide_banner", "-loglevel", "error", "-i", path, "-f", "s16le", "-acodec", "pcm_s16le", "-ac", "1", "-ar", fmt.Sprintf("%d", sampleRate), "pipe:1")
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+        return nil, fmt.Errorf("ffmpeg stdout pipe: %w", err)
+    }
+    if err := cmd.Start(); err != nil {
+        return nil, fmt.Errorf("start ffmpeg: %w", err)
+    }
+
+    buf := make([]byte, 32*1024)
+    var sampleIdx int64
+    for {
+        n, rerr := stdout.Read(buf)
+        if n > 0 {
+            limit := n - (n % 2)
+            for off := 0; off < limit; off += 2 {
+                sample := int16(binary.LittleEndian.Uint16(buf[off : off+2]))
+                f := float64(sample) / 32768.0
+                // map sample index to bucket
+                b := int((sampleIdx * int64(buckets)) / totalSamples)
+                if b < 0 {
+                    b = 0
+                }
+                if b >= buckets {
+                    b = buckets - 1
+                }
+                sums[b] += f * f
+                counts[b]++
+                sampleIdx++
+            }
+        }
+        if rerr != nil {
+            if rerr == io.EOF {
+                break
+            }
+            cmd.Process.Kill()
+            cmd.Wait()
+            return nil, fmt.Errorf("ffmpeg read: %w", rerr)
+        }
+    }
+
+    if err := cmd.Wait(); err != nil {
+        return nil, fmt.Errorf("ffmpeg exit: %w", err)
+    }
+
+    // compute RMS per bucket and normalize
+    out := make([]float32, buckets)
+    maxVal := float32(0)
+    for i := 0; i < buckets; i++ {
+        if counts[i] > 0 {
+            rms := math.Sqrt(sums[i] / float64(counts[i]))
+            out[i] = float32(rms)
+            if out[i] > maxVal {
+                maxVal = out[i]
+            }
+        } else {
+            out[i] = 0
+        }
+    }
+    if maxVal > 0 {
+        for i := range out {
+            out[i] = out[i] / maxVal
+        }
+    }
+    return out, nil
 }

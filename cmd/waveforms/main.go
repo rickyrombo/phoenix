@@ -33,7 +33,7 @@ func main() {
 
 	config := &waveforms.Config{
 		BatchSize: 50,
-		Buckets:   600,
+		Buckets:   750,
 		DatabaseURL: databaseURL,
 		AudiusURL: audiusURL,
 		DelegatePrivateKey: delegatePrivateKey,
@@ -49,7 +49,7 @@ func main() {
 
 	ctx := context.Background()
 	cid := "baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4"
-	err = j.ProcessWaveform(ctx, 109835528, &cid)
+	err = j.ProcessCID(ctx, cid)
 	if err != nil {
 		logger.Error("failed to process waveform", "error", err)
 	}
