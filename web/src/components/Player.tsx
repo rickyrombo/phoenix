@@ -1,6 +1,7 @@
 import styled from "styled-components"
 import { usePlayer } from "../contexts/PlayerContext"
 import { useState } from "react"
+import type { Track } from "./TrackTile"
 import {
   IconPlayerPlay,
   IconPlayerPause,
@@ -10,6 +11,7 @@ import {
   IconRepeatOff,
   IconArrowsShuffle,
   IconHeart,
+  IconPlaylist,
 } from "@tabler/icons-react"
 
 const PlayerFooter = styled.footer`
@@ -245,6 +247,64 @@ const FavoriteBtn = styled.button`
   }
 `
 
+const QueueBtn = styled(FavoriteBtn)`
+  margin-left: 0;
+`
+
+const QueuePopup = styled.div`
+  position: fixed;
+  right: 2rem;
+  bottom: 110px;
+  width: 320px;
+  max-height: 360px;
+  background: #0f0f0f;
+  border: 1px solid #222;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  overflow: auto;
+  z-index: 1200;
+  padding: 0.5rem;
+  border-radius: 6px;
+`
+
+const QueueItem = styled.div<{ $active?: boolean }>`
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  align-items: center;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? "rgb(20 20 24)" : "transparent")};
+  &:hover {
+    background: rgb(18 18 22);
+  }
+`
+
+const QueueThumb = styled.img`
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+`
+
+const QueueMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`
+
+const QueueTitle = styled.div`
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const QueueArtist = styled.div`
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
 export default function Player() {
   const {
     currentTrack,
@@ -261,7 +321,21 @@ export default function Player() {
     setRepeatMode,
     shuffle,
     toggleShuffle,
+    queue,
+    setQueue,
+    setIsPlaying,
   } = usePlayer()
+
+  const [showQueue, setShowQueue] = useState(false)
+
+  const openQueue = () => setShowQueue((s) => !s)
+  const handleSelectQueueIndex = (index: number) => {
+    if (!queue) return
+    // update queue current index and start playing
+    setQueue({ ...queue, currentIndex: index })
+    if (!isPlaying) setIsPlaying(true)
+    setShowQueue(false)
+  }
 
   // local favorite state for now (replace with real like/favorite logic)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -389,6 +463,9 @@ export default function Player() {
             fill={isFavorite ? "currentColor" : "none"}
           />
         </FavoriteBtn>
+        <QueueBtn onClick={openQueue} title="Queue" aria-label="Open queue">
+          <IconPlaylist size={18} stroke={2} />
+        </QueueBtn>
         <VolumeControl>
           <VolumeLabel>VOL</VolumeLabel>
           <VolumeSlider
@@ -399,6 +476,23 @@ export default function Player() {
             onChange={handleVolumeChange}
           />
         </VolumeControl>
+        {showQueue && queue && (
+          <QueuePopup>
+            {queue.tracks.map((t: Track, idx: number) => (
+              <QueueItem
+                key={t.id || idx}
+                $active={queue.currentIndex === idx}
+                onClick={() => handleSelectQueueIndex(idx)}
+              >
+                <QueueThumb src={t.coverArt} alt={t.title} />
+                <QueueMeta>
+                  <QueueTitle>{t.title}</QueueTitle>
+                  <QueueArtist>{t.artist}</QueueArtist>
+                </QueueMeta>
+              </QueueItem>
+            ))}
+          </QueuePopup>
+        )}
       </PlayerExtras>
     </PlayerFooter>
   )
