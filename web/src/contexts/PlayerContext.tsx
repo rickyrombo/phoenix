@@ -59,6 +59,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off")
   const [shuffle, setShuffle] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(new Audio())
+  const currentIndexRef = useRef(currentIndex)
+  const queueRef = useRef(queue)
 
   // Initialize audio element
   useEffect(() => {
@@ -83,11 +85,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      const q = queueRef.current
+      const idx = currentIndexRef.current
+
       // Try to play next track
-      const hasNext = currentIndex < queue.tracks.length - 1
+      const hasNext = idx < q.tracks.length - 1
       if (hasNext) {
-        setCurrentIndex(currentIndex + 1)
-      } else if (repeatMode === "all" && queue.tracks.length > 0) {
+        setCurrentIndex(idx + 1)
+      } else if (repeatMode === "all" && q.tracks.length > 0) {
         setCurrentIndex(0)
       } else {
         setIsPlaying(false)
@@ -114,6 +119,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (currentIndex >= 0 && currentIndex < queue.tracks.length) {
       setCurrentTrack(queue.tracks[currentIndex])
     }
+    currentIndexRef.current = currentIndex
   }, [currentIndex, queue])
 
   // Update volume
@@ -122,6 +128,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audioRef.current.volume = volume
     }
   }, [volume])
+
+  // keep queueRef in sync
+  useEffect(() => {
+    queueRef.current = queue
+  }, [queue])
 
   // Load new track
   useEffect(() => {
