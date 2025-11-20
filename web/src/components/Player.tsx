@@ -1,6 +1,6 @@
 import styled from "styled-components"
 import { usePlayer } from "../contexts/PlayerContext"
-import { useState } from "react"
+import React, { useState, useRef } from "react"
 import QueuePopup from "./QueuePopup"
 import {
   IconPlayerPlay,
@@ -282,6 +282,8 @@ export default function Player() {
 
   const [showQueue, setShowQueue] = useState(false)
 
+  const queueBtnRef = useRef<HTMLButtonElement | null>(null)
+
   // local follow state (replace with real follow logic later)
   const [isFollowing, setIsFollowing] = useState(false)
   const toggleFollow = () => setIsFollowing((v) => !v)
@@ -433,7 +435,7 @@ export default function Player() {
             fill={isFavorite ? "currentColor" : "none"}
           />
         </FavoriteBtn>
-        <QueueBtn onClick={openQueue} title="Queue" aria-label="Open queue">
+        <QueueBtn ref={queueBtnRef} onClick={openQueue} title="Queue" aria-label="Open queue">
           <IconPlaylist size={18} stroke={2} />
         </QueueBtn>
         <VolumeControl>
@@ -447,7 +449,7 @@ export default function Player() {
           />
         </VolumeControl>
         {showQueue && queue && (
-          <QueuePopup queue={queue} onSelect={handleSelectQueueIndex} />
+          <QueuePopup queue={queue} onSelect={handleSelectQueueIndex} anchorRef={queueBtnRef} />
         )}
       </PlayerExtras>
     </PlayerFooter>
