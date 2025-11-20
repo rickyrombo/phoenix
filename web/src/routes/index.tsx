@@ -4,6 +4,7 @@ import TrackTile from "../components/TrackTile"
 import { FeedTrackContext } from "../components/TrackTileContext"
 import { feedTracks } from "../data/tracks"
 import { usePlayer } from "../contexts/PlayerContext"
+import { useEffect } from "react"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -26,6 +27,18 @@ const TracksGrid = styled.div`
 
 function FeedPage() {
   const { setQueue, queue, isPlaying, togglePlay } = usePlayer()
+
+  useEffect(() => {
+    // Reset queue when navigating to trending page
+    if (queue.tracks.length === 0 && queue.source !== "trending") {
+      setQueue({
+        tracks: feedTracks,
+        currentIndex: 0,
+        name: "Feed",
+        source: "feed",
+      })
+    }
+  }, [queue.source, queue.tracks.length, setQueue])
 
   return (
     <PageContainer>
