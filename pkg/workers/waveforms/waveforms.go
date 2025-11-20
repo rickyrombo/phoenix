@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +19,7 @@ import (
 	"github.com/OpenAudio/go-openaudio/pkg/sdk/mediorum"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/hajimehoshi/go-mp3"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -197,76 +198,100 @@ func upsertWaveform(ctx context.Context, db *pgxpool.Pool, cid string, trackID i
 	return nil
 }
 
-// computeWaveformFromMP3Stream reads decoded PCM from the mp3 decoder as a stream,
-// computes per-frame peak amplitudes, then reduces those frame-peaks into `buckets` values.
+// computeWaveformFromMP3Stream uses ffmpeg to decode MP3 bytes to raw PCM and
+// computes RMS per-bucket. It streams the MP3 into ffmpeg's stdin and reads
+// signed 16-bit little-endian PCM from stdout.
 func computeWaveformFromMP3Stream(r io.Reader, buckets int) ([]float32, error) {
-    dec, err := mp3.NewDecoder(r)
+    // ffmpeg command: read from stdin, output s16le mono 44.1k to stdout
+    cmd := exec.Command("ffmpeg",
+        "-hide_banner", "-loglevel", "error",
+        "-i", "pipe:0",
+        "-f", "s16le",
+        "-acodec", "pcm_s16le",
+        "-ac", "1",
+        "-ar", "44100",
+        "pipe:1",
+    )
+
+    stdin, err := cmd.StdinPipe()
     if err != nil {
-        return nil, fmt.Errorf("mp3 decode: %w", err)
+        return nil, fmt.Errorf("ffmpeg stdin: %w", err)
+    }
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+        return nil, fmt.Errorf("ffmpeg stdout: %w", err)
     }
 
-    // Buffer for decoded PCM bytes. must be even length (16-bit samples)
-    const bufSize = 4096
+    if err := cmd.Start(); err != nil {
+        stdin.Close()
+        return nil, fmt.Errorf("start ffmpeg: %w", err)
+    }
+
+    // copy mp3 data into ffmpeg stdin
+    copyErrCh := make(chan error, 1)
+    go func() {
+        _, err := io.Copy(stdin, r)
+        stdin.Close()
+        copyErrCh <- err
+    }()
+
+    // read PCM from ffmpeg stdout and compute per-frame sum of squares
+    const bufSize = 32 * 1024
     buf := make([]byte, bufSize)
+    const samplesPerFrame = 1024
+    var frameSums []float64
+    var frameCounts []int
+    var curSum float64
+    var curCnt int
 
-    // We'll compute per-frame sum-of-squares every `samplesPerFrame` samples to avoid storing samples.
-    const samplesPerFrame = 1024 // tune: smaller => more frames, higher accuracy
-
-    var frameSums []float64 // sum of squared normalized samples per frame
-    var frameCounts []int   // sample count per frame
-    var currentFrameSumSq float64
-    var sampleCountInFrame int
-    var totalFrames int
-
-    // dec.Read returns decoded PCM bytes (little endian 16-bit samples)
     for {
-        n, readErr := dec.Read(buf)
+        n, readErr := stdout.Read(buf)
         if n > 0 {
-            // process the decoded bytes
-            // ensure we process full sample pairs
             limit := n - (n % 2)
             for off := 0; off < limit; off += 2 {
-                // treat as uint16 little-endian, then reinterpret as int16
                 sample := int16(binary.LittleEndian.Uint16(buf[off : off+2]))
-                // normalized sample in [-1,1)
                 f := float64(sample) / 32768.0
-                currentFrameSumSq += f * f
-                sampleCountInFrame++
-
-                if sampleCountInFrame >= samplesPerFrame {
-                    frameSums = append(frameSums, currentFrameSumSq)
-                    frameCounts = append(frameCounts, sampleCountInFrame)
-                    // reset for next frame
-                    currentFrameSumSq = 0
-                    sampleCountInFrame = 0
-                    totalFrames++
+                curSum += f * f
+                curCnt++
+                if curCnt >= samplesPerFrame {
+                    frameSums = append(frameSums, curSum)
+                    frameCounts = append(frameCounts, curCnt)
+                    curSum = 0
+                    curCnt = 0
                 }
             }
         }
-
         if readErr != nil {
             if readErr == io.EOF {
-                // flush remaining partial frame
-                if sampleCountInFrame > 0 {
-                    frameSums = append(frameSums, currentFrameSumSq)
-                    frameCounts = append(frameCounts, sampleCountInFrame)
-                    totalFrames++
+                if curCnt > 0 {
+                    frameSums = append(frameSums, curSum)
+                    frameCounts = append(frameCounts, curCnt)
                 }
                 break
             }
-            return nil, fmt.Errorf("read pcm: %w", readErr)
+            // ensure we clean up ffmpeg process
+            cmd.Process.Kill()
+            <-copyErrCh
+            return nil, fmt.Errorf("ffmpeg read: %w", readErr)
         }
     }
 
+    // wait for copy to finish and ffmpeg to exit
+    if copyErr := <-copyErrCh; copyErr != nil && copyErr != io.EOF {
+        // ignore EOF
+    }
+    if err := cmd.Wait(); err != nil {
+        return nil, fmt.Errorf("ffmpeg exit: %w", err)
+    }
+
     if len(frameSums) == 0 {
-        return nil, fmt.Errorf("no frame data computed")
+        return nil, fmt.Errorf("no pcm data from ffmpeg")
     }
 
     // Reduce frameSums -> buckets by grouping and computing RMS per bucket.
     out := make([]float32, buckets)
     fpLen := len(frameSums)
     if fpLen <= buckets {
-        // fewer frames than buckets: compute RMS per frame and place into output
         for i := 0; i < fpLen; i++ {
             if frameCounts[i] > 0 {
                 out[i] = float32(math.Sqrt(frameSums[i] / float64(frameCounts[i])))
@@ -275,7 +300,6 @@ func computeWaveformFromMP3Stream(r io.Reader, buckets int) ([]float32, error) {
             }
         }
     } else {
-        // group map: group i corresponds to frame indices from floor(i*fpLen/buckets) to floor((i+1)*fpLen/buckets)-1
         for i := 0; i < buckets; i++ {
             start := int(math.Floor(float64(i*fpLen) / float64(buckets)))
             end := int(math.Floor(float64((i+1)*fpLen) / float64(buckets)))
