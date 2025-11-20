@@ -435,7 +435,12 @@ export default function Player() {
             fill={isFavorite ? "currentColor" : "none"}
           />
         </FavoriteBtn>
-        <QueueBtn ref={queueBtnRef} onClick={openQueue} title="Queue" aria-label="Open queue">
+        <QueueBtn
+          ref={queueBtnRef}
+          onClick={openQueue}
+          title="Queue"
+          aria-label="Open queue"
+        >
           <IconPlaylist size={18} stroke={2} />
         </QueueBtn>
         <VolumeControl>
@@ -449,7 +454,11 @@ export default function Player() {
           />
         </VolumeControl>
         {showQueue && queue && (
-          <QueuePopup queue={queue} onSelect={handleSelectQueueIndex} anchorRef={queueBtnRef} />
+          <QueuePopup
+            queue={queue}
+            onSelect={handleSelectQueueIndex}
+            anchorRef={queueBtnRef}
+          />
         )}
       </PlayerExtras>
     </PlayerFooter>

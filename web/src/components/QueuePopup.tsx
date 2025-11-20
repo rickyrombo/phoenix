@@ -82,7 +82,7 @@ export default function QueuePopup({
 }: {
   queue: Queue
   onSelect: (index: number) => void
-  anchorRef?: React.RefObject<HTMLElement>
+  anchorRef?: React.RefObject<HTMLElement | null>
 }) {
   const popupRef = useRef<HTMLDivElement | null>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
@@ -96,13 +96,20 @@ export default function QueuePopup({
     const popupRect = popup.getBoundingClientRect()
 
     // position above the anchor, centered horizontally
-    const preferredLeft = anchorRect.left + anchorRect.width / 2 - popupRect.width / 2
-    const clampedLeft = Math.max(8, Math.min(preferredLeft, window.innerWidth - popupRect.width - 8))
+    const preferredLeft =
+      anchorRect.left + anchorRect.width / 2 - popupRect.width / 2
+    const clampedLeft = Math.max(
+      8,
+      Math.min(preferredLeft, window.innerWidth - popupRect.width - 8),
+    )
     const topAbove = anchorRect.top - popupRect.height - 8
     const topBelow = anchorRect.bottom + 8
 
     // prefer above; if not enough space, show below
-    const top = topAbove > 8 ? topAbove : Math.min(topBelow, window.innerHeight - popupRect.height - 8)
+    const top =
+      topAbove > 8
+        ? topAbove
+        : Math.min(topBelow, window.innerHeight - popupRect.height - 8)
 
     setPos({ left: clampedLeft, top })
   }, [anchorRef, queue])
@@ -112,7 +119,11 @@ export default function QueuePopup({
   return (
     <Popup
       ref={popupRef}
-      style={pos ? { position: "fixed", left: pos.left, top: pos.top } : { position: "fixed", right: 16, bottom: 110 }}
+      style={
+        pos
+          ? { position: "fixed", left: pos.left, top: pos.top }
+          : { position: "fixed", right: 16, bottom: 110 }
+      }
       role="dialog"
       aria-label="play-queue"
     >
