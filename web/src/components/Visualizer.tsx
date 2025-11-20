@@ -47,7 +47,9 @@ const PresetInfo = styled.div`
   }
 `
 
-const Instructions = styled.div`
+const Instructions = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'isVisible'
+})<{ isVisible: boolean }>`
   position: absolute;
   bottom: 20px;
   right: 20px;
@@ -60,6 +62,8 @@ const Instructions = styled.div`
   pointer-events: none;
   text-align: right;
   line-height: 1.4;
+  opacity: ${props => props.isVisible ? 1 : 0};
+  transition: opacity 0.3s ease;
 `
 
 interface VisualizerProps {
@@ -76,6 +80,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
   
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
   const [showPresetInfo, setShowPresetInfo] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(true)
   
   // Initialize presets list - use useMemo to avoid re-computation
   const presetNames = useMemo(() => {
@@ -193,6 +198,9 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
         case 'Escape':
           onClose()
           break
+        case 'KeyH':
+          setShowInstructions(!showInstructions)
+          break
         case 'ArrowLeft':
           e.preventDefault()
           changePreset('prev')
@@ -214,7 +222,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isVisible, onClose, changePreset])
+  }, [isVisible, onClose, changePreset, showInstructions])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -242,7 +250,8 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
         <small>{currentPresetIndex + 1} / {presetNames.length}</small>
       </PresetInfo>
       
-      <Instructions>
+      <Instructions isVisible={showInstructions}>
+        H - Toggle help<br />
         V or ESC - Exit visualizer<br />
         ← → ↑ ↓ - Change presets<br />
         {presetNames.length} presets available
