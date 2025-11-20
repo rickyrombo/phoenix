@@ -11,6 +11,8 @@ import {
   IconRepeatOff,
   IconArrowsShuffle,
   IconHeart,
+  IconUserPlus,
+  IconUserCheck,
   IconPlaylist,
 } from "@tabler/icons-react"
 
@@ -247,6 +249,12 @@ const FavoriteBtn = styled.button`
   }
 `
 
+const FollowBtn = styled(FavoriteBtn)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`
+
 const QueueBtn = styled(FavoriteBtn)`
   margin-left: 0;
 `
@@ -273,6 +281,10 @@ export default function Player() {
   } = usePlayer()
 
   const [showQueue, setShowQueue] = useState(false)
+
+  // local follow state (replace with real follow logic later)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const toggleFollow = () => setIsFollowing((v) => !v)
 
   const openQueue = () => setShowQueue((s) => !s)
   const handleSelectQueueIndex = (index: number) => {
@@ -397,6 +409,18 @@ export default function Player() {
       </PlayerMain>
 
       <PlayerExtras>
+        <FollowBtn
+          className={isFollowing ? "active" : ""}
+          onClick={toggleFollow}
+          title={isFollowing ? "Unfollow" : "Follow"}
+          aria-label={isFollowing ? "Unfollow" : "Follow"}
+        >
+          {isFollowing ? (
+            <IconUserCheck size={18} stroke={2} />
+          ) : (
+            <IconUserPlus size={18} stroke={2} />
+          )}
+        </FollowBtn>
         <FavoriteBtn
           className={isFavorite ? "active" : ""}
           onClick={toggleFavorite}
