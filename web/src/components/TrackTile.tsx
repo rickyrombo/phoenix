@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import SocialButton from './SocialButton'
+import WaveformPlayer from './WaveformPlayer'
 import { usePlayer } from '../contexts/PlayerContext'
 
 const ContextLine = styled.div`
@@ -84,9 +85,9 @@ const TrackContent = styled.div<{ $isExpanded: boolean }>`
   flex-direction: column;
   padding: 0 1rem;
   min-width: 0;
-  gap: 0.75rem;
+  gap: 0.25rem;
   height: ${props => props.$isExpanded ? 'auto' : '180px'};
-  justify-content: ${props => props.$isExpanded ? 'flex-start' : 'space-between'};
+  justify-content: flex-start;
   transition: all 0.3s ease-out;
 `
 
@@ -192,31 +193,25 @@ const PlayBtn = styled.button`
   }
 `
 
-const WaveformContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 60px;
+const WaveformWrapper = styled.div`
   position: relative;
-  padding: 0.5rem 0;
-  margin-bottom: 24px;
+  padding: 0;
   cursor: pointer;
+  height: 85px;
+  margin-bottom: 8px;
 `
 
-const WaveformBar = styled.div`
-  flex: 1;
-  background: #333333;
-  min-width: 2px;
-  transition: background 0.2s;
-  border-radius: 0;
+const Spacer = styled.div<{ $isExpanded: boolean }>`
+  flex: ${props => props.$isExpanded ? '0' : '1'};
 `
 
 const CommentAvatarsContainer = styled.div`
   position: absolute;
-  bottom: -24px;
+  bottom: -12px;
   left: 0;
   right: 0;
   height: 24px;
+  pointer-events: none;
 `
 
 const CommentMarker = styled.div`
@@ -227,6 +222,7 @@ const CommentMarker = styled.div`
   background: transparent;
   cursor: pointer;
   z-index: 10;
+  pointer-events: auto;
 
   &:hover .comment-tooltip {
     opacity: 1;
@@ -402,6 +398,7 @@ export interface Track {
   description: string
   comments: Comment[]
   waveform: number[]
+  audioData?: Float32Array
   likes?: number
   reposts?: number
   contextType?: 'repost' | 'new'
@@ -480,14 +477,12 @@ export default function TrackTile({ track }: TrackTileProps) {
             <StatItem>🗨 {track.comments.length}</StatItem>
           </TrackStats>
         </TrackHeader>
-        <WaveformContainer onClick={handlePlayToggle}>
-          {track.waveform.map((height, i) => (
-            <WaveformBar 
-              key={i} 
-              className="waveform-bar"
-              style={{ height: `${height}%` }}
-            />
-          ))}
+        <WaveformWrapper>
+          <WaveformPlayer 
+            audioData={track.audioData}
+            isPlaying={isPlaying && isActive}
+            onPlayPause={handlePlayToggle}
+          />
           <CommentAvatarsContainer>
             {track.comments.map((comment, i) => (
               <CommentMarker 
@@ -502,7 +497,7 @@ export default function TrackTile({ track }: TrackTileProps) {
               </CommentMarker>
             ))}
           </CommentAvatarsContainer>
-        </WaveformContainer>
+        </WaveformWrapper>
         {isPlaying && isActive && (
           <CommentInputSection>
             <CommentUserAvatar 
@@ -516,6 +511,7 @@ export default function TrackTile({ track }: TrackTileProps) {
             <CommentSubmit title="Send comment">➤</CommentSubmit>
           </CommentInputSection>
         )}
+        <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
           <ButtonGroup>
             <SocialButton icon="♥" label="Like" title="Like" expanded={isPlaying && isActive} count={track.likes} />
