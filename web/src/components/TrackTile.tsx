@@ -260,26 +260,33 @@ const CommentTooltip = styled.div<{ $isVisible: boolean }>`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 `
 
-const ActiveCommentDisplay = styled.div<{ $isVisible: boolean }>`
-  display: ${props => props.$isVisible ? 'flex' : 'none'};
+const ActiveCommentWrapper = styled.div`
+  position: relative;
+  min-height: 80px;
+  margin-top: 0.5rem;
+  border-top: 1px solid #1a1a1a;
+`
+
+const ActiveCommentDisplay = styled.div<{ $fadingOut: boolean }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0;
-  margin-top: 0.5rem;
-  border-top: 1px solid #1a1a1a;
-  animation: ${props => props.$isVisible ? 'commentAppear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none'};
-
-  @keyframes commentAppear {
-    0% {
+  opacity: ${props => props.$fadingOut ? 0 : 1};
+  transition: opacity 0.4s ease-in-out;
+  animation: fadeIn 0.4s ease-in-out;
+  pointer-events: ${props => props.$fadingOut ? 'none' : 'auto'};
+  
+  @keyframes fadeIn {
+    from {
       opacity: 0;
-      transform: translateX(-20px) scale(0.95);
     }
-    60% {
-      transform: translateX(5px) scale(1.02);
-    }
-    100% {
+    to {
       opacity: 1;
-      transform: translateX(0) scale(1);
     }
   }
 `
@@ -291,38 +298,11 @@ const ActiveCommentAvatar = styled.img`
   object-fit: cover;
   flex-shrink: 0;
   border: 2px solid oklch(71.4% 0.203 305.504);
-  animation: avatarPulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-
-  @keyframes avatarPulse {
-    0% {
-      transform: scale(0);
-      box-shadow: 0 0 0 oklch(71.4% 0.203 305.504 / 0);
-    }
-    50% {
-      box-shadow: 0 0 20px oklch(71.4% 0.203 305.504 / 0.8);
-    }
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 0 oklch(71.4% 0.203 305.504 / 0);
-    }
-  }
 `
 
 const ActiveCommentContent = styled.div`
   flex: 1;
   min-width: 0;
-  animation: contentFadeIn 0.5s ease-out 0.1s both;
-
-  @keyframes contentFadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(5px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
 `
 
 const CommentHeader = styled.div`
@@ -497,68 +477,76 @@ interface TrackTileProps {
   track: Track
 }
 
+interface ActiveComment {
+  commentIndex: number
+  id: number
+  fadingOut: boolean
+}
+
 export default function TrackTile({ track }: TrackTileProps) {
   const { currentTrack, isPlaying, setCurrentTrack, togglePlay, currentTime, duration, seek } = usePlayer()
   const isActive = currentTrack?.id === track.id
-  const [visibleCommentIndex, setVisibleCommentIndex] = useState<number | null>(null)
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const commentShowTimeRef = useRef<number>(0)
-  
-  // Show comments when their timestamp is reached
+  const [activeComments, setActiveComments] = useState<ActiveComment[]>([])
+  const nextCommentIdRef = useRef(0)
+  const lastShownCommentRef = useRef<Map<number, number>>(new Map())
+
   useEffect(() => {
-    if (!isActive || !isPlaying || duration === 0) {
-      return
-    }
+    if (!isActive || !isPlaying || duration === 0) return
 
     const currentProgress = (currentTime / duration) * 100
     
     // Find if we just passed a comment timestamp
     track.comments.forEach((comment, index) => {
       const isAtPosition = currentProgress >= comment.position && currentProgress < comment.position + 0.5
-      // Only show if no comment is currently visible or this is a new comment
-      if (isAtPosition && (visibleCommentIndex === null || visibleCommentIndex !== index)) {
+      
+      // Check if this comment is already being shown
+      const alreadyActive = activeComments.some(ac => ac.commentIndex === index && !ac.fadingOut)
+      
+      if (isAtPosition && !alreadyActive) {
+        const lastShown = lastShownCommentRef.current.get(index) || 0
         const now = Date.now()
-        const timeSinceShown = now - commentShowTimeRef.current
-        const minDisplayTime = 4000 // 4 seconds minimum
         
-        // If a comment is currently visible and hasn't been shown for at least 4 seconds, don't replace it yet
-        if (visibleCommentIndex !== null && timeSinceShown < minDisplayTime) {
+        // Prevent showing the same comment too quickly (at least 4 seconds between shows)
+        if (now - lastShown < 4000) {
           return
         }
         
-        // Clear any existing timeout
-        if (hideTimeoutRef.current) {
-          clearTimeout(hideTimeoutRef.current)
+        lastShownCommentRef.current.set(index, now)
+        
+        // Fade out all existing comments
+        setActiveComments(prev => prev.map(c => ({ ...c, fadingOut: true })))
+        
+        // Remove faded comments after transition completes
+        setTimeout(() => {
+          setActiveComments(prev => prev.filter(c => !c.fadingOut))
+        }, 400)
+        
+        // Add new comment to the stack
+        const commentId = nextCommentIdRef.current++
+        const newComment: ActiveComment = {
+          commentIndex: index,
+          id: commentId,
+          fadingOut: false
         }
         
-        setVisibleCommentIndex(index)
-        commentShowTimeRef.current = now
+        setTimeout(() => {
+          setActiveComments(prev => [...prev, newComment])
+        }, 50)
         
-        // Hide after 10 seconds
-        hideTimeoutRef.current = setTimeout(() => {
-          setVisibleCommentIndex(null)
+        // Start fade-out after 10 seconds
+        setTimeout(() => {
+          setActiveComments(prev => prev.map(c => 
+            c.id === commentId ? { ...c, fadingOut: true } : c
+          ))
+          
+          // Remove completely after fade-out completes
+          setTimeout(() => {
+            setActiveComments(prev => prev.filter(c => c.id !== commentId))
+          }, 400)
         }, 10000)
       }
     })
-  }, [currentTime, duration, isActive, isPlaying, track.comments, visibleCommentIndex])
-  
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hideTimeoutRef.current) {
-        clearTimeout(hideTimeoutRef.current)
-      }
-    }
-  }, [])
-  
-  // Reset visible comment when track stops
-  useEffect(() => {
-    if (!isActive || !isPlaying) {
-      return () => {
-        setVisibleCommentIndex(null)
-      }
-    }
-  }, [isActive, isPlaying])
+  }, [isActive, isPlaying, currentTime, duration, track.comments, activeComments])
   
   const getContextText = () => {
     const action = track.contextType === 'repost' ? 'reposted' : 'uploaded'
@@ -645,36 +633,43 @@ export default function TrackTile({ track }: TrackTileProps) {
             ))}
           </CommentAvatarsContainer>
         </WaveformWrapper>
-        {visibleCommentIndex !== null && (
-          <ActiveCommentDisplay $isVisible={true}>
-            <ActiveCommentAvatar 
-              src={track.comments[visibleCommentIndex].avatar} 
-              alt={track.comments[visibleCommentIndex].user} 
-            />
-            <ActiveCommentContent>
-              <CommentHeader>
-                <CommentUser>{track.comments[visibleCommentIndex].user}</CommentUser>
-                <CommentTimestamp 
-                  onClick={(e) => {
-                    e.preventDefault()
-                    if (duration > 0) {
-                      const seekTime = (track.comments[visibleCommentIndex].position / 100) * duration
-                      seek(seekTime)
-                    }
-                  }}
-                >
-                  @ {(() => {
-                    const position = track.comments[visibleCommentIndex].position
-                    const timeInSeconds = (position / 100) * duration
-                    const mins = Math.floor(timeInSeconds / 60)
-                    const secs = Math.floor(timeInSeconds % 60)
-                    return `${mins}:${secs.toString().padStart(2, '0')}`
-                  })()}
-                </CommentTimestamp>
-              </CommentHeader>
-              <CommentText>{track.comments[visibleCommentIndex].text}</CommentText>
-            </ActiveCommentContent>
-          </ActiveCommentDisplay>
+        {activeComments.length > 0 && (
+          <ActiveCommentWrapper>
+            {activeComments.map((activeComment) => {
+              const comment = track.comments[activeComment.commentIndex]
+              return (
+                <ActiveCommentDisplay key={activeComment.id} $fadingOut={activeComment.fadingOut}>
+                  <ActiveCommentAvatar 
+                    src={comment.avatar} 
+                    alt={comment.user} 
+                  />
+                  <ActiveCommentContent>
+                    <CommentHeader>
+                      <CommentUser>{comment.user}</CommentUser>
+                      <CommentTimestamp 
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (duration > 0) {
+                            const seekTime = (comment.position / 100) * duration
+                            seek(seekTime)
+                          }
+                        }}
+                      >
+                        @ {(() => {
+                          const position = comment.position
+                          const timeInSeconds = (position / 100) * duration
+                          const mins = Math.floor(timeInSeconds / 60)
+                          const secs = Math.floor(timeInSeconds % 60)
+                          return `${mins}:${secs.toString().padStart(2, '0')}`
+                        })()}
+                      </CommentTimestamp>
+                    </CommentHeader>
+                    <CommentText>{comment.text}</CommentText>
+                  </ActiveCommentContent>
+                </ActiveCommentDisplay>
+              )
+            })}
+          </ActiveCommentWrapper>
         )}
         {isPlaying && isActive && (
           <CommentInputSection>
