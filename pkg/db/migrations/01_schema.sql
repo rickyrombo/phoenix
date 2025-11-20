@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS tracks (
     release_date TIMESTAMP WITH TIME ZONE,
     
     -- CIDs and file info
-    cid TEXT,
     track_cid TEXT,
     preview_cid TEXT,
     orig_file_cid TEXT,
@@ -125,6 +124,14 @@ CREATE TABLE IF NOT EXISTS retry_queue (
     signature TEXT PRIMARY KEY,
     transaction JSONB NOT NULL,
     error TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS waveforms (
+    cid TEXT PRIMARY KEY,
+    track_id INT,
+    peaks REAL[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

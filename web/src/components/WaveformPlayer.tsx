@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react'
-import WaveSurfer from 'wavesurfer.js'
-import styled from 'styled-components'
-import { usePlayer } from '../contexts/PlayerContext'
+import { useEffect, useRef } from "react"
+import WaveSurfer from "wavesurfer.js"
+import styled from "styled-components"
+import { usePlayer } from "../contexts/PlayerContext"
 
 const WaveformContainer = styled.div`
   width: 100%;
@@ -21,9 +21,14 @@ interface WaveformPlayerProps {
   isPlaying: boolean
   onPlayPause: () => void
   trackId: number
+  waveform: number[][]
 }
 
-export default function WaveformPlayer({ onPlayPause, trackId }: WaveformPlayerProps) {
+export default function WaveformPlayer({
+  onPlayPause,
+  trackId,
+  waveform,
+}: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
   const { currentTime, duration, currentTrack, seek } = usePlayer()
@@ -34,27 +39,19 @@ export default function WaveformPlayer({ onPlayPause, trackId }: WaveformPlayerP
     if (!containerRef.current) return
 
     // Generate placeholder waveform data
-    const length = 500
-    const peaks = new Float32Array(length)
-    for (let i = 0; i < length; i++) {
-      peaks[i] = Math.random() * 2 - 1
-    }
 
     // Initialize WaveSurfer with peaks directly
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
-      waveColor: '#606060',
-      progressColor: 'oklch(71.4% 0.203 305.504)',
-      cursorColor: 'transparent',
+      waveColor: "#606060",
+      progressColor: "oklch(71.4% 0.203 305.504)",
+      cursorColor: "transparent",
       cursorWidth: 0,
       barWidth: 2,
-      barGap: 1,
-      barRadius: 2,
       height: 80,
-      normalize: true,
       interact: true,
       hideScrollbar: true,
-      peaks: [peaks],
+      peaks: waveform,
       duration: 180,
     })
 
