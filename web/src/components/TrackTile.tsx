@@ -1,11 +1,19 @@
-import styled from 'styled-components'
-import SocialButton from './SocialButton'
-import WaveformPlayer from './WaveformPlayer'
-import ActiveComments from './ActiveComments'
-import { usePlayer } from '../contexts/PlayerContext'
-import { IconPlayerPlay, IconPlayerPause, IconHeart, IconRepeat, IconShare3, IconDownload, IconMessage, IconSend2 } from '@tabler/icons-react'
-import { useState, type ReactNode } from 'react'
-
+import styled from "styled-components"
+import SocialButton from "./SocialButton"
+import WaveformPlayer from "./WaveformPlayer"
+import ActiveComments from "./ActiveComments"
+import { usePlayer } from "../contexts/PlayerContext"
+import {
+  IconPlayerPlay,
+  IconPlayerPause,
+  IconHeart,
+  IconRepeat,
+  IconShare3,
+  IconDownload,
+  IconMessage,
+  IconSend2,
+} from "@tabler/icons-react"
+import { useState, type ReactNode } from "react"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -24,13 +32,17 @@ const Tile = styled.div<{ $isActive: boolean }>`
     border-bottom: none;
   }
 
-  ${props => props.$isActive && `
+  ${(props) =>
+    props.$isActive &&
+    `
     border-bottom-color: oklch(71.4% 0.203 305.504);
     background: transparent;
     box-shadow: none;
   `}
 
-  ${props => props.$isActive && `
+  ${(props) =>
+    props.$isActive &&
+    `
     .waveform-bar {
       background: oklch(71.4% 0.203 305.504);
     }
@@ -55,7 +67,7 @@ const TrackContent = styled.div<{ $isExpanded: boolean }>`
   padding: 0 1rem;
   min-width: 0;
   gap: 0.25rem;
-  height: ${props => props.$isExpanded ? 'auto' : '180px'};
+  height: ${(props) => (props.$isExpanded ? "auto" : "180px")};
   justify-content: flex-start;
   transition: all 0.3s ease-out;
 `
@@ -72,11 +84,11 @@ const TrackDetails = styled.div`
   max-height: 500px;
 
   @keyframes expandDetails {
-    from { 
+    from {
       opacity: 0;
       max-height: 0;
     }
-    to { 
+    to {
       opacity: 1;
       max-height: 500px;
     }
@@ -104,7 +116,7 @@ const TrackInfo = styled.div`
 `
 
 const TrackTitle = styled.h3`
-  font-family: 'Fugaz One', sans-serif;
+  font-family: "Fugaz One", sans-serif;
   font-size: 1.125rem;
   margin: 0 0 0.25rem 0;
   font-weight: 700;
@@ -171,7 +183,7 @@ const WaveformWrapper = styled.div`
 `
 
 const Spacer = styled.div<{ $isExpanded: boolean }>`
-  flex: ${props => props.$isExpanded ? '0' : '1'};
+  flex: ${(props) => (props.$isExpanded ? "0" : "1")};
 `
 
 const CommentAvatarsContainer = styled.div`
@@ -278,7 +290,7 @@ const CommentInput = styled.input`
   border-radius: 0;
   padding: 0.625rem 3.5rem 0.625rem 1rem;
   color: #ffffff;
-  font-family: 'Kode Mono', monospace;
+  font-family: "Kode Mono", monospace;
   font-size: 0.875rem;
   transition: all 0.2s;
 
@@ -370,44 +382,31 @@ export interface Track {
   audioData?: Float32Array
   likes?: number
   reposts?: number
-  contextType?: 'repost' | 'new'
+  contextType?: "repost" | "new"
   contextUser?: string
   contextUserAvatar?: string
   contextTime?: string
 }
 
-
 interface TrackTileProps {
   track: Track
   context?: ReactNode
+  onPlayToggle?: () => void
 }
 
-export default function TrackTile({ track, context }: TrackTileProps) {
-  const { currentTrack, isPlaying, togglePlay, duration, currentTime, setQueue, queue } = usePlayer()
+export default function TrackTile({
+  track,
+  context,
+  onPlayToggle: onPlayToggle,
+}: TrackTileProps) {
+  const { currentTrack, isPlaying, duration, currentTime } = usePlayer()
   const isActive = currentTrack?.id === track.id
-  const [draftCommentPosition, setDraftCommentPosition] = useState<number | null>(null)
-
+  const [draftCommentPosition, setDraftCommentPosition] = useState<
+    number | null
+  >(null)
 
   const handlePlayToggle = () => {
-    if (isActive) {
-      togglePlay()
-    } else {
-      // Find the index of this track in the current queue
-      const trackIndex = queue.findIndex(t => t.id === track.id)
-      
-      if (trackIndex !== -1) {
-        // Track is in queue, just update the index
-        setQueue(queue, trackIndex)
-      } else {
-        // Track not in queue, set it as a single-track queue
-        setQueue([track], 0)
-      }
-      
-      // Always start playing when switching to a new track
-      if (!isPlaying) {
-        togglePlay()
-      }
-    }
+    onPlayToggle?.()
   }
 
   const handleCommentInputFocus = () => {
@@ -422,21 +421,23 @@ export default function TrackTile({ track, context }: TrackTileProps) {
   }
 
   return (
-    <Tile 
-      $isActive={isActive}
-    >
+    <Tile $isActive={isActive}>
       {context}
       <CoverArt src={track.coverArt} alt={track.title} />
       <TrackContent $isExpanded={isPlaying && isActive}>
         <TrackHeader>
           <TrackMainInfo>
-            <PlayBtn 
+            <PlayBtn
               onClick={(e) => {
                 e.stopPropagation()
                 handlePlayToggle()
               }}
             >
-              {isPlaying && isActive ? <IconPlayerPause size={18} stroke={2} /> : <IconPlayerPlay size={18} stroke={2} />}
+              {isPlaying && isActive ? (
+                <IconPlayerPause size={18} stroke={2} />
+              ) : (
+                <IconPlayerPlay size={18} stroke={2} />
+              )}
             </PlayBtn>
             <TrackInfo>
               <TrackTitle>{track.title}</TrackTitle>
@@ -445,12 +446,16 @@ export default function TrackTile({ track, context }: TrackTileProps) {
           </TrackMainInfo>
           <TrackStats>
             <StatItem>{track.duration}</StatItem>
-            <StatItem><IconPlayerPlay size={12} stroke={2} /> {track.plays}</StatItem>
-            <StatItem><IconMessage size={12} stroke={2} /> {track.comments.length}</StatItem>
+            <StatItem>
+              <IconPlayerPlay size={12} stroke={2} /> {track.plays}
+            </StatItem>
+            <StatItem>
+              <IconMessage size={12} stroke={2} /> {track.comments.length}
+            </StatItem>
           </TrackStats>
         </TrackHeader>
         <WaveformWrapper>
-          <WaveformPlayer 
+          <WaveformPlayer
             audioData={track.audioData}
             isPlaying={isPlaying && isActive}
             onPlayPause={handlePlayToggle}
@@ -458,10 +463,7 @@ export default function TrackTile({ track, context }: TrackTileProps) {
           />
           <CommentAvatarsContainer>
             {track.comments.map((comment, i) => (
-              <CommentMarker 
-                key={i} 
-                style={{ left: `${comment.position}%` }}
-              >
+              <CommentMarker key={i} style={{ left: `${comment.position}%` }}>
                 <CommentIndicator src={comment.avatar} alt={comment.user} />
                 <CommentTooltip className="comment-tooltip" $isVisible={false}>
                   <CommentUser>{comment.user}</CommentUser>
@@ -471,37 +473,65 @@ export default function TrackTile({ track, context }: TrackTileProps) {
             ))}
             {draftCommentPosition !== null && (
               <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
-                <CommentIndicator 
-                  src="https://picsum.photos/seed/currentuser/100" 
-                  alt="Your comment" 
+                <CommentIndicator
+                  src="https://picsum.photos/seed/currentuser/100"
+                  alt="Your comment"
                 />
               </CommentMarker>
             )}
           </CommentAvatarsContainer>
         </WaveformWrapper>
-        <ActiveComments comments={track.comments} trackId={track.id} duration={duration} />
+        <ActiveComments
+          comments={track.comments}
+          trackId={track.id}
+          duration={duration}
+        />
         {isPlaying && isActive && (
           <CommentInputSection>
-            <CommentUserAvatar 
-              src="https://picsum.photos/seed/currentuser/100" 
-              alt="You" 
+            <CommentUserAvatar
+              src="https://picsum.photos/seed/currentuser/100"
+              alt="You"
             />
-            <CommentInput 
-              type="text" 
+            <CommentInput
+              type="text"
               placeholder="Add a comment..."
               onFocus={handleCommentInputFocus}
               onBlur={handleCommentInputBlur}
             />
-            <CommentSubmit title="Send comment"><IconSend2 size={16} stroke={2} /></CommentSubmit>
+            <CommentSubmit title="Send comment">
+              <IconSend2 size={16} stroke={2} />
+            </CommentSubmit>
           </CommentInputSection>
         )}
         <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
           <ButtonGroup>
-            <SocialButton icon={<IconHeart size={16} stroke={2} />} label="Like" title="Like" expanded={isPlaying && isActive} count={track.likes} />
-            <SocialButton icon={<IconRepeat size={16} stroke={2} />} label="Repost" title="Repost" expanded={isPlaying && isActive} count={track.reposts} />
-            <SocialButton icon={<IconShare3 size={16} stroke={2} />} label="Share" title="Share" expanded={isPlaying && isActive} />
-            <SocialButton icon={<IconDownload size={16} stroke={2} />} label="Download" title="Download" expanded={isPlaying && isActive} />
+            <SocialButton
+              icon={<IconHeart size={16} stroke={2} />}
+              label="Like"
+              title="Like"
+              expanded={isPlaying && isActive}
+              count={track.likes}
+            />
+            <SocialButton
+              icon={<IconRepeat size={16} stroke={2} />}
+              label="Repost"
+              title="Repost"
+              expanded={isPlaying && isActive}
+              count={track.reposts}
+            />
+            <SocialButton
+              icon={<IconShare3 size={16} stroke={2} />}
+              label="Share"
+              title="Share"
+              expanded={isPlaying && isActive}
+            />
+            <SocialButton
+              icon={<IconDownload size={16} stroke={2} />}
+              label="Download"
+              title="Download"
+              expanded={isPlaying && isActive}
+            />
           </ButtonGroup>
           <TrackHost>served by {track.host}</TrackHost>
         </TrackFooter>

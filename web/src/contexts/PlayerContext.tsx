@@ -1,7 +1,14 @@
-import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react'
-import type { Track } from '../components/TrackTile'
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  type ReactNode,
+} from "react"
+import type { Track } from "../components/TrackTile"
 
-type RepeatMode = 'off' | 'one' | 'all'
+type RepeatMode = "off" | "one" | "all"
 
 interface PlayerContextType {
   currentTrack: Track | null
@@ -10,7 +17,7 @@ interface PlayerContextType {
   duration: number
   volume: number
   audioElement: HTMLAudioElement | null
-  queue: Track[]
+  queue: Queue
   currentIndex: number
   repeatMode: RepeatMode
   shuffle: boolean
@@ -19,11 +26,18 @@ interface PlayerContextType {
   togglePlay: () => void
   seek: (time: number) => void
   setVolume: (volume: number) => void
-  setQueue: (tracks: Track[], startIndex?: number) => void
+  setQueue: (queue: Queue) => void
   playNext: () => void
   playPrevious: () => void
   setRepeatMode: (mode: RepeatMode) => void
   toggleShuffle: () => void
+}
+
+interface Queue {
+  tracks: Track[]
+  currentIndex: number
+  name: string
+  source: string
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined)
@@ -34,16 +48,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.7)
-  const [queue, setQueueState] = useState<Track[]>([])
+  const [queue, setQueueState] = useState<Queue>({
+    tracks: [],
+    currentIndex: -1,
+    name: "",
+    source: "",
+  })
   const [currentIndex, setCurrentIndex] = useState(-1)
-  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off')
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>("off")
   const [shuffle, setShuffle] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(new Audio())
 
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio()
-    audio.crossOrigin = 'anonymous' // Enable CORS for Web Audio API
+    audio.crossOrigin = "anonymous" // Enable CORS for Web Audio API
     audio.volume = volume
     audioRef.current = audio
 
@@ -55,36 +74,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setDuration(audio.duration)
     }
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('durationchange', handleDurationChange)
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('durationchange', handleDurationChange)
-      audio.pause()
-      audio.src = ''
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Handle track ended - separate effect to capture current state
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
     const handleEnded = () => {
       // Handle repeat one mode
-      if (repeatMode === 'one') {
+      if (repeatMode === "one") {
         audio.currentTime = 0
-        audio.play().catch(err => console.error('Playback error:', err))
+        audio.play().catch((err) => console.error("Playback error:", err))
         return
       }
 
       // Try to play next track
-      const hasNext = currentIndex < queue.length - 1
+      const hasNext = currentIndex < queue.tracks.length - 1
       if (hasNext) {
         setCurrentIndex(currentIndex + 1)
-      } else if (repeatMode === 'all' && queue.length > 0) {
+      } else if (repeatMode === "all" && queue.tracks.length > 0) {
         setCurrentIndex(0)
       } else {
         setIsPlaying(false)
@@ -92,17 +94,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    audio.addEventListener('ended', handleEnded)
+    audio.addEventListener("timeupdate", handleTimeUpdate)
+    audio.addEventListener("durationchange", handleDurationChange)
+    audio.addEventListener("ended", handleEnded)
 
     return () => {
-      audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener("timeupdate", handleTimeUpdate)
+      audio.removeEventListener("durationchange", handleDurationChange)
+      audio.removeEventListener("ended", handleEnded)
+      audio.pause()
+      audio.src = ""
     }
-  }, [repeatMode, currentIndex, queue])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync current track with queue index
   useEffect(() => {
-    if (currentIndex >= 0 && currentIndex < queue.length) {
-      setCurrentTrack(queue[currentIndex])
+    if (currentIndex >= 0 && currentIndex < queue.tracks.length) {
+      setCurrentTrack(queue.tracks[currentIndex])
     }
   }, [currentIndex, queue])
 
@@ -119,11 +128,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const wasPlaying = isPlaying
       audioRef.current.src = currentTrack.audioUrl
       audioRef.current.load()
-      
+
       // If was playing, auto-play the new track
       if (wasPlaying) {
-        audioRef.current.play().catch(err => {
-          console.error('Playback error:', err)
+        audioRef.current.play().catch((err) => {
+          console.error("Playback error:", err)
           setIsPlaying(false)
         })
       }
@@ -135,8 +144,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        audioRef.current.play().catch(err => {
-          console.error('Playback error:', err)
+        audioRef.current.play().catch((err) => {
+          console.error("Playback error:", err)
           setIsPlaying(false)
         })
       } else {
@@ -160,15 +169,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolume(Math.max(0, Math.min(1, newVolume)))
   }
 
-  const setQueue = (tracks: Track[], startIndex: number = 0) => {
-    setQueueState(tracks)
-    setCurrentIndex(startIndex)
+  const setQueue = (queue: Queue) => {
+    setQueueState(queue)
+    setCurrentIndex(queue.currentIndex)
   }
 
   const playNext = () => {
-    if (currentIndex < queue.length - 1) {
+    if (currentIndex < queue.tracks.length - 1) {
       setCurrentIndex(currentIndex + 1)
-    } else if (repeatMode === 'all' && queue.length > 0) {
+    } else if (repeatMode === "all" && queue.tracks.length > 0) {
       setCurrentIndex(0)
     }
   }
@@ -179,8 +188,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       seek(0)
     } else if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1)
-    } else if (repeatMode === 'all' && queue.length > 0) {
-      setCurrentIndex(queue.length - 1)
+    } else if (repeatMode === "all" && queue.tracks.length > 0) {
+      setCurrentIndex(queue.tracks.length - 1)
     }
   }
 
@@ -189,10 +198,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <PlayerContext.Provider 
-      value={{ 
-        currentTrack, 
-        isPlaying, 
+    <PlayerContext.Provider
+      value={{
+        currentTrack,
+        isPlaying,
         currentTime,
         duration,
         volume,
@@ -201,7 +210,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         currentIndex,
         repeatMode,
         shuffle,
-        setCurrentTrack, 
+        setCurrentTrack,
         setIsPlaying,
         togglePlay,
         seek,
@@ -210,7 +219,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playNext,
         playPrevious,
         setRepeatMode,
-        toggleShuffle
+        toggleShuffle,
       }}
     >
       {children}
@@ -222,7 +231,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 export function usePlayer() {
   const context = useContext(PlayerContext)
   if (context === undefined) {
-    throw new Error('usePlayer must be used within a PlayerProvider')
+    throw new Error("usePlayer must be used within a PlayerProvider")
   }
   return context
 }

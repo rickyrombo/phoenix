@@ -1,10 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
-import styled from 'styled-components'
-import TrackTile from '../components/TrackTile'
-import { FeedTrackContext } from '../components/TrackTileContext'
-import { feedTracks } from '../data/tracks'
-import { usePlayer } from '../contexts/PlayerContext'
-import { useEffect } from 'react'
+import { createFileRoute } from "@tanstack/react-router"
+import styled from "styled-components"
+import TrackTile from "../components/TrackTile"
+import { FeedTrackContext } from "../components/TrackTileContext"
+import { feedTracks } from "../data/tracks"
+import { usePlayer } from "../contexts/PlayerContext"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -12,7 +11,7 @@ const PageContainer = styled.main`
 `
 
 const PageTitle = styled.h1`
-  font-family: 'Fugaz One', sans-serif;
+  font-family: "Fugaz One", sans-serif;
   font-size: 2rem;
   margin: 0 0 2rem 0;
   letter-spacing: 2px;
@@ -26,28 +25,28 @@ const TracksGrid = styled.div`
 `
 
 function FeedPage() {
-  const { setQueue, queue, isPlaying } = usePlayer()
-
-  // Set queue when component mounts only if queue is empty or different AND not playing
-  useEffect(() => {
-    const feedTrackIds = feedTracks.map(t => t.id).join(',')
-    const currentQueueIds = queue.map(t => t.id).join(',')
-    
-    // Only update queue if it's different AND we're not currently playing
-    if (feedTrackIds !== currentQueueIds && !isPlaying) {
-      setQueue(feedTracks)
-    }
-  }, [setQueue, queue, isPlaying])
+  const { setQueue, queue, isPlaying, togglePlay } = usePlayer()
 
   return (
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        {feedTracks.map((track) => (
+        {feedTracks.map((track, i) => (
           <TrackTile
             key={track.id}
             track={track}
             context={<FeedTrackContext {...track} />}
+            onPlayToggle={() => {
+              setQueue({
+                tracks: feedTracks,
+                currentIndex: i,
+                name: "Feed",
+                source: "feed",
+              })
+              if (!isPlaying || queue.currentIndex === i) {
+                togglePlay()
+              }
+            }}
           />
         ))}
       </TracksGrid>
@@ -55,6 +54,6 @@ function FeedPage() {
   )
 }
 
-export const Route = createFileRoute('/')({
-  component: FeedPage
+export const Route = createFileRoute("/")({
+  component: FeedPage,
 })
