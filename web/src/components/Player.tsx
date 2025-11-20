@@ -33,6 +33,13 @@ const PlayerArtwork = styled.div`
   background: #333333;
   border-radius: 0;
   flex-shrink: 0;
+  overflow: hidden;
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `
 
 const PlayerDetails = styled.div`
@@ -232,7 +239,9 @@ export default function Player() {
   return (
     <PlayerFooter>
       <PlayerTrackInfo>
-        <PlayerArtwork></PlayerArtwork>
+        <PlayerArtwork>
+          {currentTrack && <img src={currentTrack.coverArt} alt={currentTrack.title} />}
+        </PlayerArtwork>
         <PlayerDetails>
           <PlayerTitle>{currentTrack?.title || 'No track selected'}</PlayerTitle>
           <PlayerArtist>{currentTrack?.artist || 'Select a track to play'}</PlayerArtist>
