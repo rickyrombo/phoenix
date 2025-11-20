@@ -64,7 +64,7 @@ const TrackContent = styled.div<{ $isExpanded: boolean }>`
   grid-row: 2;
   display: flex;
   flex-direction: column;
-  padding: 0 1rem;
+  padding: 0 0 0 1rem;
   min-width: 0;
   gap: 0.25rem;
   min-height: ${(props) => (props.$isExpanded ? "auto" : "180px")};

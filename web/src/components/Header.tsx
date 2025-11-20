@@ -1,4 +1,4 @@
-import styled from 'styled-components'
+import styled from "styled-components"
 
 const StyledHeader = styled.header`
   height: 60px;
@@ -29,7 +29,7 @@ const SearchInput = styled.input`
   border: 1px solid #333333;
   border-radius: 0;
   color: #ffffff;
-  font-family: 'Kode Mono', monospace;
+  font-family: "Kode Mono", monospace;
   font-size: 0.875rem;
   transition: all 0.2s;
 
@@ -52,8 +52,8 @@ const HeaderRight = styled.div`
 
 const Button = styled.button<{ $primary?: boolean }>`
   padding: 0.625rem 1.25rem;
-  border-radius: 0;
-  font-family: 'Kode Mono', monospace;
+  border-radius: 4px;
+  font-family: "Kode Mono", monospace;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
@@ -61,12 +61,16 @@ const Button = styled.button<{ $primary?: boolean }>`
   text-transform: uppercase;
   letter-spacing: 1px;
   border: 2px solid oklch(71.4% 0.203 305.504);
-  background: ${props => props.$primary ? 'oklch(71.4% 0.203 305.504)' : 'transparent'};
-  color: ${props => props.$primary ? '#000000' : 'oklch(71.4% 0.203 305.504)'};
+  background: ${(props) =>
+    props.$primary ? "oklch(71.4% 0.203 305.504)" : "transparent"};
+  color: ${(props) =>
+    props.$primary ? "#000000" : "oklch(71.4% 0.203 305.504)"};
 
   &:hover {
-    background: ${props => props.$primary ? 'transparent' : 'oklch(71.4% 0.203 305.504)'};
-    color: ${props => props.$primary ? 'oklch(71.4% 0.203 305.504)' : '#000000'};
+    background: ${(props) =>
+      props.$primary ? "transparent" : "oklch(71.4% 0.203 305.504)"};
+    color: ${(props) =>
+      props.$primary ? "oklch(71.4% 0.203 305.504)" : "#000000"};
     box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
   }
 
@@ -86,8 +90,8 @@ export default function Header({ onSearch }: HeaderProps) {
       <HeaderCenter>
         <SearchBar>
           <SearchInput
-            type="text" 
-            placeholder="Search tracks, artists, playlists..." 
+            type="text"
+            placeholder="Search tracks, artists, playlists..."
             onChange={(e) => onSearch?.(e.target.value)}
           />
         </SearchBar>
