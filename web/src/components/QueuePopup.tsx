@@ -17,6 +17,20 @@ const Popup = styled.div`
   border-radius: 6px;
 `
 
+const Header = styled.div`
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1a1a1a;
+  margin-bottom: 0.25rem;
+  color: #eee;
+  font-family:
+    "Fugaz One", "Kode Mono", ui-monospace, "Cascadia Code", "Source Code Pro",
+    Menlo, Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.875rem;
+`
+
 const Item = styled.div<{ $active?: boolean }>`
   display: flex;
   gap: 0.75rem;
@@ -43,6 +57,9 @@ const Meta = styled.div`
 
 const Title = styled.div`
   font-size: 0.9rem;
+  font-family:
+    "Kode Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+    Consolas, monospace;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -72,6 +89,7 @@ export default function QueuePopup({
 
   return (
     <Popup>
+      <Header>Queue</Header>
       {queue.tracks.map((t, idx) => (
         <Item
           key={t.id ?? idx}
