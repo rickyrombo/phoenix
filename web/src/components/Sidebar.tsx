@@ -3,7 +3,7 @@ import SidebarIcon from './SidebarIcon'
 
 const StyledSidebar = styled.nav<{ $isCollapsed: boolean }>`
   width: ${props => props.$isCollapsed ? '80px' : '240px'};
-  background: #0a0a0a;
+  background: #101010;
   overflow-y: auto;
   transition: width 0.3s ease, box-shadow 0.3s ease;
   position: relative;

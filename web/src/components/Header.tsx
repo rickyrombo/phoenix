@@ -2,7 +2,7 @@ import styled from 'styled-components'
 
 const StyledHeader = styled.header`
   height: 60px;
-  background: #0a0a0a;
+  background: #101010;
   display: flex;
   align-items: center;
   justify-content: space-between;

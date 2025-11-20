@@ -4,7 +4,7 @@ import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForw
 
 const PlayerFooter = styled.footer`
   height: 90px;
-  background: #0a0a0a;
+  background: #101010;
   display: flex;
   align-items: center;
   justify-content: center;
