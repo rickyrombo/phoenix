@@ -412,11 +412,14 @@ export interface Track {
   contextTime?: string
 }
 
+import { ReactNode } from 'react'
+
 interface TrackTileProps {
   track: Track
+  context?: ReactNode
 }
 
-export default function TrackTile({ track }: TrackTileProps) {
+export default function TrackTile({ track, context }: TrackTileProps) {
   const { currentTrack, isPlaying, togglePlay, duration, currentTime, setQueue, queue } = usePlayer()
   const isActive = currentTrack?.id === track.id
   const [draftCommentPosition, setDraftCommentPosition] = useState<number | null>(null)
@@ -463,25 +466,7 @@ export default function TrackTile({ track }: TrackTileProps) {
     <Tile 
       $isActive={isActive}
     >
-      {track.contextType && track.contextUser && (
-        <ContextLine>
-          {track.contextType === 'repost' ? (
-            <>
-              <ContextLeft>
-                <ContextIcon><IconRepeat size={14} stroke={2} /></ContextIcon>
-                <ContextAvatar src={track.contextUserAvatar} alt={track.contextUser} />
-                <span>{getContextText()}</span>
-              </ContextLeft>
-              <ContextTime>{track.contextTime}</ContextTime>
-            </>
-          ) : (
-            <>
-              <div></div>
-              <ContextTime>{track.contextTime}</ContextTime>
-            </>
-          )}
-        </ContextLine>
-      )}
+      {context}
       <CoverArt src={track.coverArt} alt={track.title} />
       <TrackContent $isExpanded={isPlaying && isActive}>
         <TrackHeader>

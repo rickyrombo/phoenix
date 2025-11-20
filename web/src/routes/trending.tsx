@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import styled from 'styled-components'
 import TrackTile from '../components/TrackTile'
+import { TrendingTrackContext } from '../components/TrackTileContext'
 import { trendingTracks } from '../data/tracks'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useEffect } from 'react'
@@ -42,10 +43,11 @@ function TrendingPage() {
     <PageContainer>
       <PageTitle>Trending</PageTitle>
       <TracksGrid>
-        {trendingTracks.map((track) => (
+        {trendingTracks.map((track, idx) => (
           <TrackTile
             key={track.id}
             track={track}
+            context={<TrendingTrackContext ranking={idx + 1} />}
           />
         ))}
       </TracksGrid>

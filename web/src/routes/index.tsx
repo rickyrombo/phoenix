@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import styled from 'styled-components'
 import TrackTile from '../components/TrackTile'
+import { FeedTrackContext } from '../components/TrackTileContext'
 import { feedTracks } from '../data/tracks'
 import { usePlayer } from '../contexts/PlayerContext'
 import { useEffect } from 'react'
@@ -46,6 +47,7 @@ function FeedPage() {
           <TrackTile
             key={track.id}
             track={track}
+            context={<FeedTrackContext {...track} />}
           />
         ))}
       </TracksGrid>
