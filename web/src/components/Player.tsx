@@ -1,6 +1,6 @@
 import styled from 'styled-components'
 import { usePlayer } from '../contexts/PlayerContext'
-import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react'
+import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForward, IconRepeat, IconRepeatOff, IconArrowsShuffle } from '@tabler/icons-react'
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -79,13 +79,13 @@ const PlayerControls = styled.div`
   gap: 1rem;
 `
 
-const ControlBtn = styled.button`
+const ControlBtn = styled.button<{ $isActive?: boolean }>`
   width: 32px;
   height: 32px;
   border-radius: 0;
   background: transparent;
   border: none;
-  color: #808080;
+  color: ${props => props.$isActive ? 'oklch(71.4% 0.203 305.504)' : '#808080'};
   font-size: 1.125rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -214,7 +214,22 @@ const VolumeSlider = styled.input`
 `
 
 export default function Player() {
-  const { currentTrack, isPlaying, togglePlay, currentTime, duration, volume, seek, setVolume } = usePlayer()
+  const { 
+    currentTrack, 
+    isPlaying, 
+    togglePlay, 
+    currentTime, 
+    duration, 
+    volume, 
+    seek, 
+    setVolume,
+    playNext,
+    playPrevious,
+    repeatMode,
+    setRepeatMode,
+    shuffle,
+    toggleShuffle
+  } = usePlayer()
 
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds)) return '0:00'
@@ -235,6 +250,13 @@ export default function Player() {
     setVolume(Number(e.target.value) / 100)
   }
 
+  const handleRepeatClick = () => {
+    const modes = ['off', 'all', 'one'] as const
+    const currentIndex = modes.indexOf(repeatMode)
+    const nextMode = modes[(currentIndex + 1) % modes.length]
+    setRepeatMode(nextMode)
+  }
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
@@ -251,11 +273,37 @@ export default function Player() {
       
       <PlayerMain>
         <PlayerControls>
-          <ControlBtn><IconPlayerSkipBack size={18} stroke={2} /></ControlBtn>
+          <ControlBtn 
+            onClick={toggleShuffle} 
+            $isActive={shuffle}
+            title={shuffle ? 'Shuffle on' : 'Shuffle off'}
+          >
+            <IconArrowsShuffle size={18} stroke={2} />
+          </ControlBtn>
+          <ControlBtn onClick={playPrevious} title="Previous track">
+            <IconPlayerSkipBack size={18} stroke={2} />
+          </ControlBtn>
           <ControlBtnMain onClick={togglePlay}>
             {isPlaying ? <IconPlayerPause size={20} stroke={2} /> : <IconPlayerPlay size={20} stroke={2} />}
           </ControlBtnMain>
-          <ControlBtn><IconPlayerSkipForward size={18} stroke={2} /></ControlBtn>
+          <ControlBtn onClick={playNext} title="Next track">
+            <IconPlayerSkipForward size={18} stroke={2} />
+          </ControlBtn>
+          <ControlBtn 
+            onClick={handleRepeatClick}
+            $isActive={repeatMode !== 'off'}
+            title={repeatMode === 'off' ? 'Repeat off' : repeatMode === 'all' ? 'Repeat all' : 'Repeat one'}
+          >
+            {repeatMode === 'one' ? (
+              <IconRepeat size={18} stroke={2} style={{ position: 'relative' }}>
+                <text x="50%" y="50%" fontSize="10" fill="currentColor" textAnchor="middle" dy=".3em">1</text>
+              </IconRepeat>
+            ) : repeatMode === 'off' ? (
+              <IconRepeatOff size={18} stroke={2} />
+            ) : (
+              <IconRepeat size={18} stroke={2} />
+            )}
+          </ControlBtn>
         </PlayerControls>
         
         <ProgressBar>

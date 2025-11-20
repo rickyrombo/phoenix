@@ -55,6 +55,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setDuration(audio.duration)
     }
 
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('durationchange', handleDurationChange)
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('durationchange', handleDurationChange)
+      audio.pause()
+      audio.src = ''
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Handle track ended - separate effect to capture current state
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
     const handleEnded = () => {
       // Handle repeat one mode
       if (repeatMode === 'one') {
@@ -75,19 +92,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    audio.addEventListener('durationchange', handleDurationChange)
     audio.addEventListener('ended', handleEnded)
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
-      audio.removeEventListener('durationchange', handleDurationChange)
       audio.removeEventListener('ended', handleEnded)
-      audio.pause()
-      audio.src = ''
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [repeatMode, currentIndex, queue])
 
   // Sync current track with queue index
   useEffect(() => {
