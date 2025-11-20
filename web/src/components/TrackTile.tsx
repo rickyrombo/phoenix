@@ -3,6 +3,7 @@ import SocialButton from './SocialButton'
 import WaveformPlayer from './WaveformPlayer'
 import ActiveComments from './ActiveComments'
 import { usePlayer } from '../contexts/PlayerContext'
+import { IconPlayerPlay, IconPlayerPause, IconHeart, IconRepeat, IconShare3, IconDownload, IconMessage, IconSend2 } from '@tabler/icons-react'
 import { useState } from 'react'
 
 const ContextLine = styled.div`
@@ -36,7 +37,9 @@ const ContextAvatar = styled.img`
 `
 
 const ContextIcon = styled.span`
-  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.8;
 `
 
@@ -455,7 +458,7 @@ export default function TrackTile({ track }: TrackTileProps) {
           {track.contextType === 'repost' ? (
             <>
               <ContextLeft>
-                <ContextIcon>↻</ContextIcon>
+                <ContextIcon><IconRepeat size={14} stroke={2} /></ContextIcon>
                 <ContextAvatar src={track.contextUserAvatar} alt={track.contextUser} />
                 <span>{getContextText()}</span>
               </ContextLeft>
@@ -479,7 +482,7 @@ export default function TrackTile({ track }: TrackTileProps) {
                 handlePlayToggle()
               }}
             >
-              {isPlaying && isActive ? '⏸' : '▶'}
+              {isPlaying && isActive ? <IconPlayerPause size={18} stroke={2} /> : <IconPlayerPlay size={18} stroke={2} />}
             </PlayBtn>
             <TrackInfo>
               <TrackTitle>{track.title}</TrackTitle>
@@ -488,8 +491,8 @@ export default function TrackTile({ track }: TrackTileProps) {
           </TrackMainInfo>
           <TrackStats>
             <StatItem>{track.duration}</StatItem>
-            <StatItem>▶ {track.plays}</StatItem>
-            <StatItem>🗨 {track.comments.length}</StatItem>
+            <StatItem><IconPlayerPlay size={12} stroke={2} /> {track.plays}</StatItem>
+            <StatItem><IconMessage size={12} stroke={2} /> {track.comments.length}</StatItem>
           </TrackStats>
         </TrackHeader>
         <WaveformWrapper>
@@ -535,18 +538,18 @@ export default function TrackTile({ track }: TrackTileProps) {
               onFocus={handleCommentInputFocus}
               onBlur={handleCommentInputBlur}
             />
-            <CommentSubmit title="Send comment">➤</CommentSubmit>
+            <CommentSubmit title="Send comment"><IconSend2 size={16} stroke={2} /></CommentSubmit>
           </CommentInputSection>
         )}
         <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
           <ButtonGroup>
-            <SocialButton icon="♥" label="Like" title="Like" expanded={isPlaying && isActive} count={track.likes} />
-            <SocialButton icon="↻" label="Repost" title="Repost" expanded={isPlaying && isActive} count={track.reposts} />
-            <SocialButton icon="⤴" label="Share" title="Share" expanded={isPlaying && isActive} />
-            <SocialButton icon="↓" label="Download" title="Download" expanded={isPlaying && isActive} />
+            <SocialButton icon={<IconHeart size={16} stroke={2} />} label="Like" title="Like" expanded={isPlaying && isActive} count={track.likes} />
+            <SocialButton icon={<IconRepeat size={16} stroke={2} />} label="Repost" title="Repost" expanded={isPlaying && isActive} count={track.reposts} />
+            <SocialButton icon={<IconShare3 size={16} stroke={2} />} label="Share" title="Share" expanded={isPlaying && isActive} />
+            <SocialButton icon={<IconDownload size={16} stroke={2} />} label="Download" title="Download" expanded={isPlaying && isActive} />
           </ButtonGroup>
-          <TrackHost>hosted on {track.host}</TrackHost>
+          <TrackHost>served by {track.host}</TrackHost>
         </TrackFooter>
       </TrackContent>
       {isPlaying && isActive && (

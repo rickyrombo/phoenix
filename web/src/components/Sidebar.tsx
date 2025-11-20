@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import SidebarIcon from './SidebarIcon'
 
 const StyledSidebar = styled.nav<{ $isCollapsed: boolean }>`
   width: ${props => props.$isCollapsed ? '80px' : '240px'};
@@ -69,13 +70,15 @@ const NavItem = styled.li<{ $isCollapsed: boolean }>`
   }
 `
 
-const NavIcon = styled.span`
-  font-size: 1.125rem;
-  color: #606060;
-  opacity: 0.7;
-  width: 1.5rem;
-  text-align: center;
+const NavIcon = styled.div`
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: #808080;
+  font-size: 1.5rem;
 `
 
 const NavLabel = styled.span<{ $isCollapsed: boolean }>`
@@ -110,7 +113,9 @@ export default function Sidebar({ navItems, isCollapsed, onToggle }: SidebarProp
       <NavList>
         {navItems.map((item, index) => (
           <NavItem key={index} $isCollapsed={isCollapsed}>
-            <NavIcon>{item.icon}</NavIcon>
+            <NavIcon>
+              <SidebarIcon name={item.icon} size={24} />
+            </NavIcon>
             <NavLabel $isCollapsed={isCollapsed}>{item.label}</NavLabel>
           </NavItem>
         ))}

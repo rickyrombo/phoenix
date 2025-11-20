@@ -4,7 +4,7 @@ const Button = styled.button<{ $expanded: boolean }>`
   background: transparent;
   border: 1px solid #333333;
   color: #808080;
-  padding: ${props => props.$expanded ? '0rem 0.75rem' : '0 0.375rem'};
+  padding: ${props => props.$expanded ? '0.25rem 0.75rem' : '0.25rem 0.375rem'};
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -22,20 +22,27 @@ const Button = styled.button<{ $expanded: boolean }>`
 `
 
 const Icon = styled.span`
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 `
 
 const Label = styled.span<{ $expanded: boolean }>`
   display: ${props => props.$expanded ? 'inline' : 'none'};
+  line-height: 1;
 `
 
 const Count = styled.span`
   font-size: 0.75rem;
   opacity: 0.8;
+  line-height: 1;
 `
 
+import type { ReactNode } from 'react'
+
 interface SocialButtonProps {
-  icon: string
+  icon: ReactNode
   label: string
   title: string
   expanded: boolean

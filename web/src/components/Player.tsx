@@ -1,5 +1,6 @@
 import styled from 'styled-components'
 import { usePlayer } from '../contexts/PlayerContext'
+import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForward } from '@tabler/icons-react'
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -250,11 +251,11 @@ export default function Player() {
       
       <PlayerMain>
         <PlayerControls>
-          <ControlBtn>⏮</ControlBtn>
+          <ControlBtn><IconPlayerSkipBack size={18} stroke={2} /></ControlBtn>
           <ControlBtnMain onClick={togglePlay}>
-            {isPlaying ? '⏸' : '▶'}
+            {isPlaying ? <IconPlayerPause size={20} stroke={2} /> : <IconPlayerPlay size={20} stroke={2} />}
           </ControlBtnMain>
-          <ControlBtn>⏭</ControlBtn>
+          <ControlBtn><IconPlayerSkipForward size={18} stroke={2} /></ControlBtn>
         </PlayerControls>
         
         <ProgressBar>

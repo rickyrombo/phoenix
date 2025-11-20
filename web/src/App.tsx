@@ -94,40 +94,8 @@ function App() {
   }, [])
 
   // Mock track data
-  // Generate 100 dummy comments for testing
-  const generateComments = () => {
-    const users = ['MusicFan', 'BeatLover', 'SoundWave', 'AudioPhile', 'MixMaster', 'TrackStar', 'VibeCheck', 'Groover', 'Melody', 'Rhythm'];
-    const texts = [
-      'This is fire!',
-      'Absolutely love this',
-      'On repeat!',
-      'Best track ever',
-      'Amazing production',
-      'The drop is insane',
-      'Can\'t stop listening',
-      'Masterpiece',
-      'Incredible vibes',
-      'This hits different',
-      'Pure gold',
-      'So good!',
-      'What a banger',
-      'Love the energy',
-      'This is everything'
-    ];
-    
-    const comments = [];
-    for (let i = 0; i < 100; i++) {
-      const user = `${users[i % users.length]}${Math.floor(i / users.length) + 1}`;
-      const text = texts[i % texts.length];
-      const position = i; // Spread comments evenly across 0-100%
-      const avatar = `https://picsum.photos/seed/user${i}/100`;
-      comments.push({ user, text, position, avatar });
-    }
-    return comments;
-  };
-
   const tracks: Track[] = [
-    { id: 1, title: 'Summer Vibes', artist: 'DJ Alex', duration: '3:45', plays: '1.2M', coverArt: 'https://picsum.photos/seed/summer/200', host: 'creatornode.audius.co', description: 'A laid-back summer anthem with tropical house influences and sunset vibes.', comments: generateComments(), waveform: [12, 18, 24, 32, 28, 35, 42, 38, 45, 52, 48, 55, 62, 58, 65, 70, 68, 72, 75, 70, 65, 60, 55, 50, 45, 40, 38, 42, 48, 52, 48, 45, 40, 35, 30, 28, 32, 38, 42, 38, 35, 30, 25, 22, 18, 15, 12, 10, 8, 12], audioUrl: 'https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D', likes: 342, reposts: 89, contextType: 'repost', contextUser: 'TropicalBeats', contextUserAvatar: 'https://picsum.photos/seed/tropical/100', contextTime: '9 min ago' },
+    { id: 1, title: 'Summer Vibes', artist: 'DJ Alex', duration: '3:45', plays: '1.2M', coverArt: 'https://picsum.photos/seed/summer/200', host: 'creatornode.audius.co', description: 'A laid-back summer anthem with tropical house influences and sunset vibes.', comments: [{user: 'MusicFan22', text: 'Perfect for beach days!', position: 15, avatar: 'https://picsum.photos/seed/fan22/100'}, {user: 'SoundLover', text: 'This production is incredible', position: 35, avatar: 'https://picsum.photos/seed/soundlover/100'}, {user: 'BeachVibes', text: 'On repeat all summer', position: 72, avatar: 'https://picsum.photos/seed/beachvibes/100'}], waveform: [12, 18, 24, 32, 28, 35, 42, 38, 45, 52, 48, 55, 62, 58, 65, 70, 68, 72, 75, 70, 65, 60, 55, 50, 45, 40, 38, 42, 48, 52, 48, 45, 40, 35, 30, 28, 32, 38, 42, 38, 35, 30, 25, 22, 18, 15, 12, 10, 8, 12], audioUrl: 'https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D', likes: 342, reposts: 89, contextType: 'repost', contextUser: 'TropicalBeats', contextUserAvatar: 'https://picsum.photos/seed/tropical/100', contextTime: '9 min ago' },
     { id: 2, title: 'Night Drive', artist: 'Luna Wave', duration: '4:12', plays: '850K', coverArt: 'https://picsum.photos/seed/night/200', host: 'audius-cn1.tikilabs.com', description: 'Moody synth-wave track inspired by late night city cruises and neon lights.', comments: [{user: 'RetroWave', text: 'That bassline hits different', position: 22, avatar: 'https://picsum.photos/seed/retrowave/100'}, {user: 'NightOwl', text: 'My new driving playlist staple', position: 45, avatar: 'https://picsum.photos/seed/nightowl/100'}, {user: 'SynthLover', text: 'Neon dreams', position: 68, avatar: 'https://picsum.photos/seed/synthlover/100'}], waveform: [8, 12, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 68, 70, 72, 75, 78, 75, 72, 68, 65, 60, 55, 50, 45, 42, 38, 35, 32, 30, 28, 32, 35, 40, 45, 50, 48, 45, 40, 35, 30, 25, 20, 18, 15, 12, 10, 8, 5], audioUrl: 'https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D', likes: 267, reposts: 54, contextType: 'repost', contextUser: 'SynthWaveFan', contextUserAvatar: 'https://picsum.photos/seed/synthfan/100', contextTime: '23 min ago' },
     { id: 3, title: 'Electric Dreams', artist: 'Nova Sound', duration: '3:28', plays: '2.1M', coverArt: 'https://picsum.photos/seed/electric/200', host: 'blockdaemon-audius-content-01.bdnodes.net', description: 'High-energy electronic banger with futuristic sound design and driving beats.', comments: [{user: 'BeatMaster', text: 'Festival ready!', position: 28, avatar: 'https://picsum.photos/seed/beatmaster/100'}, {user: 'EDMLife', text: 'Need this on Spotify ASAP', position: 52, avatar: 'https://picsum.photos/seed/edmlife/100'}, {user: 'Raver2025', text: 'Drop is insane', position: 78, avatar: 'https://picsum.photos/seed/raver2025/100'}], waveform: [15, 22, 28, 35, 42, 48, 55, 62, 68, 72, 75, 78, 80, 78, 75, 72, 68, 65, 60, 55, 50, 48, 45, 42, 40, 38, 35, 32, 30, 28, 25, 22, 20, 18, 22, 28, 35, 42, 48, 52, 48, 42, 38, 32, 28, 22, 18, 15, 12, 10], audioUrl: 'https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D', likes: 521, reposts: 143, contextType: 'new', contextUser: 'Nova Sound', contextUserAvatar: 'https://picsum.photos/seed/nova/100', contextTime: '1 hr ago' },
     { id: 4, title: 'Sunset Boulevard', artist: 'Metro Beats', duration: '5:03', plays: '945K', coverArt: 'https://picsum.photos/seed/sunset/200', host: 'audius-content-1.figment.io', description: 'Smooth hip-hop instrumental with jazzy undertones and west coast influence.', comments: [{user: 'RapHead', text: "Can't wait to freestyle over this", position: 18, avatar: 'https://picsum.photos/seed/raphead/100'}, {user: 'ChillBeats', text: 'So smooth!', position: 42, avatar: 'https://picsum.photos/seed/chillbeats/100'}, {user: 'WestCoast', text: 'California dreaming', position: 65, avatar: 'https://picsum.photos/seed/westcoast/100'}], waveform: [10, 15, 20, 25, 30, 35, 40, 42, 45, 48, 52, 55, 58, 62, 65, 68, 70, 72, 75, 72, 70, 68, 65, 62, 58, 55, 52, 48, 45, 42, 40, 38, 35, 32, 30, 28, 32, 35, 40, 45, 48, 45, 40, 35, 30, 25, 20, 15, 12, 8], audioUrl: 'https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D', likes: 198, reposts: 67, contextType: 'repost', contextUser: 'HipHopDaily', contextUserAvatar: 'https://picsum.photos/seed/hiphop/100', contextTime: '2 hrs ago' },
@@ -138,13 +106,13 @@ function App() {
   ]
 
   const navItems = [
-    { label: 'Home', icon: '⌂' },
-    { label: 'Trending', icon: '↗' },
-    { label: 'Library', icon: '♪' },
-    { label: 'Groups', icon: '���' },
-    { label: 'Messaging', icon: '✉' },
-    { label: 'Artist Coins', icon: '⬡' },
-    { label: 'Wallet', icon: '⊞' },
+    { label: 'Home', icon: 'home' },
+    { label: 'Trending', icon: 'trending' },
+    { label: 'Library', icon: 'library' },
+    { label: 'Groups', icon: 'groups' },
+    { label: 'Messaging', icon: 'messaging' },
+    { label: 'Artist Coins', icon: 'coins' },
+    { label: 'Wallet', icon: 'wallet' },
   ]
 
   return (
