@@ -3,6 +3,7 @@ import SocialButton from './SocialButton'
 import WaveformPlayer from './WaveformPlayer'
 import ActiveComments from './ActiveComments'
 import { usePlayer } from '../contexts/PlayerContext'
+import { useState } from 'react'
 
 const ContextLine = styled.div`
   grid-column: 1 / 3;
@@ -413,8 +414,9 @@ interface TrackTileProps {
 }
 
 export default function TrackTile({ track }: TrackTileProps) {
-  const { currentTrack, isPlaying, setCurrentTrack, togglePlay, duration } = usePlayer()
+  const { currentTrack, isPlaying, setCurrentTrack, togglePlay, duration, currentTime } = usePlayer()
   const isActive = currentTrack?.id === track.id
+  const [draftCommentPosition, setDraftCommentPosition] = useState<number | null>(null)
   
   const getContextText = () => {
     const action = track.contextType === 'repost' ? 'reposted' : 'uploaded'
@@ -431,6 +433,17 @@ export default function TrackTile({ track }: TrackTileProps) {
         togglePlay()
       }
     }
+  }
+
+  const handleCommentInputFocus = () => {
+    if (duration > 0) {
+      const position = (currentTime / duration) * 100
+      setDraftCommentPosition(position)
+    }
+  }
+
+  const handleCommentInputBlur = () => {
+    setDraftCommentPosition(null)
   }
 
   return (
@@ -499,6 +512,14 @@ export default function TrackTile({ track }: TrackTileProps) {
                 </CommentTooltip>
               </CommentMarker>
             ))}
+            {draftCommentPosition !== null && (
+              <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
+                <CommentIndicator 
+                  src="https://picsum.photos/seed/currentuser/100" 
+                  alt="Your comment" 
+                />
+              </CommentMarker>
+            )}
           </CommentAvatarsContainer>
         </WaveformWrapper>
         <ActiveComments comments={track.comments} trackId={track.id} duration={duration} />
@@ -510,7 +531,9 @@ export default function TrackTile({ track }: TrackTileProps) {
             />
             <CommentInput 
               type="text" 
-              placeholder="Add a comment..." 
+              placeholder="Add a comment..."
+              onFocus={handleCommentInputFocus}
+              onBlur={handleCommentInputBlur}
             />
             <CommentSubmit title="Send comment">➤</CommentSubmit>
           </CommentInputSection>
