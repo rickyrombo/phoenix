@@ -1,6 +1,16 @@
-import styled from 'styled-components'
-import { usePlayer } from '../contexts/PlayerContext'
-import { IconPlayerPlay, IconPlayerPause, IconPlayerSkipBack, IconPlayerSkipForward, IconRepeat, IconRepeatOff, IconArrowsShuffle } from '@tabler/icons-react'
+import styled from "styled-components"
+import { usePlayer } from "../contexts/PlayerContext"
+import { useState } from "react"
+import {
+  IconPlayerPlay,
+  IconPlayerPause,
+  IconPlayerSkipBack,
+  IconPlayerSkipForward,
+  IconRepeat,
+  IconRepeatOff,
+  IconArrowsShuffle,
+  IconHeart,
+} from "@tabler/icons-react"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -35,7 +45,7 @@ const PlayerArtwork = styled.div`
   border-radius: 0;
   flex-shrink: 0;
   overflow: hidden;
-  
+
   img {
     width: 100%;
     height: 100%;
@@ -85,7 +95,8 @@ const ControlBtn = styled.button<{ $isActive?: boolean }>`
   border-radius: 0;
   background: transparent;
   border: none;
-  color: ${props => props.$isActive ? 'oklch(71.4% 0.203 305.504)' : '#808080'};
+  color: ${(props) =>
+    props.$isActive ? "oklch(71.4% 0.203 305.504)" : "#808080"};
   font-size: 1.125rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -213,29 +224,54 @@ const VolumeSlider = styled.input`
   }
 `
 
+const FavoriteBtn = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #808080;
+  font-size: 1.125rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+  &:hover {
+    color: oklch(71.4% 0.203 305.504);
+  }
+  &.active {
+    color: oklch(71.4% 0.203 305.504);
+  }
+`
+
 export default function Player() {
-  const { 
-    currentTrack, 
-    isPlaying, 
-    togglePlay, 
-    currentTime, 
-    duration, 
-    volume, 
-    seek, 
+  const {
+    currentTrack,
+    isPlaying,
+    togglePlay,
+    currentTime,
+    duration,
+    volume,
+    seek,
     setVolume,
     playNext,
     playPrevious,
     repeatMode,
     setRepeatMode,
     shuffle,
-    toggleShuffle
+    toggleShuffle,
   } = usePlayer()
 
+  // local favorite state for now (replace with real like/favorite logic)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const toggleFavorite = () => setIsFavorite((v) => !v)
+
   const formatTime = (seconds: number) => {
-    if (!isFinite(seconds)) return '0:00'
+    if (!isFinite(seconds)) return "0:00"
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+    return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -251,7 +287,7 @@ export default function Player() {
   }
 
   const handleRepeatClick = () => {
-    const modes = ['off', 'all', 'one'] as const
+    const modes = ["off", "all", "one"] as const
     const currentIndex = modes.indexOf(repeatMode)
     const nextMode = modes[(currentIndex + 1) % modes.length]
     setRepeatMode(nextMode)
@@ -263,20 +299,26 @@ export default function Player() {
     <PlayerFooter>
       <PlayerTrackInfo>
         <PlayerArtwork>
-          {currentTrack && <img src={currentTrack.coverArt} alt={currentTrack.title} />}
+          {currentTrack && (
+            <img src={currentTrack.coverArt} alt={currentTrack.title} />
+          )}
         </PlayerArtwork>
         <PlayerDetails>
-          <PlayerTitle>{currentTrack?.title || 'No track selected'}</PlayerTitle>
-          <PlayerArtist>{currentTrack?.artist || 'Select a track to play'}</PlayerArtist>
+          <PlayerTitle>
+            {currentTrack?.title || "No track selected"}
+          </PlayerTitle>
+          <PlayerArtist>
+            {currentTrack?.artist || "Select a track to play"}
+          </PlayerArtist>
         </PlayerDetails>
       </PlayerTrackInfo>
-      
+
       <PlayerMain>
         <PlayerControls>
-          <ControlBtn 
-            onClick={toggleShuffle} 
+          <ControlBtn
+            onClick={toggleShuffle}
             $isActive={shuffle}
-            title={shuffle ? 'Shuffle on' : 'Shuffle off'}
+            title={shuffle ? "Shuffle on" : "Shuffle off"}
           >
             <IconArrowsShuffle size={18} stroke={2} />
           </ControlBtn>
@@ -284,28 +326,47 @@ export default function Player() {
             <IconPlayerSkipBack size={18} stroke={2} />
           </ControlBtn>
           <ControlBtnMain onClick={togglePlay}>
-            {isPlaying ? <IconPlayerPause size={20} stroke={2} /> : <IconPlayerPlay size={20} stroke={2} />}
+            {isPlaying ? (
+              <IconPlayerPause size={20} stroke={2} />
+            ) : (
+              <IconPlayerPlay size={20} stroke={2} />
+            )}
           </ControlBtnMain>
           <ControlBtn onClick={playNext} title="Next track">
             <IconPlayerSkipForward size={18} stroke={2} />
           </ControlBtn>
-          <ControlBtn 
+          <ControlBtn
             onClick={handleRepeatClick}
-            $isActive={repeatMode !== 'off'}
-            title={repeatMode === 'off' ? 'Repeat off' : repeatMode === 'all' ? 'Repeat all' : 'Repeat one'}
+            $isActive={repeatMode !== "off"}
+            title={
+              repeatMode === "off"
+                ? "Repeat off"
+                : repeatMode === "all"
+                  ? "Repeat all"
+                  : "Repeat one"
+            }
           >
-            {repeatMode === 'one' ? (
-              <IconRepeat size={18} stroke={2} style={{ position: 'relative' }}>
-                <text x="50%" y="50%" fontSize="10" fill="currentColor" textAnchor="middle" dy=".3em">1</text>
+            {repeatMode === "one" ? (
+              <IconRepeat size={18} stroke={2} style={{ position: "relative" }}>
+                <text
+                  x="50%"
+                  y="50%"
+                  fontSize="10"
+                  fill="currentColor"
+                  textAnchor="middle"
+                  dy=".3em"
+                >
+                  1
+                </text>
               </IconRepeat>
-            ) : repeatMode === 'off' ? (
+            ) : repeatMode === "off" ? (
               <IconRepeatOff size={18} stroke={2} />
             ) : (
               <IconRepeat size={18} stroke={2} />
             )}
           </ControlBtn>
         </PlayerControls>
-        
+
         <ProgressBar>
           <TimeLabel>{formatTime(currentTime)}</TimeLabel>
           <ProgressTrack onClick={handleProgressClick}>
@@ -316,12 +377,24 @@ export default function Player() {
       </PlayerMain>
 
       <PlayerExtras>
+        <FavoriteBtn
+          className={isFavorite ? "active" : ""}
+          onClick={toggleFavorite}
+          title={isFavorite ? "Unfavorite" : "Favorite"}
+          aria-label={isFavorite ? "Unfavorite" : "Favorite"}
+        >
+          <IconHeart
+            size={18}
+            stroke={2.2}
+            fill={isFavorite ? "currentColor" : "none"}
+          />
+        </FavoriteBtn>
         <VolumeControl>
           <VolumeLabel>VOL</VolumeLabel>
-          <VolumeSlider 
-            type="range" 
-            min="0" 
-            max="100" 
+          <VolumeSlider
+            type="range"
+            min="0"
+            max="100"
             value={volume * 100}
             onChange={handleVolumeChange}
           />
