@@ -202,8 +202,8 @@ const WaveformWrapper = styled.div`
   position: relative;
   padding: 0;
   cursor: pointer;
-  height: 85px;
-  margin-bottom: 8px;
+  height: 80px;
+  margin-bottom: 12px;
 `
 
 const Spacer = styled.div<{ $isExpanded: boolean }>`
@@ -368,7 +368,7 @@ const TrackDescription = styled.div`
 const TrackFooter = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: baseline;
   gap: 1rem;
 `
 
