@@ -206,7 +206,28 @@ const VolumeSlider = styled.input`
 `
 
 export default function Player() {
-  const { currentTrack, isPlaying, togglePlay } = usePlayer()
+  const { currentTrack, isPlaying, togglePlay, currentTime, duration, volume, seek, setVolume } = usePlayer()
+
+  const formatTime = (seconds: number) => {
+    if (!isFinite(seconds)) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const percentage = x / rect.width
+    const newTime = percentage * duration
+    seek(newTime)
+  }
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVolume(Number(e.target.value) / 100)
+  }
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
     <PlayerFooter>
@@ -228,18 +249,24 @@ export default function Player() {
         </PlayerControls>
         
         <ProgressBar>
-          <TimeLabel>0:00</TimeLabel>
-          <ProgressTrack>
-            <ProgressFill style={{ width: '35%' }}></ProgressFill>
+          <TimeLabel>{formatTime(currentTime)}</TimeLabel>
+          <ProgressTrack onClick={handleProgressClick}>
+            <ProgressFill style={{ width: `${progress}%` }}></ProgressFill>
           </ProgressTrack>
-          <TimeLabel>{currentTrack?.duration || '0:00'}</TimeLabel>
+          <TimeLabel>{formatTime(duration)}</TimeLabel>
         </ProgressBar>
       </PlayerMain>
 
       <PlayerExtras>
         <VolumeControl>
           <VolumeLabel>VOL</VolumeLabel>
-          <VolumeSlider type="range" min="0" max="100" defaultValue="70" />
+          <VolumeSlider 
+            type="range" 
+            min="0" 
+            max="100" 
+            value={volume * 100}
+            onChange={handleVolumeChange}
+          />
         </VolumeControl>
       </PlayerExtras>
     </PlayerFooter>

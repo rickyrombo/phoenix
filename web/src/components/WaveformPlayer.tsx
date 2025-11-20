@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import styled from 'styled-components'
+import { usePlayer } from '../contexts/PlayerContext'
 
 const WaveformContainer = styled.div`
   width: 100%;
@@ -19,11 +20,15 @@ interface WaveformPlayerProps {
   audioData?: Float32Array
   isPlaying: boolean
   onPlayPause: () => void
+  trackId: number
 }
 
-export default function WaveformPlayer({ onPlayPause }: WaveformPlayerProps) {
+export default function WaveformPlayer({ onPlayPause, trackId }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
+  const { currentTime, duration, currentTrack, seek } = usePlayer()
+
+  const isCurrentTrack = currentTrack?.id === trackId
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -41,12 +46,13 @@ export default function WaveformPlayer({ onPlayPause }: WaveformPlayerProps) {
       waveColor: '#606060',
       progressColor: 'oklch(71.4% 0.203 305.504)',
       cursorColor: 'transparent',
+      cursorWidth: 0,
       barWidth: 2,
       barGap: 1,
       barRadius: 2,
       height: 80,
       normalize: true,
-      interact: false,
+      interact: true,
       hideScrollbar: true,
       peaks: [peaks],
       duration: 180,
@@ -59,8 +65,35 @@ export default function WaveformPlayer({ onPlayPause }: WaveformPlayerProps) {
     }
   }, [])
 
-  const handleClick = () => {
-    onPlayPause()
+  // Update waveform progress based on actual playback position
+  useEffect(() => {
+    if (wavesurferRef.current) {
+      if (isCurrentTrack && duration > 0) {
+        const progress = currentTime / duration
+        wavesurferRef.current.seekTo(progress)
+      } else {
+        // Reset to start for non-active tracks
+        wavesurferRef.current.seekTo(0)
+      }
+    }
+  }, [currentTime, duration, isCurrentTrack])
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return
+
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const clickPosition = x / rect.width
+
+    // If this is the current track, seek to the clicked position
+    if (isCurrentTrack && duration > 0) {
+      const newTime = clickPosition * duration
+      seek(newTime)
+      e.stopPropagation()
+    } else {
+      // If not current track, just play it
+      onPlayPause()
+    }
   }
 
   return <WaveformContainer ref={containerRef} onClick={handleClick} />
