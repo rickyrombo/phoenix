@@ -7,6 +7,7 @@ interface PlayerContextType {
   currentTime: number
   duration: number
   volume: number
+  audioElement: HTMLAudioElement | null
   setCurrentTrack: (track: Track) => void
   setIsPlaying: (playing: boolean) => void
   togglePlay: () => void
@@ -22,11 +23,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.7)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement>(new Audio())
 
   // Initialize audio element
   useEffect(() => {
     const audio = new Audio()
+    audio.crossOrigin = 'anonymous' // Enable CORS for Web Audio API
     audio.volume = volume
     audioRef.current = audio
 
@@ -119,6 +121,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         currentTime,
         duration,
         volume,
+        audioElement: audioRef.current,
         setCurrentTrack, 
         setIsPlaying,
         togglePlay,
@@ -131,6 +134,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePlayer() {
   const context = useContext(PlayerContext)
   if (context === undefined) {

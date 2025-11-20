@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar'
 import TrackTile from './components/TrackTile'
 import type { Track } from './components/TrackTile'
 import Player from './components/Player'
+import Visualizer from './components/Visualizer'
 import { PlayerProvider } from './contexts/PlayerContext'
 
 const AppContainer = styled.div`
@@ -73,8 +74,22 @@ const TracksGrid = styled.div`
   flex-direction: column;
 `
 
-function App() {
+function AppContent() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(false)
+  const [isVisualizerVisible, setIsVisualizerVisible] = useState(false)
+
+  // Global keyboard listener for visualizer
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'KeyV' && !isVisualizerVisible) {
+        e.preventDefault()
+        setIsVisualizerVisible(true)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isVisualizerVisible])
 
   useEffect(() => {
     const handleResize = () => {
@@ -217,7 +232,7 @@ function App() {
   ]
 
   return (
-    <PlayerProvider>
+    <>
       <AppContainer>
         <SidebarWrapper>
           <Sidebar 
@@ -250,6 +265,19 @@ function App() {
           <Player />
         </PlayerWrapper>
       </AppContainer>
+
+      <Visualizer 
+        isVisible={isVisualizerVisible}
+        onClose={() => setIsVisualizerVisible(false)}
+      />
+    </>
+  )
+}
+
+function App() {
+  return (
+    <PlayerProvider>
+      <AppContent />
     </PlayerProvider>
   )
 }
