@@ -1,4 +1,4 @@
-import type { Track } from "../components/TrackTile";
+import type { Track } from "../components/TrackTile"
 
 export const feedTracks: Track[] = [
   {
@@ -40,6 +40,7 @@ export const feedTracks: Track[] = [
       "https://audius-discovery-6.cultur3stake.com/tracks/cidstream/baeaaaiqsecnmabpmb2p2l4m6bu4zuf4uo477jzewycava47m2g7l2r6v2ewcq?id3=true&id3_artist=snooze%F0%9F%92%A4&id3_title=offended+with+Khalil&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsecnmabpmb2p2l4m6bu4zuf4uo477jzewycava47m2g7l2r6v2ewcq%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A378160039%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xedf0d39bf29e5b49b3e371d1ed273819f2c4279ddebc6f5114adf11fa055cb936d6ccbecf8b8dbe22d7239cf7380272bbf33a19333fe2d0e528affe324ba396b00%22%7D",
     likes: 342,
     reposts: 89,
+    genre: "Tropical House",
     contextType: "repost",
     contextUser: "TropicalBeats",
     contextUserAvatar: "https://picsum.photos/seed/tropical/100",
@@ -72,6 +73,7 @@ export const feedTracks: Track[] = [
       "https://blockdaemon-audius-content-07.bdnodes.net/tracks/cidstream/baeaaaiqsed5ywv52rzhig4hud5z3s4qmh447ynd2scxbbx35hefnx4qsb7go2?id3=true&id3_artist=fmonkeyrock&id3_title=SANDSTORM&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsed5ywv52rzhig4hud5z3s4qmh447ynd2scxbbx35hefnx4qsb7go2%5C%22%2C%5C%22timestamp%5C%22%3A1763621950000%2C%5C%22trackId%5C%22%3A1548773795%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xf569e1cbd71efe37da667a01a897b5e9edf2607a4359e26fc9f3f62f22f7241a4e36f603f6678b74277bea8dbcbb7bc4375a6a764ff1ddabc31fe1a2d1f164f901%22%7D",
     likes: 267,
     reposts: 54,
+    genre: "Synthwave",
     contextType: "repost",
     contextUser: "SynthWaveFan",
     contextUserAvatar: "https://picsum.photos/seed/synthfan/100",
@@ -104,6 +106,7 @@ export const feedTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 521,
     reposts: 143,
+    genre: "EDM",
     contextType: "new",
     contextUser: "Nova Sound",
     contextUserAvatar: "https://picsum.photos/seed/nova/100",
@@ -136,12 +139,13 @@ export const feedTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 198,
     reposts: 67,
+    genre: "Hip-Hop",
     contextType: "repost",
     contextUser: "HipHopDaily",
     contextUserAvatar: "https://picsum.photos/seed/hiphop/100",
     contextTime: "2 hrs ago",
   },
-];
+]
 
 export const trendingTracks: Track[] = [
   {
@@ -171,6 +175,7 @@ export const trendingTracks: Track[] = [
       "https://audius-content-9.figment.io/tracks/cidstream/baeaaaiqseczqzoxjo6ghpwgoms5gwgcboxrm6a2uql7okcj7d56qlgt722wqo?allow_unhealthy=true&id3=true&id3_artist=Ookay&id3_title=OOKAY+-+ALL+I+EVER+WANTED&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqseczqzoxjo6ghpwgoms5gwgcboxrm6a2uql7okcj7d56qlgt722wqo%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A1374087927%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220x23e92633807e402b2fc1edc9ecd3c1ad32e283330dec05cbae4579b71d68e79e0cdde6f7ec88b1faa6aebf1ad9811c3949f83d25d82931ec3bd145699ca227e401%22%7D",
     likes: 892,
     reposts: 234,
+    genre: "Dubstep",
     contextType: "new",
     contextUser: "Sub Rumble",
     contextUserAvatar: "https://picsum.photos/seed/subrumble/100",
@@ -203,6 +208,7 @@ export const trendingTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 756,
     reposts: 198,
+    genre: "Future Bass",
     contextType: "repost",
     contextUser: "FutureBass",
     contextUserAvatar: "https://picsum.photos/seed/futurebass/100",
@@ -235,6 +241,7 @@ export const trendingTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 634,
     reposts: 176,
+    genre: "Tropical House",
     contextType: "new",
     contextUser: "Island Rhythm",
     contextUserAvatar: "https://picsum.photos/seed/island/100",
@@ -267,6 +274,7 @@ export const trendingTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 578,
     reposts: 152,
+    genre: "Techno",
     contextType: "repost",
     contextUser: "DarkTechno",
     contextUserAvatar: "https://picsum.photos/seed/darktechno/100",
@@ -299,9 +307,10 @@ export const trendingTracks: Track[] = [
       "https://audius-creator-13.theblueprint.xyz/tracks/cidstream/baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4?id3=true&id3_artist=Coop+Records&id3_title=Lyrah+-+Maps&signature=%7B%22data%22%3A%22%7B%5C%22cid%5C%22%3A%5C%22baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4%5C%22%2C%5C%22timestamp%5C%22%3A1763605981000%2C%5C%22trackId%5C%22%3A109835528%2C%5C%22userId%5C%22%3A106879%7D%22%2C%22signature%22%3A%220xa83749e4ff58bbafa8964d49c83136be352c1c84de7342693a5467843182644156f32caa635d4992a67c52e90440ab75f68379073a47b0c71deeab9f8d9dec7c00%22%7D",
     likes: 512,
     reposts: 145,
+    genre: "Melodic House",
     contextType: "new",
     contextUser: "Sunset Collective",
     contextUserAvatar: "https://picsum.photos/seed/sunset/100",
     contextTime: "4 hrs ago",
   },
-];
+]

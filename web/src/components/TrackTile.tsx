@@ -67,8 +67,9 @@ const TrackContent = styled.div<{ $isExpanded: boolean }>`
   padding: 0 1rem;
   min-width: 0;
   gap: 0.25rem;
-  height: ${(props) => (props.$isExpanded ? "auto" : "180px")};
-  justify-content: flex-start;
+  min-height: ${(props) => (props.$isExpanded ? "auto" : "180px")};
+  justify-content: space-between;
+  box-sizing: border-box;
   transition: all 0.3s ease-out;
 `
 
@@ -137,6 +138,7 @@ const TrackArtist = styled.p`
 
 const TrackStats = styled.div`
   display: flex;
+  justify-content: flex-end;
   gap: 1.5rem;
   font-size: 0.75rem;
   color: #808080;
@@ -344,8 +346,31 @@ const TrackDescription = styled.div`
 const TrackFooter = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
+`
+
+const TrackGenreRow = styled.div`
+  display: inline-block;
+  font-size: 0.75rem;
+  color: #e6e6e6;
+  letter-spacing: 0.4px;
+  font-weight: 600;
+  text-transform: none;
+  align-self: flex-end;
+  text-align: right;
+  background: #141414;
+  border: 1px solid #252525;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+`
+
+const StatsColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
 `
 
 const TrackHost = styled.p`
@@ -353,11 +378,32 @@ const TrackHost = styled.p`
   color: #606060;
   margin: 0;
   font-style: italic;
+  flex: 0 0 auto;
+  white-space: nowrap;
 `
 
 const ButtonGroup = styled.div`
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+`
+
+const FooterStats = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #808080;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  flex-wrap: wrap;
+`
+
+const FooterLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 `
 
 export interface Comment {
@@ -382,6 +428,7 @@ export interface Track {
   audioData?: Float32Array
   likes?: number
   reposts?: number
+  genre?: string
   contextType?: "repost" | "new"
   contextUser?: string
   contextUserAvatar?: string
@@ -444,15 +491,12 @@ export default function TrackTile({
               <TrackArtist>{track.artist}</TrackArtist>
             </TrackInfo>
           </TrackMainInfo>
-          <TrackStats>
-            <StatItem>{track.duration}</StatItem>
-            <StatItem>
-              <IconPlayerPlay size={12} stroke={2} /> {track.plays}
-            </StatItem>
-            <StatItem>
-              <IconMessage size={12} stroke={2} /> {track.comments.length}
-            </StatItem>
-          </TrackStats>
+          <StatsColumn>
+            {track.genre && <TrackGenreRow>{track.genre}</TrackGenreRow>}
+            <TrackStats>
+              <StatItem>{track.duration}</StatItem>
+            </TrackStats>
+          </StatsColumn>
         </TrackHeader>
         <WaveformWrapper>
           <WaveformPlayer
@@ -505,34 +549,44 @@ export default function TrackTile({
         )}
         <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
-          <ButtonGroup>
-            <SocialButton
-              icon={<IconHeart size={16} stroke={2} />}
-              label="Like"
-              title="Like"
-              expanded={isPlaying && isActive}
-              count={track.likes}
-            />
-            <SocialButton
-              icon={<IconRepeat size={16} stroke={2} />}
-              label="Repost"
-              title="Repost"
-              expanded={isPlaying && isActive}
-              count={track.reposts}
-            />
-            <SocialButton
-              icon={<IconShare3 size={16} stroke={2} />}
-              label="Share"
-              title="Share"
-              expanded={isPlaying && isActive}
-            />
-            <SocialButton
-              icon={<IconDownload size={16} stroke={2} />}
-              label="Download"
-              title="Download"
-              expanded={isPlaying && isActive}
-            />
-          </ButtonGroup>
+          <FooterLeft>
+            <ButtonGroup>
+              <SocialButton
+                icon={<IconHeart size={16} stroke={2} />}
+                label="Like"
+                title="Like"
+                expanded={isPlaying && isActive}
+                count={track.likes}
+              />
+              <SocialButton
+                icon={<IconRepeat size={16} stroke={2} />}
+                label="Repost"
+                title="Repost"
+                expanded={isPlaying && isActive}
+                count={track.reposts}
+              />
+              <SocialButton
+                icon={<IconShare3 size={16} stroke={2} />}
+                label="Share"
+                title="Share"
+                expanded={isPlaying && isActive}
+              />
+              <SocialButton
+                icon={<IconDownload size={16} stroke={2} />}
+                label="Download"
+                title="Download"
+                expanded={isPlaying && isActive}
+              />
+            </ButtonGroup>
+            <FooterStats>
+              <StatItem>
+                <IconPlayerPlay size={12} stroke={2} /> {track.plays}
+              </StatItem>
+              <StatItem>
+                <IconMessage size={12} stroke={2} /> {track.comments.length}
+              </StatItem>
+            </FooterStats>
+          </FooterLeft>
           <TrackHost>served by {track.host}</TrackHost>
         </TrackFooter>
       </TrackContent>
