@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from 'react'
 import type { Track } from '../components/TrackTile'
 
+type RepeatMode = 'off' | 'one' | 'all'
+
 interface PlayerContextType {
   currentTrack: Track | null
   isPlaying: boolean
@@ -8,11 +10,20 @@ interface PlayerContextType {
   duration: number
   volume: number
   audioElement: HTMLAudioElement | null
+  queue: Track[]
+  currentIndex: number
+  repeatMode: RepeatMode
+  shuffle: boolean
   setCurrentTrack: (track: Track) => void
   setIsPlaying: (playing: boolean) => void
   togglePlay: () => void
   seek: (time: number) => void
   setVolume: (volume: number) => void
+  setQueue: (tracks: Track[], startIndex?: number) => void
+  playNext: () => void
+  playPrevious: () => void
+  setRepeatMode: (mode: RepeatMode) => void
+  toggleShuffle: () => void
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined)
@@ -23,6 +34,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.7)
+  const [queue, setQueueState] = useState<Track[]>([])
+  const [currentIndex, setCurrentIndex] = useState(-1)
+  const [repeatMode, setRepeatMode] = useState<RepeatMode>('off')
+  const [shuffle, setShuffle] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(new Audio())
 
   // Initialize audio element
@@ -41,8 +56,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
 
     const handleEnded = () => {
-      setIsPlaying(false)
-      setCurrentTime(0)
+      // Handle repeat one mode
+      if (repeatMode === 'one') {
+        audio.currentTime = 0
+        audio.play().catch(err => console.error('Playback error:', err))
+        return
+      }
+
+      // Try to play next track
+      const hasNext = currentIndex < queue.length - 1
+      if (hasNext) {
+        setCurrentIndex(currentIndex + 1)
+      } else if (repeatMode === 'all' && queue.length > 0) {
+        setCurrentIndex(0)
+      } else {
+        setIsPlaying(false)
+        setCurrentTime(0)
+      }
     }
 
     audio.addEventListener('timeupdate', handleTimeUpdate)
@@ -58,6 +88,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Sync current track with queue index
+  useEffect(() => {
+    if (currentIndex >= 0 && currentIndex < queue.length) {
+      setCurrentTrack(queue[currentIndex])
+    }
+  }, [currentIndex, queue])
 
   // Update volume
   useEffect(() => {
@@ -113,6 +150,34 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolume(Math.max(0, Math.min(1, newVolume)))
   }
 
+  const setQueue = (tracks: Track[], startIndex: number = 0) => {
+    setQueueState(tracks)
+    setCurrentIndex(startIndex)
+  }
+
+  const playNext = () => {
+    if (currentIndex < queue.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+    } else if (repeatMode === 'all' && queue.length > 0) {
+      setCurrentIndex(0)
+    }
+  }
+
+  const playPrevious = () => {
+    // If more than 3 seconds into track, restart it
+    if (currentTime > 3) {
+      seek(0)
+    } else if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1)
+    } else if (repeatMode === 'all' && queue.length > 0) {
+      setCurrentIndex(queue.length - 1)
+    }
+  }
+
+  const toggleShuffle = () => {
+    setShuffle(!shuffle)
+  }
+
   return (
     <PlayerContext.Provider 
       value={{ 
@@ -122,11 +187,20 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         duration,
         volume,
         audioElement: audioRef.current,
+        queue,
+        currentIndex,
+        repeatMode,
+        shuffle,
         setCurrentTrack, 
         setIsPlaying,
         togglePlay,
         seek,
-        setVolume: handleSetVolume
+        setVolume: handleSetVolume,
+        setQueue,
+        playNext,
+        playPrevious,
+        setRepeatMode,
+        toggleShuffle
       }}
     >
       {children}

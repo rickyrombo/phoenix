@@ -417,7 +417,7 @@ interface TrackTileProps {
 }
 
 export default function TrackTile({ track }: TrackTileProps) {
-  const { currentTrack, isPlaying, setCurrentTrack, togglePlay, duration, currentTime } = usePlayer()
+  const { currentTrack, isPlaying, togglePlay, duration, currentTime, setQueue, queue } = usePlayer()
   const isActive = currentTrack?.id === track.id
   const [draftCommentPosition, setDraftCommentPosition] = useState<number | null>(null)
   
@@ -430,7 +430,17 @@ export default function TrackTile({ track }: TrackTileProps) {
     if (isActive) {
       togglePlay()
     } else {
-      setCurrentTrack(track)
+      // Find the index of this track in the current queue
+      const trackIndex = queue.findIndex(t => t.id === track.id)
+      
+      if (trackIndex !== -1) {
+        // Track is in queue, just update the index
+        setQueue(queue, trackIndex)
+      } else {
+        // Track not in queue, set it as a single-track queue
+        setQueue([track], 0)
+      }
+      
       // Always start playing when switching to a new track
       if (!isPlaying) {
         togglePlay()

@@ -1,4 +1,5 @@
 import styled from 'styled-components'
+import { Link } from '@tanstack/react-router'
 import SidebarIcon from './SidebarIcon'
 
 const StyledSidebar = styled.nav<{ $isCollapsed: boolean }>`
@@ -54,7 +55,7 @@ const NavList = styled.ul`
   margin: 0;
 `
 
-const NavItem = styled.li<{ $isCollapsed: boolean }>`
+const NavItem = styled(Link)<{ $isCollapsed: boolean }>`
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -63,8 +64,15 @@ const NavItem = styled.li<{ $isCollapsed: boolean }>`
   transition: background 0.2s, border-left 0.2s;
   white-space: nowrap;
   justify-content: flex-start;
+  text-decoration: none;
+  color: #ffffff;
 
   &:hover {
+    background: #1a1a1a;
+    border-left: 2px solid oklch(71.4% 0.203 305.504);
+  }
+
+  &.active {
     background: #1a1a1a;
     border-left: 2px solid oklch(71.4% 0.203 305.504);
   }
@@ -102,6 +110,16 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ navItems, isCollapsed, onToggle }: SidebarProps) {
+  const navRoutes: Record<string, string> = {
+    'Home': '/',
+    'Trending': '/trending',
+    'Library': '/library',
+    'Groups': '/groups',
+    'Messaging': '/messaging',
+    'Artist Coins': '/coins',
+    'Wallet': '/wallet',
+  }
+
   return (
     <StyledSidebar $isCollapsed={isCollapsed}>
       <Logo $isCollapsed={isCollapsed}>
@@ -111,14 +129,22 @@ export default function Sidebar({ navItems, isCollapsed, onToggle }: SidebarProp
         </CollapseButton>
       </Logo>
       <NavList>
-        {navItems.map((item, index) => (
-          <NavItem key={index} $isCollapsed={isCollapsed}>
-            <NavIcon>
-              <SidebarIcon name={item.icon} size={24} />
-            </NavIcon>
-            <NavLabel $isCollapsed={isCollapsed}>{item.label}</NavLabel>
-          </NavItem>
-        ))}
+        {navItems.map((item, index) => {
+          const route = navRoutes[item.label] || '/'
+          return (
+            <NavItem 
+              key={index} 
+              $isCollapsed={isCollapsed}
+              to={route}
+              activeOptions={{ exact: route === '/' }}
+            >
+              <NavIcon>
+                <SidebarIcon name={item.icon} size={24} />
+              </NavIcon>
+              <NavLabel $isCollapsed={isCollapsed}>{item.label}</NavLabel>
+            </NavItem>
+          )
+        })}
       </NavList>
     </StyledSidebar>
   )
