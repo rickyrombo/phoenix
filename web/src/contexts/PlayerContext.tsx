@@ -4,6 +4,7 @@ import {
   useState,
   useRef,
   useEffect,
+  useCallback,
   type ReactNode,
 } from "react"
 import type { Track } from "../components/TrackTile"
@@ -158,12 +159,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setIsPlaying(!isPlaying)
   }
 
-  const seek = (time: number) => {
+  const seek = useCallback((time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time
       setCurrentTime(time)
     }
-  }
+  }, [])
 
   const handleSetVolume = (newVolume: number) => {
     setVolume(Math.max(0, Math.min(1, newVolume)))
@@ -174,16 +175,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setCurrentIndex(queue.currentIndex)
   }
 
-  const playNext = () => {
+  const playNext = useCallback(() => {
     if (currentIndex < queue.tracks.length - 1) {
       setCurrentIndex(currentIndex + 1)
     } else if (repeatMode === "all" && queue.tracks.length > 0) {
       setCurrentIndex(0)
     }
-  }
+  }, [currentIndex, queue.tracks.length, repeatMode])
 
-  const playPrevious = () => {
-    // If more than 3 seconds into track, restart it
+  const playPrevious = useCallback(() => {
     if (currentTime > 3) {
       seek(0)
     } else if (currentIndex > 0) {
@@ -191,11 +191,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } else if (repeatMode === "all" && queue.tracks.length > 0) {
       setCurrentIndex(queue.tracks.length - 1)
     }
-  }
+  }, [currentTime, currentIndex, queue.tracks.length, repeatMode, seek])
 
   const toggleShuffle = () => {
     setShuffle(!shuffle)
   }
+
+  // Keyboard shortcuts: Shift+Left = prev, Shift+Right = next
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          playPrevious()
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault()
+          playNext()
+        }
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [playNext, playPrevious])
 
   return (
     <PlayerContext.Provider
