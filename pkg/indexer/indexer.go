@@ -1,7 +1,6 @@
 package indexer
 
 import (
-	"audius/pkg/db"
 	"context"
 	"fmt"
 	"log/slog"
@@ -62,27 +61,30 @@ func New(cfg *Config) (*Indexer, error) {
 
 func (d *Indexer) Run(ctx context.Context) error {
 	d.logger.Info("Starting indexer...")
-	sql := `
-		SELECT MAX(number) FROM ` + db.Table_Blocks + ` LIMIT 1;
-	`
-	var dbBlockNumber *int64
+
 	var blockNumber int64
-	err := d.pool.QueryRow(ctx, sql).Scan(&dbBlockNumber)
+
+	var dbBlockNumber *int64
+	err := d.pool.QueryRow(ctx, `
+		SELECT MAX(number) FROM blocks LIMIT 1;
+	`).Scan(&dbBlockNumber)
 	if err != nil && err != pgx.ErrNoRows {
 		return fmt.Errorf("failed to query indexer state: %w", err)
 	}
 
 	if dbBlockNumber == nil {
-		d.logger.Warn("No blocks found in database, fetching current block height from node...")
-		nodeInfo, err := d.sdk.Core.GetNodeInfo(context.Background(), connect.NewRequest(&corev1.GetNodeInfoRequest{}))
-		if err != nil {
-			return fmt.Errorf("failed to get node info: %w", err)
-		}
-		blockNumber = nodeInfo.Msg.CurrentHeight
-		d.logger.Info("Starting from current block height", "blockHeight", blockNumber)
+		d.logger.Info("No previous indexed blocks found, starting from block 1")
+		blockNumber = 1
+		// d.logger.Warn("No blocks found in database, fetching current block height from node...")
+		// nodeInfo, err := d.sdk.Core.GetNodeInfo(context.Background(), connect.NewRequest(&corev1.GetNodeInfoRequest{}))
+		// if err != nil {
+		// 	return fmt.Errorf("failed to get node info: %w", err)
+		// }
+		// blockNumber = nodeInfo.Msg.CurrentHeight
+		// d.logger.Info("Starting from current block height", "blockHeight", blockNumber)
 	} else {
-		d.logger.Info("Resuming from last indexed block", "blockHeight", blockNumber)
 		blockNumber = *dbBlockNumber + 1
+		d.logger.Info("Resuming from last indexed block", "blockHeight", blockNumber)
 	}
 
 	for {
@@ -101,7 +103,9 @@ func (d *Indexer) Run(ctx context.Context) error {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			d.logger.Debug("Successfully indexed block", "blockNumber", blockNumber)
+			if blockNumber%1000 == 0 {
+				d.logger.Info("Indexed block", "blockNumber", blockNumber)
+			}
 			blockNumber++
 		}
 	}
@@ -130,10 +134,15 @@ func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) error {
 	}
 
 	sql := `
-		INSERT INTO ` + db.Table_Blocks + ` (number, hash) VALUES ($1, $2)
+		INSERT INTO blocks (number, hash, block_time) 
+		VALUES (@number, @hash, @block_time)
 		ON CONFLICT DO NOTHING;
 	`
-	_, err = d.pool.Exec(ctx, sql, block.Msg.Block.Height, block.Msg.Block.Hash)
+	_, err = d.pool.Exec(ctx, sql, pgx.NamedArgs{
+		"number":     block.Msg.Block.Height,
+		"hash":       block.Msg.Block.Hash,
+		"block_time": block.Msg.Block.Timestamp.AsTime(),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to insert block into database: %w", err)
 	}
@@ -170,13 +179,12 @@ func (d *Indexer) indexTransaction(ctx context.Context, tx *corev1.Transaction, 
 
 func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx, transaction *corev1.Transaction, blockNumber int64) error {
 	entity := transaction.Transaction.GetManageEntity()
-	d.logger.Debug("manageEntity", "entityType", entity.EntityType, "entityId", entity.EntityId, "action", entity.Action, "metadata", entity.Metadata, "signer", entity.Signer)
 
 	var err error
 	switch entity.EntityType {
-	case "Track":
+	case Entity_Track:
 		err = d.indexTrackManageEntity(ctx, sqlTx, entity, blockNumber)
-	case "User":
+	case Entity_User:
 		err = d.indexUserManageEntity(ctx, sqlTx, entity, blockNumber)
 	}
 

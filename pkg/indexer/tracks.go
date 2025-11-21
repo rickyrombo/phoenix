@@ -11,10 +11,20 @@ import (
 
 func (d *Indexer) indexTrackManageEntity(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy, blockNumber int64) error {
 	switch tx.Action {
-	case "Create", "Update":
+	case Action_Create, Action_Update:
 		return upsertTrack(ctx, sqlTx, int(tx.EntityId), tx.Metadata, blockNumber)
-	case "Delete":
+	case Action_Delete:
 		return deleteTrack(ctx, sqlTx, int(tx.EntityId))
+	case Action_Save:
+		return saveTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+	case Action_Unsave:
+		return unsaveTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
+	case Action_Repost:
+		return repostTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+	case Action_Unrepost:
+		return unrepostTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
+	case Action_Download:
+		return downloadTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
 	default:
 		d.logger.Warn("Unknown track action", "action", tx.Action)
 	}
@@ -221,4 +231,160 @@ func deleteTrack(ctx context.Context, sqlTx pgx.Tx, id int) error {
 		DELETE FROM tracks WHERE id = $1
 	`, id)
 	return err
+}
+
+func saveTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, blockNumber int64, txHash string) error {
+	_, err := sqlTx.Exec(ctx, `
+		INSERT INTO track_saves (user_id, track_id, block_number, tx_hash, created_at, updated_at) 
+		VALUES (@userID, @trackID, @blockNumber, @txHash, NOW(), NOW())
+		ON CONFLICT (user_id, track_id) DO UPDATE SET
+			block_number = EXCLUDED.block_number,
+			tx_hash = EXCLUDED.tx_hash,
+			updated_at = EXCLUDED.updated_at
+		WHERE track_saves.block_number <= EXCLUDED.block_number
+	`, pgx.NamedArgs{
+		"userID":      userID,
+		"trackID":     trackID,
+		"blockNumber": blockNumber,
+		"txHash":      txHash,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlTx.Exec(ctx, `
+		INSERT INTO track_aggregates (track_id, save_count, created_at, updated_at)
+		VALUES (@trackID, 1, NOW(), NOW())
+		ON CONFLICT (track_id) DO UPDATE SET
+			save_count = track_aggregates.save_count + 1,
+			updated_at = NOW()
+	`, pgx.NamedArgs{
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unsaveTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int) error {
+	_, err := sqlTx.Exec(ctx, `
+		DELETE FROM track_saves WHERE user_id = @userID AND track_id = @trackID
+	`, pgx.NamedArgs{
+		"userID":  userID,
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlTx.Exec(ctx, `
+		UPDATE track_aggregates
+		SET save_count = GREATEST(save_count - 1, 0),
+			updated_at = NOW()
+		WHERE track_id = @trackID
+	`, pgx.NamedArgs{
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func repostTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, blockNumber int64, txHash string) error {
+	_, err := sqlTx.Exec(ctx, `
+		INSERT INTO track_reposts (user_id, track_id, block_number, tx_hash, created_at, updated_at)
+		VALUES (@userID, @trackID, @blockNumber, @txHash, NOW(), NOW())	
+		ON CONFLICT (user_id, track_id) DO UPDATE SET
+			block_number = EXCLUDED.block_number,
+			tx_hash = EXCLUDED.tx_hash,
+			updated_at = NOW()
+		WHERE track_reposts.block_number <= EXCLUDED.block_number
+	`, pgx.NamedArgs{
+		"userID":      userID,
+		"trackID":     trackID,
+		"blockNumber": blockNumber,
+		"txHash":      txHash,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlTx.Exec(ctx, `
+		INSERT INTO track_aggregates (track_id, repost_count, created_at, updated_at)
+		VALUES (@trackID, 1, NOW(), NOW())
+		ON CONFLICT (track_id) DO UPDATE SET
+			repost_count = track_aggregates.repost_count + 1,
+			updated_at = NOW()
+	`, pgx.NamedArgs{
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func unrepostTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int) error {
+	_, err := sqlTx.Exec(ctx, `
+		DELETE FROM track_reposts WHERE user_id = @userID AND track_id = @trackID
+	`, pgx.NamedArgs{
+		"userID":  userID,
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlTx.Exec(ctx, `
+		INSERT INTO track_aggregates (track_id, repost_count, created_at, updated_at)
+		VALUES (@trackID, 0, NOW(), NOW())
+		ON CONFLICT (track_id) DO UPDATE SET
+			repost_count = GREATEST(track_aggregates.repost_count - 1, 0),
+			updated_at = NOW()
+	`, pgx.NamedArgs{
+		"trackID": trackID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func downloadTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, blockNumber int64, txHash string) error {
+	_, err := sqlTx.Exec(ctx, `
+		INSERT INTO track_downloads (user_id, track_id, block_number, tx_hash, created_at, updated_at) 
+		VALUES (@userID, @trackID, @blockNumber, @txHash, NOW(), NOW())
+		ON CONFLICT (user_id, track_id) DO UPDATE SET
+			block_number = EXCLUDED.block_number,
+			tx_hash = EXCLUDED.tx_hash,
+			updated_at = NOW()
+		WHERE track_downloads.block_number <= EXCLUDED.block_number
+	`, pgx.NamedArgs{
+		"userID":      userID,
+		"trackID":     trackID,
+		"blockNumber": blockNumber,
+		"txHash":      txHash,
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlTx.Exec(ctx, `
+		INSERT INTO track_aggregates (track_id, download_count, created_at, updated_at)
+		VALUES ($1, 1, NOW(), NOW())
+		ON CONFLICT (track_id) DO UPDATE SET
+			download_count = track_aggregates.download_count + 1,
+			updated_at = NOW()
+	`, trackID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

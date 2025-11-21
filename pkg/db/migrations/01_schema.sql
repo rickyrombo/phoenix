@@ -1,9 +1,27 @@
+-- =========================
+--        BLOCKS
+-- =========================
+
 CREATE TABLE IF NOT EXISTS blocks (
     number BIGINT PRIMARY KEY,
     hash TEXT NOT NULL UNIQUE,
+    block_time TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_blocks_hash ON blocks(hash);
+
+CREATE TABLE IF NOT EXISTS retry_queue (
+    signature TEXT PRIMARY KEY,
+    transaction JSONB NOT NULL,
+    error TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+-- =========================
+--        TRACKS
+-- =========================
 
 CREATE TABLE IF NOT EXISTS tracks (
     id INT PRIMARY KEY,
@@ -75,6 +93,60 @@ CREATE INDEX IF NOT EXISTS idx_tracks_title ON tracks USING gin(to_tsvector('eng
 CREATE INDEX IF NOT EXISTS idx_tracks_tags ON tracks USING gin(tags);
 CREATE INDEX IF NOT EXISTS idx_tracks_is_unlisted ON tracks(is_unlisted) WHERE is_unlisted = false;
 
+CREATE TABLE IF NOT EXISTS track_aggregates (
+    track_id INT PRIMARY KEY,
+    play_count BIGINT DEFAULT 0,
+    save_count BIGINT DEFAULT 0,
+    repost_count BIGINT DEFAULT 0,
+    comment_count BIGINT DEFAULT 0,
+    download_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS waveforms (
+    cid TEXT PRIMARY KEY,
+    peaks REAL[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS track_saves (
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, track_id)
+);
+CREATE INDEX IF NOT EXISTS idx_track_saves_track_id ON track_saves(track_id);
+
+CREATE TABLE IF NOT EXISTS track_reposts (
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, track_id)
+);
+CREATE INDEX IF NOT EXISTS idx_track_reposts_track_id ON track_reposts(track_id);
+
+CREATE TABLE IF NOT EXISTS track_downloads (
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, track_id)
+);
+
+-- =========================
+--        USERS
+-- =========================
+
 CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY,
     block_number BIGINT NOT NULL,
@@ -82,7 +154,6 @@ CREATE TABLE IF NOT EXISTS users (
     -- Core metadata
     name TEXT NOT NULL,
     handle TEXT NOT NULL UNIQUE,
-    wallet TEXT NOT NULL UNIQUE,
     bio TEXT,
     location TEXT,
     profile_picture_sizes TEXT,
@@ -99,9 +170,6 @@ CREATE TABLE IF NOT EXISTS users (
     -- Flags
     is_deactivated BOOLEAN DEFAULT false,
     is_verified BOOLEAN DEFAULT false,
-
-    -- Events
-    events JSONB,
     
     -- Timestamps
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -111,26 +179,57 @@ CREATE INDEX IF NOT EXISTS idx_users_handle ON users(handle);
 CREATE INDEX IF NOT EXISTS idx_users_is_deactivated ON users(is_deactivated) WHERE is_deactivated = false;
 CREATE INDEX IF NOT EXISTS idx_users_is_verified ON users(is_verified) WHERE is_verified = true;
 
+CREATE TABLE IF NOT EXISTS user_aggregates (
+    user_id INT PRIMARY KEY,
+    track_count BIGINT DEFAULT 0,
+    playlist_count BIGINT DEFAULT 0,
+    follower_count BIGINT DEFAULT 0,
+    following_count BIGINT DEFAULT 0,
+    repost_count BIGINT DEFAULT 0,
+    track_save_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS playlist_libraries (
     user_id INT PRIMARY KEY,
-    block_number BIGINT NOT NULL,
     library JSONB,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 COMMENT ON TABLE playlist_libraries IS 'Stores the personal playlist library for each user as a JSONB object.';
 
-CREATE TABLE IF NOT EXISTS retry_queue (
-    signature TEXT PRIMARY KEY,
-    transaction JSONB NOT NULL,
-    error TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS user_wallets (
+    wallet TEXT PRIMARY KEY,
+    user_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_user_wallets_user_id ON user_wallets(user_id);
 
-CREATE TABLE IF NOT EXISTS waveforms (
-    cid TEXT PRIMARY KEY,
-    peaks REAL[],
+CREATE TABLE IF NOT EXISTS follows (
+    user_id INT NOT NULL,
+    followed_user_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, followed_user_id)
 );
+CREATE INDEX IF NOT EXISTS idx_follows_followed_user_id ON follows(followed_user_id);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    user_id INT NOT NULL,
+    subscribed_user_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    tx_hash TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), 
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, subscribed_user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_subscribed_user_id ON subscriptions(subscribed_user_id);
+
