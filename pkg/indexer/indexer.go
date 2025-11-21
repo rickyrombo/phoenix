@@ -87,6 +87,8 @@ func (d *Indexer) Run(ctx context.Context) error {
 		d.logger.Info("Resuming from last indexed block", "blockHeight", blockNumber)
 	}
 
+	start := time.Now()
+	startBlock := blockNumber
 	for {
 		select {
 		case <-ctx.Done():
@@ -104,7 +106,16 @@ func (d *Indexer) Run(ctx context.Context) error {
 				continue
 			}
 			if blockNumber%1000 == 0 {
-				d.logger.Info("Indexed block", "blockNumber", blockNumber)
+				blockCount := blockNumber - startBlock
+				d.logger.Info("Indexed blocks",
+					"count", blockCount,
+					"start", startBlock,
+					"end", blockNumber,
+					"duration", (time.Since(start)).String(),
+					"avg_duration", (time.Since(start) / time.Duration(blockCount)).String(),
+				)
+				start = time.Now()
+				startBlock = blockNumber
 			}
 			blockNumber++
 		}
