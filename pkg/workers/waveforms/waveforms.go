@@ -31,6 +31,7 @@ type Config struct {
     AudiusURL   string
     BatchSize int
     Buckets   int
+    Concurrency int
     Logger    *slog.Logger
     DelegatePrivateKey string
 }
@@ -38,6 +39,7 @@ type Config struct {
 type Job struct {
 	batchSize int
 	buckets   int
+	concurrency int
 	client   *http.Client
 	pool    *pgxpool.Pool
 	sdk     *sdk.OpenAudioSDK
@@ -64,9 +66,13 @@ func NewJob(cfg *Config) (*Job, error) {
 	if cfg.Buckets <= 0 {
 		cfg.Buckets = 500
 	}
+	if cfg.Concurrency <= 0 {
+		cfg.Concurrency = 4
+	}
 	return &Job{
 		batchSize: cfg.BatchSize,
 		buckets:   cfg.Buckets,
+		concurrency: cfg.Concurrency,
 		client:    &http.Client{Timeout: 60 * time.Second},
 		pool:      pool,
 		sdk:       openAudioSdk,
@@ -91,7 +97,7 @@ func (j *Job) Run(ctx context.Context) error {
         }
 
 		var wg sync.WaitGroup
-		sem := make(chan struct{}, 4) // limit concurrency to 4
+		sem := make(chan struct{}, j.concurrency)
 
 		for _, t := range tasks {
 			select {
