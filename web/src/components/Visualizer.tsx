@@ -1,19 +1,23 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import styled from "styled-components"
+import {
+  IconPlayerPlay,
+  IconPlayerPause,
+  IconPlayerSkipBack,
+  IconPlayerSkipForward,
+} from "@tabler/icons-react"
 import butterchurnModule, { type Visualizer } from "butterchurn"
 import butterchurnPresets from "butterchurn-presets"
 import { usePlayer } from "../contexts/PlayerContext"
 
 const butterchurn = butterchurnModule.default
 
-const VisualizerOverlay = styled.div.withConfig({
-  shouldForwardProp: (prop) => prop !== "isVisible",
-})<{ isVisible: boolean }>`
+const VisualizerOverlay = styled.div<{ isVisible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  right: 0;
+  bottom: 0;
   background: #000;
   z-index: 9999;
   display: ${(props) => (props.isVisible ? "flex" : "none")};
@@ -46,12 +50,10 @@ const PresetInfo = styled.div`
   }
 `
 
-const Instructions = styled.div.withConfig({
-  shouldForwardProp: (prop) => prop !== "isVisible",
-})<{ isVisible: boolean }>`
+const Instructions = styled.div<{ isVisible: boolean }>`
   position: absolute;
-  bottom: 20px;
-  right: 20px;
+  bottom: 24px;
+  right: 24px;
   color: #fff;
   font-family: "Kode Mono", monospace;
   font-size: 12px;
@@ -65,29 +67,36 @@ const Instructions = styled.div.withConfig({
   transition: opacity 0.3s ease;
 `
 
-const TrackOverlay = styled.div`
+const NowPlaying = styled.div`
   position: absolute;
-  left: 20px;
-  bottom: 20px;
+  left: 24px;
+  bottom: 24px;
   display: flex;
   gap: 12px;
-  align-items: center;
   background: rgba(0, 0, 0, 0.6);
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 16px;
+  border-radius: 5px;
   color: #fff;
-  pointer-events: none;
-  max-width: 50%;
-  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  max-width: 60%;
+  height: 160px;
 `
 
-const TrackAvatar = styled.img`
-  width: 48px;
-  height: 48px;
+const CoverArt = styled.img`
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
   border-radius: 8px;
-  object-fit: cover;
-  flex: 0 0 48px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+`
+
+const TrackContent = styled.div`
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `
 
 const TrackText = styled.div`
@@ -98,18 +107,50 @@ const TrackText = styled.div`
 
 const TrackTitleText = styled.div`
   font-family: "Fugaz One", sans-serif;
-  font-size: 0.95rem;
+  font-size: 1.35rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `
 
 const TrackArtistText = styled.div`
-  font-size: 0.85rem;
-  color: #cfcfcf;
+  font-size: 1.05rem;
+  color: #e6e6e6;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+`
+
+const Controls = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+  pointer-events: auto;
+`
+
+const ControlButton = styled.button`
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #fff;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+
+  &:hover {
+    color: oklch(71.4% 0.203 305.504);
+  }
+  &:active {
+    transform: scale(0.9);
+    filter: brightness(0.8);
+  }
 `
 
 interface VisualizerProps {
@@ -134,7 +175,14 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
     return Object.keys(presets)
   }, [])
 
-  const { audioElement, currentTrack } = usePlayer()
+  const {
+    audioElement,
+    currentTrack,
+    isPlaying,
+    togglePlay,
+    playNext,
+    playPrevious,
+  } = usePlayer()
 
   // Initialize visualizer
   useEffect(() => {
@@ -316,13 +364,56 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
       </Instructions>
 
       {currentTrack && (
-        <TrackOverlay>
-          <TrackAvatar src={currentTrack.coverArt} alt={currentTrack.artist} />
-          <TrackText>
-            <TrackTitleText>{currentTrack.title}</TrackTitleText>
-            <TrackArtistText>{currentTrack.artist}</TrackArtistText>
-          </TrackText>
-        </TrackOverlay>
+        <NowPlaying>
+          <CoverArt
+            src={
+              currentTrack.coverArt || "https://picsum.photos/seed/avatar/100"
+            }
+            alt={currentTrack.artist}
+          />
+          <TrackContent>
+            <TrackText>
+              <TrackTitleText>{currentTrack.title}</TrackTitleText>
+              <TrackArtistText>{currentTrack.artist}</TrackArtistText>
+            </TrackText>
+
+            <Controls>
+              <ControlButton
+                onClick={(e) => {
+                  e.stopPropagation()
+                  playPrevious()
+                }}
+                aria-label="Previous"
+              >
+                <IconPlayerSkipBack size={18} />
+              </ControlButton>
+
+              <ControlButton
+                onClick={(e) => {
+                  e.stopPropagation()
+                  togglePlay()
+                }}
+                aria-label={isPlaying ? "Pause" : "Play"}
+              >
+                {isPlaying ? (
+                  <IconPlayerPause size={18} />
+                ) : (
+                  <IconPlayerPlay size={18} />
+                )}
+              </ControlButton>
+
+              <ControlButton
+                onClick={(e) => {
+                  e.stopPropagation()
+                  playNext()
+                }}
+                aria-label="Next"
+              >
+                <IconPlayerSkipForward size={18} />
+              </ControlButton>
+            </Controls>
+          </TrackContent>
+        </NowPlaying>
       )}
     </VisualizerOverlay>
   )
