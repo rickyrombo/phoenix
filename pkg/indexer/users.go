@@ -9,20 +9,20 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (d *Indexer) indexUserManageEntity(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy, blockNumber int64) error {
+func (d *Indexer) indexUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy, blockNumber int64) error {
 	switch tx.Action {
 	case Action_Create, Action_Update:
-		return upsertUser(ctx, sqlTx, tx, blockNumber)
+		return upsertUser(ctx, sqlTx, int(tx.EntityId), tx.Metadata, blockNumber)
 	case Action_Delete:
 		return deleteUser(ctx, sqlTx, int(tx.EntityId))
 	case Action_Follow:
-		return followUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+		return followUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	case Action_Unfollow:
-		return unfollowUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+		return unfollowUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
 	case Action_Subscribe:
-		return subscribeUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+		return subscribeUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	case Action_Unsubscribe:
-		return unsubscribeUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber, tx.Signature)
+		return unsubscribeUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
 
 	default:
 		d.logger.Warn("Unknown user action", "action", tx.Action)
@@ -54,10 +54,10 @@ var knownUserFields = map[string]bool{
 	"donation":              true,
 }
 
-func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy, blockNumber int64) error {
+func upsertUser(ctx context.Context, sqlTx pgx.Tx, userId int, metadata string, blockNumber int64) error {
 	// Validate no unknown fields
 	var metadataObj map[string]any
-	if err := json.Unmarshal([]byte(tx.Metadata), &metadataObj); err != nil {
+	if err := json.Unmarshal([]byte(metadata), &metadataObj); err != nil {
 		return fmt.Errorf("invalid JSON metadata: %w", err)
 	}
 
@@ -72,8 +72,7 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 
 	_, err := sqlTx.Exec(ctx, `
 		INSERT INTO users (
-			id,
-			block_number,
+			user_id,
 			name,
 			handle,
 			bio,
@@ -88,11 +87,11 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 			tiktok_handle,
 			twitter_handle,
 			donation,
+			block_number,
 			created_at,
 			updated_at
 		) VALUES (
-		 	@id,
-            @blockNumber,
+		 	@userId,
             @metadata::jsonb->'data'->>'name',
             @metadata::jsonb->'data'->>'handle',
             @metadata::jsonb->'data'->>'bio',
@@ -107,10 +106,10 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 			@metadata::jsonb->'data'->>'tiktok_handle',
 			@metadata::jsonb->'data'->>'twitter_handle',
 			@metadata::jsonb->'data'->>'donation',
+			@blockNumber,
             NOW(),
             NOW()
-		) ON CONFLICT (id) DO UPDATE SET
-			block_number = EXCLUDED.block_number,
+		) ON CONFLICT (user_id) DO UPDATE SET
 			name = CASE WHEN @metadata::jsonb->'data' ? 'name' THEN EXCLUDED.name ELSE users.name END,
 			handle = CASE WHEN @metadata::jsonb->'data' ? 'handle' THEN EXCLUDED.handle ELSE users.handle END,
 			bio = CASE WHEN @metadata::jsonb->'data' ? 'bio' THEN EXCLUDED.bio ELSE users.bio END,
@@ -133,13 +132,13 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 			tiktok_handle = CASE WHEN @metadata::jsonb->'data' ? 'tiktok_handle' THEN EXCLUDED.tiktok_handle ELSE users.tiktok_handle END,
 			twitter_handle = CASE WHEN @metadata::jsonb->'data' ? 'twitter_handle' THEN EXCLUDED.twitter_handle ELSE users.twitter_handle END,
 			donation = CASE WHEN @metadata::jsonb->'data' ? 'donation' THEN EXCLUDED.donation ELSE users.donation END,
+			block_number = EXCLUDED.block_number,
 			updated_at = NOW()
 		WHERE users.block_number <= EXCLUDED.block_number
 	`, pgx.NamedArgs{
-		"id":          int(tx.EntityId),
+		"userId":      userId,
+		"metadata":    metadata,
 		"blockNumber": blockNumber,
-		"metadata":    tx.Metadata,
-		"signer":      tx.Signer,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to upsert user: %w", err)
@@ -152,14 +151,12 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 				user_id,
 				library,
 				block_number,
-				tx_hash,
 				created_at,
 				updated_at
 			) VALUES (
-				@id,
+				@userId,
 				@metadata::jsonb->'data'->'playlist_library'->'contents',
 				@blockNumber,
-				@txHash,
 				NOW(),
 				NOW()
 			) ON CONFLICT (user_id) DO UPDATE SET
@@ -167,11 +164,10 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 				updated_at = NOW()
 			WHERE playlist_libraries.block_number <= EXCLUDED.block_number
 		`, pgx.NamedArgs{
-			"id":          int(tx.EntityId),
-			"metadata":    tx.Metadata,
+			"userId":      userId,
+			"metadata":    metadata,
 			"blockNumber": blockNumber,
-			"txHash":      tx.Signature,
-		}, int(tx.EntityId))
+		})
 		if err != nil {
 			return fmt.Errorf("failed to upsert playlist library: %w", err)
 		}
@@ -185,27 +181,23 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 					user_id,
 					wallet,
 					block_number,
-					tx_hash,
 					created_at,
 					updated_at
 				) VALUES (
-					@id,
+					@userId,
 					@wallet,
 					@blockNumber,
-					@txHash,
 					NOW(),
 					NOW()
 				) ON CONFLICT (wallet) DO UPDATE SET
 				 	user_id = EXCLUDED.user_id,
 					block_number = EXCLUDED.block_number,
-					tx_hash = EXCLUDED.tx_hash,
 					updated_at = NOW()
 				WHERE user_wallets.block_number <= EXCLUDED.block_number
 			`, pgx.NamedArgs{
-				"id":          int(tx.EntityId),
+				"userId":      userId,
 				"wallet":      wallet,
 				"blockNumber": blockNumber,
-				"txHash":      tx.Signature,
 			})
 			if err != nil {
 				return fmt.Errorf("failed to upsert user wallet: %w", err)
@@ -216,89 +208,68 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy
 	return nil
 }
 
-func deleteUser(ctx context.Context, sqlTx pgx.Tx, id int) error {
+func deleteUser(ctx context.Context, sqlTx pgx.Tx, userId int) error {
 	_, err := sqlTx.Exec(ctx, `
-		DELETE FROM users WHERE id = $1;
-	`, id)
+		DELETE FROM users WHERE user_id = $1;
+	`, userId)
 	return err
 }
 
-func followUser(ctx context.Context, sqlTx pgx.Tx, userId int, followedUserId int, blockNumber int64, txHash string) error {
+func followUser(ctx context.Context, sqlTx pgx.Tx, userId int, followedUserId int, blockNumber int64) error {
 	_, err := sqlTx.Exec(ctx, `
-		INSERT INTO follows (user_id, followed_user_id, block_number, tx_hash, created_at, updated_at)
-		VALUES (@userId, @followedUserId, @blockNumber, @txHash, NOW(), NOW())
-		ON CONFLICT (user_id, followed_user_id) DO UPDATE SET
-			block_number = EXCLUDED.block_number,
-			tx_hash = EXCLUDED.tx_hash,
-			updated_at = NOW()
-		WHERE follows.block_number <= EXCLUDED.block_number
-	`, pgx.NamedArgs{
+        WITH ins AS (
+			INSERT INTO follows (user_id, followed_user_id, block_number, created_at, updated_at)
+			VALUES (@userId, @followedUserId, @blockNumber, NOW(), NOW())
+			ON CONFLICT (user_id, followed_user_id) DO UPDATE SET
+				block_number = EXCLUDED.block_number,
+                updated_at = NOW()
+            WHERE follows.block_number <= EXCLUDED.block_number
+            RETURNING followed_user_id
+        )
+        INSERT INTO user_aggregates (user_id, follower_count, updated_at)
+        SELECT followed_user_id, 1, NOW() FROM ins
+        ON CONFLICT (user_id) DO UPDATE SET
+            follower_count = user_aggregates.follower_count + 1,
+            updated_at = NOW()
+    `, pgx.NamedArgs{
 		"userId":         userId,
 		"followedUserId": followedUserId,
 		"blockNumber":    blockNumber,
-		"txHash":         txHash,
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = sqlTx.Exec(ctx, `
-		INSERT INTO user_aggregates (user_id, follower_count, updated_at)
-		VALUES (@followedUserId, 1, NOW())
-		ON CONFLICT (user_id) DO UPDATE SET
-			follower_count = user_aggregates.follower_count + 1,
-			updated_at = NOW()
-	`, pgx.NamedArgs{
-		"followedUserId": followedUserId,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func unfollowUser(ctx context.Context, sqlTx pgx.Tx, userId int, unfollowedUserId int, blockNumber int64, txHash string) error {
+func unfollowUser(ctx context.Context, sqlTx pgx.Tx, userId int, unfollowedUserId int) error {
 	_, err := sqlTx.Exec(ctx, `
-		DELETE FROM follows WHERE user_id = @userId AND followed_user_id = @unfollowedUserId;
-	`, pgx.NamedArgs{
+        WITH del AS (
+            DELETE FROM follows
+            WHERE user_id = @userId AND followed_user_id = @unfollowedUserId
+            RETURNING followed_user_id
+        )
+        INSERT INTO user_aggregates (user_id, follower_count, updated_at)
+        SELECT followed_user_id, 0, NOW() FROM del
+        ON CONFLICT (user_id) DO UPDATE SET
+            follower_count = GREATEST(user_aggregates.follower_count - 1, 0),
+            updated_at = NOW()
+    `, pgx.NamedArgs{
 		"userId":           userId,
 		"unfollowedUserId": unfollowedUserId,
 	})
-	if err != nil {
-		return err
-	}
-
-	_, err = sqlTx.Exec(ctx, `
-		INSERT INTO user_aggregates (user_id, follower_count, updated_at)
-		VALUES (@unfollowedUserId, 0, NOW())
-		ON CONFLICT (user_id) DO UPDATE SET
-			follower_count = GREATEST(user_aggregates.follower_count - 1, 0),
-			updated_at = NOW()
-	`, pgx.NamedArgs{
-		"unfollowedUserId": unfollowedUserId,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func subscribeUser(ctx context.Context, sqlTx pgx.Tx, userId int, subscribedUserId int, blockNumber int64, txHash string) error {
+func subscribeUser(ctx context.Context, sqlTx pgx.Tx, userId int, subscribedUserId int, blockNumber int64) error {
 	_, err := sqlTx.Exec(ctx, `
-		INSERT INTO subscriptions (user_id, subscribed_user_id, block_number, tx_hash, created_at)
-		VALUES (@userId, @subscribedUserId, @blockNumber, @txHash, NOW())
+		INSERT INTO subscriptions (user_id, subscribed_user_id, block_number, created_at)
+		VALUES (@userId, @subscribedUserId, @blockNumber, NOW())
 		ON CONFLICT (user_id, subscribed_user_id) DO UPDATE SET
 			block_number = EXCLUDED.block_number,
-			tx_hash = EXCLUDED.tx_hash,
 			updated_at = NOW()
 		WHERE subscriptions.block_number <= EXCLUDED.block_number
 	`, pgx.NamedArgs{
 		"userId":           userId,
 		"subscribedUserId": subscribedUserId,
 		"blockNumber":      blockNumber,
-		"txHash":           txHash,
 	})
 	if err != nil {
 		return err
@@ -307,7 +278,7 @@ func subscribeUser(ctx context.Context, sqlTx pgx.Tx, userId int, subscribedUser
 	return nil
 }
 
-func unsubscribeUser(ctx context.Context, sqlTx pgx.Tx, userId int, unsubscribedUserId int, blockNumber int64, txHash string) error {
+func unsubscribeUser(ctx context.Context, sqlTx pgx.Tx, userId int, unsubscribedUserId int) error {
 	_, err := sqlTx.Exec(ctx, `
 		DELETE FROM subscriptions WHERE user_id = @userId AND subscribed_user_id = @unsubscribedUserId;
 	`, pgx.NamedArgs{

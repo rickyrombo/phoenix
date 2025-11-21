@@ -127,7 +127,7 @@ func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) error {
 	for _, tx := range block.Msg.Block.Transactions {
 		err = d.indexTransaction(ctx, tx, block.Msg.Block.Height)
 		if err != nil {
-			d.logger.Error("Failed to index transaction", "error", err, "transaction", tx.Transaction.GetSignature())
+			d.logger.Error("Failed to index transaction", "error", err, "blockNumber", block.Msg.Block.Height, "txHash", tx.Hash)
 			d.addToRetryQueue(ctx, tx, err.Error())
 			continue
 		}
@@ -165,7 +165,7 @@ func (d *Indexer) indexTransaction(ctx context.Context, tx *corev1.Transaction, 
 	case *corev1.SignedTransaction_ManageEntity:
 		err := d.indexManageEntityTransaction(ctx, dbTx, tx, blockNumber)
 		if err != nil {
-			return fmt.Errorf("failed to index ManageEntity transaction: %w", err)
+			return fmt.Errorf("failed to index ManageEntity tx: %w", err)
 		}
 	}
 
@@ -183,9 +183,14 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 	var err error
 	switch entity.EntityType {
 	case Entity_Track:
-		err = d.indexTrackManageEntity(ctx, sqlTx, entity, blockNumber)
+		err = d.indexTrack(ctx, sqlTx, entity, blockNumber)
 	case Entity_User:
-		err = d.indexUserManageEntity(ctx, sqlTx, entity, blockNumber)
+		err = d.indexUser(ctx, sqlTx, entity, blockNumber)
+	case Entity_Comment:
+		err = d.indexComment(ctx, sqlTx, entity, blockNumber)
+	}
+	if err != nil {
+		d.logger.Error("Failed to index entity", "error", err, "entityType", entity.EntityType, "entityId", entity.EntityId, "metadata", entity.Metadata)
 	}
 
 	return err

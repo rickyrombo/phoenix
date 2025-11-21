@@ -24,8 +24,7 @@ CREATE TABLE IF NOT EXISTS retry_queue (
 -- =========================
 
 CREATE TABLE IF NOT EXISTS tracks (
-    id INT PRIMARY KEY,
-    block_number BIGINT NOT NULL,
+    track_id INT PRIMARY KEY,
     
     -- Core metadata
     title TEXT NOT NULL,
@@ -83,6 +82,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     preview_start_seconds INTEGER,
     
     -- Timestamps
+    block_number BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -115,7 +115,6 @@ CREATE TABLE IF NOT EXISTS track_saves (
     user_id INT NOT NULL,
     track_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, track_id)
@@ -126,7 +125,6 @@ CREATE TABLE IF NOT EXISTS track_reposts (
     user_id INT NOT NULL,
     track_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, track_id)
@@ -137,7 +135,6 @@ CREATE TABLE IF NOT EXISTS track_downloads (
     user_id INT NOT NULL,
     track_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, track_id)
@@ -148,8 +145,7 @@ CREATE TABLE IF NOT EXISTS track_downloads (
 -- =========================
 
 CREATE TABLE IF NOT EXISTS users (
-    id INT PRIMARY KEY,
-    block_number BIGINT NOT NULL,
+    user_id INT PRIMARY KEY,
     
     -- Core metadata
     name TEXT NOT NULL,
@@ -172,6 +168,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_verified BOOLEAN DEFAULT false,
     
     -- Timestamps
+    block_number BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -195,7 +192,6 @@ CREATE TABLE IF NOT EXISTS playlist_libraries (
     user_id INT PRIMARY KEY,
     library JSONB,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -205,7 +201,6 @@ CREATE TABLE IF NOT EXISTS user_wallets (
     wallet TEXT PRIMARY KEY,
     user_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -215,7 +210,6 @@ CREATE TABLE IF NOT EXISTS follows (
     user_id INT NOT NULL,
     followed_user_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, followed_user_id)
@@ -226,10 +220,53 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     user_id INT NOT NULL,
     subscribed_user_id INT NOT NULL,
     block_number BIGINT NOT NULL,
-    tx_hash TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), 
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, subscribed_user_id)
 );
 CREATE INDEX IF NOT EXISTS idx_subscriptions_subscribed_user_id ON subscriptions(subscribed_user_id);
 
+-- =========================
+--       COMMENTS
+-- =========================
+
+CREATE TABLE IF NOT EXISTS comments (
+    comment_id INT PRIMARY KEY,
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    parent_comment_id INT,
+    content TEXT NOT NULL,
+    track_timestamp_s INT,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_comments_track_id ON comments(track_id);
+CREATE INDEX IF NOT EXISTS idx_comments_parent_comment_id ON comments(parent_comment_id);
+
+CREATE TABLE IF NOT EXISTS comment_mentions (
+    comment_id INT NOT NULL,
+    mentioned_user_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (comment_id, mentioned_user_id)
+);
+
+CREATE TABLE IF NOT EXISTS comment_reactions (
+    comment_id INT NOT NULL,
+    user_id INT NOT NULL,
+    reaction SMALLINT NOT NULL DEFAULT 1,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (comment_id, user_id)
+);
+
+CREATE TABLE comment_pins (
+    track_id INT PRIMARY KEY,
+    comment_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
