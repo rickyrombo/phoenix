@@ -19,7 +19,6 @@ const VisualizerOverlay = styled.div.withConfig({
   display: ${(props) => (props.isVisible ? "flex" : "none")};
   align-items: center;
   justify-content: center;
-  cursor: none;
 `
 
 const VisualizerCanvas = styled.canvas`
@@ -66,6 +65,53 @@ const Instructions = styled.div.withConfig({
   transition: opacity 0.3s ease;
 `
 
+const TrackOverlay = styled.div`
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #fff;
+  pointer-events: none;
+  max-width: 50%;
+  backdrop-filter: blur(6px);
+`
+
+const TrackAvatar = styled.img`
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: 0 0 48px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+`
+
+const TrackText = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`
+
+const TrackTitleText = styled.div`
+  font-family: "Fugaz One", sans-serif;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
+const TrackArtistText = styled.div`
+  font-size: 0.85rem;
+  color: #cfcfcf;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`
+
 interface VisualizerProps {
   isVisible: boolean
   onClose: () => void
@@ -88,7 +134,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
     return Object.keys(presets)
   }, [])
 
-  const { audioElement } = usePlayer()
+  const { audioElement, currentTrack } = usePlayer()
 
   // Initialize visualizer
   useEffect(() => {
@@ -268,6 +314,16 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
         <br />
         {presetNames.length} presets available
       </Instructions>
+
+      {currentTrack && (
+        <TrackOverlay>
+          <TrackAvatar src={currentTrack.coverArt} alt={currentTrack.artist} />
+          <TrackText>
+            <TrackTitleText>{currentTrack.title}</TrackTitleText>
+            <TrackArtistText>{currentTrack.artist}</TrackArtistText>
+          </TrackText>
+        </TrackOverlay>
+      )}
     </VisualizerOverlay>
   )
 }
