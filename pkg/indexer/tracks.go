@@ -72,6 +72,7 @@ var knownTrackFields = map[string]bool{
 	"parental_warning_type":      true,
 	"audio_analysis_error_count": true,
 	"preview_start_seconds":      true,
+	"ai_attribution_user_id":     true,
 }
 
 func upsertTrack(ctx context.Context, sqlTx pgx.Tx, trackId int, metadata string, blockNumber int64) error {
@@ -131,6 +132,7 @@ func upsertTrack(ctx context.Context, sqlTx pgx.Tx, trackId int, metadata string
 				field_visibility,
 				parental_warning_type,
 				preview_start_seconds,
+				ai_attribution_user_id,
 				block_number,
 				created_at,
 				updated_at
@@ -173,6 +175,7 @@ func upsertTrack(ctx context.Context, sqlTx pgx.Tx, trackId int, metadata string
 				@metadata::jsonb->'data'->'stem_of',
 				@metadata::jsonb->'data'->'field_visibility',
 				@metadata::jsonb->'data'->>'parental_warning_type',
+				(@metadata::jsonb->'data'->>'ai_attribution_user_id')::INTEGER,
 				NULLIF(@metadata::jsonb->'data'->>'preview_start_seconds', '')::INTEGER,
 				@blockNumber,
 				NOW(),
@@ -216,6 +219,7 @@ func upsertTrack(ctx context.Context, sqlTx pgx.Tx, trackId int, metadata string
 				field_visibility = CASE WHEN @metadata::jsonb->'data' ? 'field_visibility' THEN EXCLUDED.field_visibility ELSE tracks.field_visibility END,
 				parental_warning_type = CASE WHEN @metadata::jsonb->'data' ? 'parental_warning_type' THEN EXCLUDED.parental_warning_type ELSE tracks.parental_warning_type END,
 				preview_start_seconds = CASE WHEN @metadata::jsonb->'data' ? 'preview_start_seconds' THEN EXCLUDED.preview_start_seconds ELSE tracks.preview_start_seconds END,
+				ai_attribution_user_id = CASE WHEN @metadata::jsonb->'data' ? 'ai_attribution_user_id' THEN EXCLUDED.ai_attribution_user_id ELSE tracks.ai_attribution_user_id END,
 				block_number = EXCLUDED.block_number,
 				updated_at = NOW()
 			WHERE tracks.block_number <= EXCLUDED.block_number

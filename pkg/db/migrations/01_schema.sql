@@ -18,6 +18,24 @@ CREATE TABLE IF NOT EXISTS retry_queue (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS manage_entity_txs (
+    tx_hash TEXT PRIMARY KEY,
+    user_id INT,
+    entity_type TEXT NOT NULL,
+    entity_id INT NOT NULL,
+    action TEXT NOT NULL,
+    metadata JSONB,
+    signer TEXT,
+    signature TEXT,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_user_id ON manage_entity_txs(user_id);
+CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_entity_type_action ON manage_entity_txs(entity_type, action);
+CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_entity_id ON manage_entity_txs(entity_id);
+CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_block_number ON manage_entity_txs(block_number);
+
 
 -- =========================
 --        TRACKS
@@ -80,6 +98,7 @@ CREATE TABLE IF NOT EXISTS tracks (
     -- Other
     parental_warning_type TEXT,
     preview_start_seconds INTEGER,
+    ai_attribution_user_id INT,
     
     -- Timestamps
     block_number BIGINT NOT NULL,

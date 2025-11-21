@@ -177,8 +177,8 @@ func (d *Indexer) indexTransaction(ctx context.Context, tx *corev1.Transaction, 
 	return nil
 }
 
-func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx, transaction *corev1.Transaction, blockNumber int64) error {
-	entity := transaction.Transaction.GetManageEntity()
+func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Transaction, blockNumber int64) error {
+	entity := tx.Transaction.GetManageEntity()
 
 	var err error
 	switch entity.EntityType {
@@ -190,10 +190,69 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 		err = d.indexComment(ctx, sqlTx, entity, blockNumber)
 	}
 	if err != nil {
-		d.logger.Error("Failed to index entity", "error", err, "entityType", entity.EntityType, "entityId", entity.EntityId, "metadata", entity.Metadata)
+		d.logger.Error("Failed to index entity",
+			"error", err,
+			"entityType", entity.EntityType,
+			"action", entity.Action,
+			"userId", entity.UserId,
+			"entityId", entity.EntityId,
+			"metadata", entity.Metadata,
+			"signer", entity.Signer,
+			"signature", entity.Signature,
+		)
+		return fmt.Errorf("failed to index entity: %w", err)
 	}
 
-	return err
+	sql := `
+		INSERT INTO manage_entity_txs (
+			tx_hash,
+			user_id,
+			entity_type, 
+			entity_id,
+			action,
+			block_number,
+			metadata,
+			signer,
+			signature,
+			created_at,
+			updated_at
+		)
+		VALUES (
+			@txHash,
+			@userId,
+			@entityType,
+			@entityId,
+			@action,
+			@blockNumber,
+			@metadata::jsonb,
+			@signer,
+			@signature,
+			NOW(),
+			NOW()
+		)
+		ON CONFLICT (tx_hash) DO NOTHING
+	;
+	`
+	var metadata *string
+	if entity.Metadata != "" {
+		metadata = &entity.Metadata
+	}
+	_, err = sqlTx.Exec(ctx, sql, pgx.NamedArgs{
+		"txHash":      tx.Hash,
+		"userId":      entity.UserId,
+		"entityId":    entity.EntityId,
+		"entityType":  entity.EntityType,
+		"action":      entity.Action,
+		"metadata":    metadata,
+		"signer":      entity.Signer,
+		"signature":   entity.Signature,
+		"blockNumber": blockNumber,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to insert manage_entity_tx: %w", err)
+	}
+
+	return nil
 }
 
 func (d *Indexer) addToRetryQueue(ctx context.Context, tx *corev1.Transaction, errMsg string) {
