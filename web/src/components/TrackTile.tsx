@@ -429,10 +429,10 @@ export default function TrackTile({
   context,
   onPlayToggle: onPlayToggle,
 }: TrackTileProps) {
-  const { currentTrack, isPlaying, duration, currentTime } = usePlayer()
+  const { track: currentTrack, isPlaying, duration, currentTime } = usePlayer()
   const { data: user } = useUser(track.owner_id)
 
-  const isActive = currentTrack === track.track_id
+  const isActive = currentTrack?.track_id === track.track_id
   const [draftCommentPosition, setDraftCommentPosition] = useState<
     number | null
   >(null)

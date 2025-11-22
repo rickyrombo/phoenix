@@ -9,9 +9,9 @@ import (
 
 func (s *Server) getFeed(c *fiber.Ctx) error {
 	var queryParams struct {
-		UserID int64 `query:"user_id"`
-		Limit  int   `query:"limit"`
-		Offset int   `query:"offset"`
+		UserID int64   `query:"user_id"`
+		Before *string `query:"before"`
+		Limit  int     `query:"limit"`
 	}
 	if err := c.QueryParser(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -21,9 +21,10 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 
 	sql := `
 	-- Return one row per entity_id (distinct) choosing the most recent
-	-- row by block_number, using block_time as a tiebreaker. Then order
-	-- the resulting set by block_number (newest first) and apply limit/offset.
-	SELECT 
+	-- row by block_number, using tx_hash as a tiebreaker. Then order
+	-- the resulting set by block_number (newest first) and apply limit.
+	SELECT
+		sub.tx_hash,
 		sub.user_id, 
 		sub.entity_type, 
 		sub.entity_id, 
@@ -31,6 +32,7 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 		sub.timestamp
 	FROM (
 		SELECT DISTINCT ON (manage_entity_txs.entity_id, manage_entity_txs.entity_type)
+			manage_entity_txs.tx_hash,
 			manage_entity_txs.user_id,
 			manage_entity_txs.entity_type,
 			manage_entity_txs.entity_id,
@@ -40,26 +42,36 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 		FROM manage_entity_txs
 		JOIN follows ON follows.followed_user_id = manage_entity_txs.user_id
 		JOIN blocks ON blocks.number = manage_entity_txs.block_number
-		JOIN users ON users.user_id = manage_entity_txs.user_id
 		WHERE follows.user_id = @userId
 			AND (
 				(manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Create')
 				OR (manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Repost')
 			)
+			AND (
+				@before::TEXT IS NULL 
+				OR (
+					blocks.number = (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+					AND manage_entity_txs.tx_hash < @before
+				) 
+				OR (
+					blocks.number < (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+				)
+			)
 		ORDER BY 
 			manage_entity_txs.entity_id, 
 			manage_entity_txs.entity_type,
-			manage_entity_txs.block_number DESC
+			manage_entity_txs.block_number DESC,
+			manage_entity_txs.tx_hash DESC
 	) AS sub
 	ORDER BY 
 		sub.block_number DESC NULLS LAST,
-		sub.timestamp DESC NULLS LAST
-	LIMIT @limit OFFSET @offset;
+		sub.tx_hash DESC NULLS LAST
+	LIMIT @limit;
 	`
 	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
 		"userId": queryParams.UserID,
+		"before": queryParams.Before,
 		"limit":  queryParams.Limit,
-		"offset": queryParams.Offset,
 	})
 	if err != nil {
 		s.Logger.Error("Failed to fetch feed", "error", err)
@@ -69,6 +81,7 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 	}
 
 	type feedItem struct {
+		TxHash     string    `json:"tx_hash"`
 		UserID     int64     `json:"user_id"`
 		EntityType string    `json:"entity_type"`
 		EntityID   int64     `json:"entity_id"`

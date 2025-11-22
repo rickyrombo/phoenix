@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react"
 import styled from "styled-components"
 import { useTracks } from "../queries/useTrack"
-import type { Queue } from "../contexts/PlayerContext"
+import { usePlayQueue } from "../contexts/PlayQueueContext"
 
 const Popup = styled.div`
   width: 320px;
@@ -72,15 +72,12 @@ const Artist = styled.div`
 `
 
 export default function QueuePopup({
-  queue,
-  onSelect,
   anchorRef,
 }: {
-  queue: Queue
-  onSelect: (index: number) => void
   anchorRef?: React.RefObject<HTMLElement | null>
 }) {
-  const { data: tracks } = useTracks(queue.tracks)
+  const queue = usePlayQueue()
+  const { data: tracks } = useTracks(queue.items.map((item) => item.trackId))
   const popupRef = useRef<HTMLDivElement | null>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
@@ -111,7 +108,7 @@ export default function QueuePopup({
     setPos({ left: clampedLeft, top })
   }, [anchorRef, queue])
 
-  if (!queue || !queue.tracks) return null
+  if (!queue || queue.items.length === 0) return null
 
   return (
     <Popup
@@ -125,19 +122,21 @@ export default function QueuePopup({
       aria-label="play-queue"
     >
       <Header>Queue</Header>
-      {tracks.map((t, idx) => (
-        <Item
-          key={t.track_id ?? idx}
-          $active={queue.currentIndex === idx}
-          onClick={() => onSelect(idx)}
-        >
-          <Thumb src={t.cover_art?.medium} alt={t.title} />
-          <Meta>
-            <Title>{t.title}</Title>
-            <Artist>{t.owner_id}</Artist>
-          </Meta>
-        </Item>
-      ))}
+      {tracks.map((t, idx) =>
+        t ? (
+          <Item
+            key={t.track_id ?? idx}
+            $active={queue.index === idx}
+            onClick={() => queue.set(idx)}
+          >
+            <Thumb src={t.cover_art?.medium} alt={t.title} />
+            <Meta>
+              <Title>{t.title}</Title>
+              <Artist>{t.owner_id}</Artist>
+            </Meta>
+          </Item>
+        ) : null,
+      )}
     </Popup>
   )
 }

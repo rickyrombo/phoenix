@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 import TrackTile from "../components/TrackTile"
-import { useFeed, type FeedItem } from "../queries/useFeed"
+import { getFeedQueryFn, useFeed, type FeedItem } from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
 import { useCallback } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
+import { usePlayQueue, type PlayQueueItem } from "../contexts/PlayQueueContext"
+import { infiniteQueryOptions } from "@tanstack/react-query"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -27,6 +29,7 @@ const TracksGrid = styled.div`
 `
 
 type FeedItemProps = FeedItem & {
+  queuePosition: number
   onPlayToggle: () => void
 }
 
@@ -53,33 +56,57 @@ const TrackFeedItem = ({
   ) : null
 }
 
+const feedQueueQueryOptions = infiniteQueryOptions({
+  queryKey: ["playQueue", "feed"],
+  queryFn: async ({ pageParam }: { pageParam?: string }) => {
+    const data = await getFeedQueryFn({ before: pageParam })
+    const playQueue = data.map(
+      (t): PlayQueueItem => ({
+        trackId: t.entity_id,
+        cursor: t.tx_hash,
+      }),
+    )
+    return playQueue
+  },
+  getNextPageParam: (lastPage) => {
+    if (lastPage.length === 0) return undefined
+    return lastPage[lastPage.length - 1].cursor
+  },
+  initialPageParam: "",
+})
+
 function FeedPage() {
   const { data: feed } = useFeed()
 
-  const { setQueue, queue, isPlaying, togglePlay } = usePlayer()
+  const { isPlaying, togglePlay } = usePlayer()
+  const queue = usePlayQueue()
 
   const handlePlayToggle = useCallback(
     (i: number) => {
-      setQueue({
-        tracks: feed?.map((item) => item.entity_id) ?? [],
-        currentIndex: i,
-        name: "Feed",
-        source: "feed",
-      })
-      if (!isPlaying || queue.currentIndex === i) {
+      if (queue.queueKey?.[1] !== "feed") {
+        console.log("Changing queue to feed")
+        queue.changeQueue(feedQueueQueryOptions)
+      }
+      if (queue.index !== i) {
+        console.log("Changing track")
+        queue.set(i)
+      }
+      if (!isPlaying || queue.index === i) {
+        console.log("Toggling play")
         togglePlay()
       }
     },
-    [feed, isPlaying, queue.currentIndex, setQueue, togglePlay],
+    [isPlaying, queue, togglePlay],
   )
 
   return (
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        {feed?.map((feedItem, i) => (
+        {feed?.pages.flat().map((feedItem, i) => (
           <TrackFeedItem
             key={feedItem.entity_id}
+            queuePosition={i}
             {...feedItem}
             onPlayToggle={() => handlePlayToggle(i)}
           />

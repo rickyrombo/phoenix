@@ -107,8 +107,8 @@ export default function ActiveComments({
   trackId,
   duration,
 }: ActiveCommentsProps) {
-  const { currentTrack, isPlaying, currentTime, seek } = usePlayer()
-  const isActive = currentTrack === trackId
+  const { track, isPlaying, currentTime, seek } = usePlayer()
+  const isActive = track?.track_id === trackId
   const [activeComments, setActiveComments] = useState<ActiveComment[]>([])
   const nextCommentIdRef = useRef(0)
   const lastShownCommentRef = useRef<Map<number, number>>(new Map())

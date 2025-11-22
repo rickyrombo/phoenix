@@ -1,20 +1,19 @@
-import { createRootRoute, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import styled from 'styled-components'
-import Header from '../components/Header'
-import Sidebar from '../components/Sidebar'
-import Player from '../components/Player'
-import Visualizer from '../components/Visualizer'
-import { useState, useEffect } from 'react'
+import { createRootRoute, Outlet } from "@tanstack/react-router"
+import styled from "styled-components"
+import Header from "../components/Header"
+import Sidebar from "../components/Sidebar"
+import Player from "../components/Player"
+import Visualizer from "../components/Visualizer"
+import { useState, useEffect } from "react"
 
 const navItems = [
-  { label: 'Home', icon: 'home' },
-  { label: 'Trending', icon: 'trending' },
-  { label: 'Library', icon: 'library' },
-  { label: 'Groups', icon: 'groups' },
-  { label: 'Messaging', icon: 'messaging' },
-  { label: 'Artist Coins', icon: 'coins' },
-  { label: 'Wallet', icon: 'wallet' },
+  { label: "Home", icon: "home" },
+  { label: "Trending", icon: "trending" },
+  { label: "Library", icon: "library" },
+  { label: "Groups", icon: "groups" },
+  { label: "Messaging", icon: "messaging" },
+  { label: "Artist Coins", icon: "coins" },
+  { label: "Wallet", icon: "wallet" },
 ]
 
 const AppContainer = styled.div`
@@ -24,7 +23,9 @@ const AppContainer = styled.div`
   min-height: 100vh;
   background: #000000;
   color: #ffffff;
-  font-family: 'Kode Mono', ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-family:
+    "Kode Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
+    Consolas, monospace;
   font-size: 14px;
   min-width: 720px;
 
@@ -70,8 +71,8 @@ function RootComponent() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'KeyV' && !e.repeat) {
-        setIsVisualizerVisible(prev => !prev)
+      if (e.code === "KeyV" && !e.repeat) {
+        setIsVisualizerVisible((prev) => !prev)
       }
     }
 
@@ -82,19 +83,19 @@ function RootComponent() {
     }
 
     handleResize()
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('resize', handleResize)
-    
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("resize", handleResize)
+
     return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('resize', handleResize)
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("resize", handleResize)
     }
   }, [])
 
   return (
     <AppContainer>
       <SidebarWrapper>
-        <Sidebar 
+        <Sidebar
           navItems={navItems}
           isCollapsed={isNavCollapsed}
           onToggle={() => setIsNavCollapsed(!isNavCollapsed)}
@@ -109,15 +110,14 @@ function RootComponent() {
       <PlayerWrapper>
         <Player />
       </PlayerWrapper>
-      <Visualizer 
+      <Visualizer
         isVisible={isVisualizerVisible}
         onClose={() => setIsVisualizerVisible(false)}
       />
-      <TanStackRouterDevtools />
     </AppContainer>
   )
 }
 
 export const Route = createRootRoute({
-  component: RootComponent
+  component: RootComponent,
 })

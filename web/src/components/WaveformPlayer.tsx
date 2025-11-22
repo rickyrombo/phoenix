@@ -30,9 +30,9 @@ export default function WaveformPlayer({
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
-  const { currentTime, duration, currentTrack, seek } = usePlayer()
+  const { currentTime, duration, track, seek } = usePlayer()
 
-  const isCurrentTrack = currentTrack === trackId
+  const isCurrentTrack = track?.track_id === trackId
 
   useEffect(() => {
     if (!containerRef.current) return

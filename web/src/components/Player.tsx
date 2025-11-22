@@ -15,7 +15,6 @@ import {
   IconUserCheck,
   IconPlaylist,
 } from "@tabler/icons-react"
-import { useTrack } from "../queries/useTrack"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -262,7 +261,7 @@ const QueueBtn = styled(FavoriteBtn)`
 
 export default function Player() {
   const {
-    currentTrack,
+    track,
     isPlaying,
     togglePlay,
     currentTime,
@@ -276,14 +275,7 @@ export default function Player() {
     setRepeatMode,
     shuffle,
     toggleShuffle,
-    queue,
-    setQueue,
-    setIsPlaying,
   } = usePlayer()
-
-  const { data: track } = useTrack(currentTrack ?? 0, {
-    enabled: !!currentTrack,
-  })
 
   const [showQueue, setShowQueue] = useState(false)
 
@@ -294,13 +286,6 @@ export default function Player() {
   const toggleFollow = () => setIsFollowing((v) => !v)
 
   const openQueue = () => setShowQueue((s) => !s)
-  const handleSelectQueueIndex = (index: number) => {
-    if (!queue) return
-    // update queue current index and start playing
-    setQueue({ ...queue, currentIndex: index })
-    if (!isPlaying) setIsPlaying(true)
-    setShowQueue(false)
-  }
 
   // local favorite state for now (replace with real like/favorite logic)
   const [isFavorite, setIsFavorite] = useState(false)
@@ -338,19 +323,12 @@ export default function Player() {
     <PlayerFooter>
       <PlayerTrackInfo>
         <PlayerArtwork>
-          {currentTrack && (
-            <img
-              src={currentTrack.cover_art?.medium}
-              alt={currentTrack.title}
-            />
-          )}
+          {track && <img src={track.cover_art?.medium} alt={track.title} />}
         </PlayerArtwork>
         <PlayerDetails>
-          <PlayerTitle>
-            {currentTrack?.title || "No track selected"}
-          </PlayerTitle>
+          <PlayerTitle>{track?.title || "No track selected"}</PlayerTitle>
           <PlayerArtist>
-            {currentTrack?.owner_id || "Select a track to play"}
+            {track?.owner_id || "Select a track to play"}
           </PlayerArtist>
         </PlayerDetails>
       </PlayerTrackInfo>
@@ -461,13 +439,7 @@ export default function Player() {
             onChange={handleVolumeChange}
           />
         </VolumeControl>
-        {showQueue && queue && (
-          <QueuePopup
-            queue={queue}
-            onSelect={handleSelectQueueIndex}
-            anchorRef={queueBtnRef}
-          />
-        )}
+        {showQueue && <QueuePopup anchorRef={queueBtnRef} />}
       </PlayerExtras>
     </PlayerFooter>
   )
