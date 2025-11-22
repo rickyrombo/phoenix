@@ -56,12 +56,12 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 	type trackRow struct {
 		TrackID         int       `json:"track_id"`
 		Title           string    `json:"title"`
-		Description     string    `json:"description"`
-		CoverArtSizes   string    `json:"-"`
+		Description     *string   `json:"description"`
+		CoverArtSizes   *string   `json:"-"`
 		Genre           string    `json:"genre"`
-		Mood            string    `json:"mood"`
-		BPM             float32   `json:"bpm"`
-		MusicalKey      string    `json:"musical_key"`
+		Mood            *string   `json:"mood"`
+		BPM             *float32  `json:"bpm"`
+		MusicalKey      *string   `json:"musical_key"`
 		Duration        int       `json:"duration"`
 		OwnerID         int       `json:"owner_id"`
 		PlayCount       int64     `json:"play_count"`
@@ -91,9 +91,12 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 			return fmt.Errorf("failed to get stream mirrors for track %d: %w", tr.TrackID, err)
 		}
 
-		coverArt, err := s.getImageMirrors(c.Context(), tr.CoverArtSizes)
-		if err != nil {
-			return fmt.Errorf("failed to get cover art mirrors for track %d: %w", tr.TrackID, err)
+		var coverArt *ImageMirrors
+		if tr.CoverArtSizes != nil {
+			coverArt, err = s.getImageMirrors(c.Context(), *tr.CoverArtSizes)
+			if err != nil {
+				return fmt.Errorf("failed to get cover art mirrors for track %d: %w", tr.TrackID, err)
+			}
 		}
 
 		tracks = append(tracks, trackResponse{

@@ -9,6 +9,7 @@ import {
 import butterchurnModule, { type Visualizer } from "butterchurn"
 import butterchurnPresets from "butterchurn-presets"
 import { usePlayer } from "../contexts/PlayerContext"
+import { useTrack } from "../queries/useTrack"
 
 const butterchurn = butterchurnModule.default
 
@@ -183,6 +184,10 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
     playNext,
     playPrevious,
   } = usePlayer()
+
+  const { data: track } = useTrack(currentTrack ?? 0, {
+    enabled: !!currentTrack,
+  })
 
   // Initialize visualizer
   useEffect(() => {
@@ -363,18 +368,13 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
         {presetNames.length} presets available
       </Instructions>
 
-      {currentTrack && (
+      {track && (
         <NowPlaying>
-          <CoverArt
-            src={
-              currentTrack.coverArt || "https://picsum.photos/seed/avatar/100"
-            }
-            alt={currentTrack.artist}
-          />
+          <CoverArt src={track.cover_art?.medium} alt={track.title} />
           <TrackContent>
             <TrackText>
-              <TrackTitleText>{currentTrack.title}</TrackTitleText>
-              <TrackArtistText>{currentTrack.artist}</TrackArtistText>
+              <TrackTitleText>{track.title}</TrackTitleText>
+              <TrackArtistText>{track.owner_id}</TrackArtistText>
             </TrackText>
 
             <Controls>

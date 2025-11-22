@@ -1,6 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from "react"
 import styled from "styled-components"
-import type { Track } from "./TrackTile"
+import { useTracks } from "../queries/useTrack"
+import type { Queue } from "../contexts/PlayerContext"
 
 const Popup = styled.div`
   width: 320px;
@@ -70,11 +71,6 @@ const Artist = styled.div`
   text-overflow: ellipsis;
 `
 
-type Queue = {
-  tracks: Track[]
-  currentIndex?: number
-}
-
 export default function QueuePopup({
   queue,
   onSelect,
@@ -84,6 +80,7 @@ export default function QueuePopup({
   onSelect: (index: number) => void
   anchorRef?: React.RefObject<HTMLElement | null>
 }) {
+  const { data: tracks } = useTracks(queue.tracks)
   const popupRef = useRef<HTMLDivElement | null>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
 
@@ -128,16 +125,16 @@ export default function QueuePopup({
       aria-label="play-queue"
     >
       <Header>Queue</Header>
-      {queue.tracks.map((t, idx) => (
+      {tracks.map((t, idx) => (
         <Item
           key={t.track_id ?? idx}
           $active={queue.currentIndex === idx}
           onClick={() => onSelect(idx)}
         >
-          <Thumb src={t.coverArt} alt={t.title} />
+          <Thumb src={t.cover_art?.medium} alt={t.title} />
           <Meta>
             <Title>{t.title}</Title>
-            <Artist>{t.artist}</Artist>
+            <Artist>{t.owner_id}</Artist>
           </Meta>
         </Item>
       ))}

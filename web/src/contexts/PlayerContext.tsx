@@ -7,12 +7,12 @@ import {
   useCallback,
   type ReactNode,
 } from "react"
-import type { Track } from "../components/TrackTile"
+import { useTrack } from "../queries/useTrack"
 
 type RepeatMode = "off" | "one" | "all"
 
 interface PlayerContextType {
-  currentTrack: Track | null
+  currentTrack: number | null
   isPlaying: boolean
   currentTime: number
   duration: number
@@ -22,7 +22,7 @@ interface PlayerContextType {
   currentIndex: number
   repeatMode: RepeatMode
   shuffle: boolean
-  setCurrentTrack: (track: Track) => void
+  setCurrentTrack: (track: number) => void
   setIsPlaying: (playing: boolean) => void
   togglePlay: () => void
   seek: (time: number) => void
@@ -34,8 +34,8 @@ interface PlayerContextType {
   toggleShuffle: () => void
 }
 
-interface Queue {
-  tracks: Track[]
+export type Queue = {
+  tracks: number[]
   currentIndex: number
   name: string
   source: string
@@ -44,7 +44,7 @@ interface Queue {
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined)
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+  const [currentTrack, setCurrentTrack] = useState<number | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -61,6 +61,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(new Audio())
   const currentIndexRef = useRef(currentIndex)
   const queueRef = useRef(queue)
+
+  const { data: track } = useTrack(currentTrack!, {
+    enabled: currentTrack !== null,
+  })
 
   // Initialize audio element
   useEffect(() => {
@@ -136,9 +140,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Load new track
   useEffect(() => {
-    if (currentTrack?.audioUrl && audioRef.current) {
+    if (track?.stream.url && audioRef.current) {
       const wasPlaying = isPlaying
-      audioRef.current.src = currentTrack.audioUrl
+      audioRef.current.src = track.stream.url
       audioRef.current.load()
 
       // If was playing, auto-play the new track
@@ -150,7 +154,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack])
+  }, [track])
 
   // Handle play/pause
   useEffect(() => {

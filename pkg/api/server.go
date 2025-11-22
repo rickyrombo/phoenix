@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -26,7 +28,6 @@ type Server struct {
 }
 
 func NewServer(cfg *Config) (*Server, error) {
-	app := fiber.New()
 
 	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
 	if err != nil {
@@ -42,22 +43,43 @@ func NewServer(cfg *Config) (*Server, error) {
 	sdk.SetPrivKey(privkey)
 
 	server := &Server{
-		App:    app,
 		pool:   pool,
 		sdk:    sdk,
 		Logger: cfg.Logger,
 	}
 
+	app := fiber.New(
+		fiber.Config{
+			ErrorHandler: server.handleError,
+		},
+	)
+	app.Use(cors.New())
 	app.Get("/feed", server.getFeed)
 	app.Get("/tracks", server.getTracks)
-	app.Get("/users", server.GetUsers)
+	app.Get("/users", server.getUsers)
+
+	server.App = app
 
 	return server, nil
 }
 
-func (s *Server) GetUsers(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{
-		"users": "List of users",
+func (s *Server) handleError(c *fiber.Ctx, err error) error {
+	code := fiber.StatusInternalServerError
+
+	var e *fiber.Error
+	if errors.As(err, &e) {
+		code = e.Code
+	}
+
+	s.Logger.Error("Request error",
+		"error", err,
+		"path", c.Path(),
+		"method", c.Method(),
+		"code", code,
+	)
+
+	return c.Status(code).JSON(fiber.Map{
+		"error": err.Error(),
 	})
 }
 

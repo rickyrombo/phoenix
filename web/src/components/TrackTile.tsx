@@ -14,6 +14,9 @@ import {
   IconSend2,
 } from "@tabler/icons-react"
 import { useState, type ReactNode } from "react"
+import type { Track } from "../queries/useTrack"
+import useUser from "../queries/useUser"
+import dayjs from "dayjs"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -413,33 +416,13 @@ export interface Comment {
   avatar: string
 }
 
-export interface Track {
-  track_id: number
-  title: string
-  artist: string
-  duration: string
-  plays: string
-  coverArt: string
-  host: string
-  description: string
-  comments: Comment[]
-  waveform: number[]
-  audioUrl?: string
-  audioData?: Float32Array
-  likes?: number
-  reposts?: number
-  genre?: string
-  contextType?: "repost" | "new"
-  contextUser?: string
-  contextUserAvatar?: string
-  contextTime?: string
-}
-
 interface TrackTileProps {
   track: Track
   context?: ReactNode
   onPlayToggle?: () => void
 }
+
+const comments: Comment[] = []
 
 export default function TrackTile({
   track,
@@ -447,7 +430,9 @@ export default function TrackTile({
   onPlayToggle: onPlayToggle,
 }: TrackTileProps) {
   const { currentTrack, isPlaying, duration, currentTime } = usePlayer()
-  const isActive = currentTrack?.track_id === track.track_id
+  const { data: user } = useUser(track.owner_id)
+
+  const isActive = currentTrack === track.track_id
   const [draftCommentPosition, setDraftCommentPosition] = useState<
     number | null
   >(null)
@@ -470,7 +455,7 @@ export default function TrackTile({
   return (
     <Tile $isActive={isActive}>
       {context}
-      <CoverArt src={track.coverArt} alt={track.title} />
+      <CoverArt src={track.cover_art?.medium} alt={track.title} />
       <TrackContent $isExpanded={isPlaying && isActive}>
         <TrackHeader>
           <TrackMainInfo>
@@ -488,26 +473,27 @@ export default function TrackTile({
             </PlayBtn>
             <TrackInfo>
               <TrackTitle>{track.title}</TrackTitle>
-              <TrackArtist>{track.artist}</TrackArtist>
+              <TrackArtist>{user?.name}</TrackArtist>
             </TrackInfo>
           </TrackMainInfo>
           <StatsColumn>
             {track.genre && <TrackGenreRow>{track.genre}</TrackGenreRow>}
             <TrackStats>
-              <StatItem>{track.duration}</StatItem>
+              <StatItem>
+                {dayjs.duration(track.duration, "seconds").format("m:ss")}
+              </StatItem>
             </TrackStats>
           </StatsColumn>
         </TrackHeader>
         <WaveformWrapper>
           <WaveformPlayer
-            audioData={track.audioData}
             isPlaying={isPlaying && isActive}
             onPlayPause={handlePlayToggle}
             trackId={track.track_id}
             waveform={[track.waveform]}
           />
           <CommentAvatarsContainer>
-            {track.comments.map((comment, i) => (
+            {comments?.map((comment, i) => (
               <CommentMarker key={i} style={{ left: `${comment.position}%` }}>
                 <CommentIndicator src={comment.avatar} alt={comment.user} />
                 <CommentTooltip className="comment-tooltip" $isVisible={false}>
@@ -526,11 +512,13 @@ export default function TrackTile({
             )}
           </CommentAvatarsContainer>
         </WaveformWrapper>
-        <ActiveComments
-          comments={track.comments}
-          trackId={track.track_id}
-          duration={duration}
-        />
+        {comments ? (
+          <ActiveComments
+            comments={comments}
+            trackId={track.track_id}
+            duration={duration}
+          />
+        ) : null}
         {isPlaying && isActive && (
           <CommentInputSection>
             <CommentUserAvatar
@@ -554,17 +542,17 @@ export default function TrackTile({
             <ButtonGroup>
               <SocialButton
                 icon={<IconHeart size={16} stroke={2} />}
-                label="Like"
-                title="Like"
+                label="Favorite"
+                title="Favorite"
                 expanded={isPlaying && isActive}
-                count={track.likes}
+                count={track.save_count}
               />
               <SocialButton
                 icon={<IconRepeat size={16} stroke={2} />}
                 label="Repost"
                 title="Repost"
                 expanded={isPlaying && isActive}
-                count={track.reposts}
+                count={track.repost_count}
               />
               <SocialButton
                 icon={<IconShare3 size={16} stroke={2} />}
@@ -581,14 +569,14 @@ export default function TrackTile({
             </ButtonGroup>
             <FooterStats>
               <StatItem>
-                <IconPlayerPlay size={12} stroke={2} /> {track.plays}
+                <IconPlayerPlay size={12} stroke={2} /> {track.play_count}
               </StatItem>
               <StatItem>
-                <IconMessage size={12} stroke={2} /> {track.comments.length}
+                <IconMessage size={12} stroke={2} /> {track.comment_count}
               </StatItem>
             </FooterStats>
           </FooterLeft>
-          <TrackHost>served by {track.host}</TrackHost>
+          <TrackHost>served by {new URL(track.stream.url).host}</TrackHost>
         </TrackFooter>
       </TrackContent>
       {isPlaying && isActive && (

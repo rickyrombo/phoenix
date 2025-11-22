@@ -17,7 +17,6 @@ const WaveformContainer = styled.div`
 `
 
 interface WaveformPlayerProps {
-  audioData?: Float32Array
   isPlaying: boolean
   onPlayPause: () => void
   trackId: number
@@ -33,7 +32,7 @@ export default function WaveformPlayer({
   const wavesurferRef = useRef<WaveSurfer | null>(null)
   const { currentTime, duration, currentTrack, seek } = usePlayer()
 
-  const isCurrentTrack = currentTrack?.track_id === trackId
+  const isCurrentTrack = currentTrack === trackId
 
   useEffect(() => {
     if (!containerRef.current) return

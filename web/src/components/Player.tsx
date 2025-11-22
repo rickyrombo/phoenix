@@ -15,6 +15,7 @@ import {
   IconUserCheck,
   IconPlaylist,
 } from "@tabler/icons-react"
+import { useTrack } from "../queries/useTrack"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -280,6 +281,10 @@ export default function Player() {
     setIsPlaying,
   } = usePlayer()
 
+  const { data: track } = useTrack(currentTrack ?? 0, {
+    enabled: !!currentTrack,
+  })
+
   const [showQueue, setShowQueue] = useState(false)
 
   const queueBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -334,7 +339,10 @@ export default function Player() {
       <PlayerTrackInfo>
         <PlayerArtwork>
           {currentTrack && (
-            <img src={currentTrack.coverArt} alt={currentTrack.title} />
+            <img
+              src={currentTrack.cover_art?.medium}
+              alt={currentTrack.title}
+            />
           )}
         </PlayerArtwork>
         <PlayerDetails>
@@ -342,7 +350,7 @@ export default function Player() {
             {currentTrack?.title || "No track selected"}
           </PlayerTitle>
           <PlayerArtist>
-            {currentTrack?.artist || "Select a track to play"}
+            {currentTrack?.owner_id || "Select a track to play"}
           </PlayerArtist>
         </PlayerDetails>
       </PlayerTrackInfo>

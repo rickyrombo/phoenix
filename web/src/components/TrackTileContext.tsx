@@ -1,5 +1,7 @@
-import styled from "styled-components";
-import { IconRepeat, IconUpload } from "@tabler/icons-react";
+import styled from "styled-components"
+import { IconRepeat, IconUpload } from "@tabler/icons-react"
+import useUser from "../queries/useUser"
+import dayjs from "dayjs"
 
 const ContextLine = styled.div`
   grid-column: 1 / 3;
@@ -12,57 +14,63 @@ const ContextLine = styled.div`
   color: #808080;
   margin-bottom: 1rem;
   padding: 0;
-`;
+`
 
 const ContextLeft = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-`;
+`
 
 const ContextTime = styled.span`
   color: #606060;
-`;
+`
 
 const ContextAvatar = styled.img`
   width: 20px;
   height: 20px;
   border-radius: 50%;
   object-fit: cover;
-`;
+`
 
 export function FeedTrackContext({
   contextType,
-  contextUser,
-  contextUserAvatar,
+  contextUserId,
   contextTime,
 }: {
-  contextType?: "repost" | "new";
-  contextUser?: string;
-  contextUserAvatar?: string;
-  contextTime?: string;
+  contextUserId?: number
+  contextType: "Repost" | "Create"
+  contextTime: string
 }) {
-  if (!contextType || !contextUser) return null;
+  const { data: user } = useUser(contextUserId ?? 0, {
+    enabled: !!contextUserId,
+  })
   return (
     <ContextLine>
       <ContextLeft>
-        {contextType === "repost" ? (
+        {contextType === "Repost" ? (
           <IconRepeat size={14} stroke={2} />
         ) : (
           <IconUpload size={14} stroke={2} />
         )}
-        {contextUser ? (
+        {user ? (
           <>
-            <ContextAvatar src={contextUserAvatar} alt={contextUser} />
-            <span>{contextUser}</span>
+            <ContextAvatar
+              src={
+                user.cover_art?.medium ??
+                `https://picsum.photos/seed/${user.handle}/100`
+              }
+              alt={user.name}
+            />
+            <span>{user.name}</span>
           </>
         ) : (
           <span>Upload</span>
         )}
       </ContextLeft>
-      {contextTime && <ContextTime>{contextTime}</ContextTime>}
+      {contextTime && <ContextTime>{dayjs(contextTime).fromNow()}</ContextTime>}
     </ContextLine>
-  );
+  )
 }
 
 export function TrendingTrackContext({ ranking }: { ranking: number }) {
@@ -74,5 +82,5 @@ export function TrendingTrackContext({ ranking }: { ranking: number }) {
         </span>
       </ContextLeft>
     </ContextLine>
-  );
+  )
 }
