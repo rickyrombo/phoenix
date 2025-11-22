@@ -3,19 +3,26 @@ package api
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
+	"github.com/OpenAudio/go-openaudio/pkg/sdk"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Config struct {
-	DatabaseURL string
+	DatabaseURL        string
+	AudiusURL          string
+	DelegatePrivateKey string
+	Logger             *slog.Logger
 }
 
 type Server struct {
 	*fiber.App
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	sdk    *sdk.OpenAudioSDK
+	Logger *slog.Logger
 }
 
 func NewServer(cfg *Config) (*Server, error) {
@@ -26,43 +33,41 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
+	sdk := sdk.NewOpenAudioSDK(cfg.AudiusURL)
+
+	privkey, err := crypto.HexToECDSA(cfg.DelegatePrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse delegate private key: %w", err)
+	}
+	sdk.SetPrivKey(privkey)
+
 	server := &Server{
-		App:  app,
-		pool: pool,
+		App:    app,
+		pool:   pool,
+		sdk:    sdk,
+		Logger: cfg.Logger,
 	}
 
 	app.Get("/feed", server.getFeed)
+	app.Get("/tracks", server.getTracks)
+	app.Get("/users", server.GetUsers)
 
 	return server, nil
 }
 
-func (s *Server) getFeed(c *fiber.Ctx) error {
-	sql := `
-		SELECT
-			manage_entity_txs.user_id,
-			entity_type,
-			entity_id,
-			action,
-			metadata,
-			blocks.block_time AS timestamp
-		FROM manage_entity_txs
-		JOIN follows ON follows.followed_user_id = manage_entity_txs.user_id
-		JOIN blocks ON blocks.number = manage_entity_txs.block_number
-		WHERE follows.user_id = @userId
-			AND (
-				(entity_type = 'Track' AND action = 'Create')
-				OR (entity_type = 'Track' AND action = 'Repost')
-			)
-		ORDER BY manage_entity_txs.block_number DESC
-		;
-	`
-	s.pool.Query(c.Context(), sql, pgx.NamedArgs{
-		"userId": 1,  // Placeholder user ID
-		"limit":  20, // Placeholder limit
-		"offset": 0,  // Placeholder offset
-	})
-
+func (s *Server) GetUsers(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"feed": "This is your feed",
+		"users": "List of users",
 	})
+}
+
+func (s *Server) Start() error {
+	s.Logger.Info("Starting API server...")
+	return s.Listen(":8000")
+}
+
+func (s *Server) Shutdown() error {
+	s.Logger.Info("Shutting down API server...")
+	s.pool.Close()
+	return s.App.Shutdown()
 }
