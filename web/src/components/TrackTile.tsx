@@ -414,7 +414,7 @@ export interface Comment {
 }
 
 export interface Track {
-  id: number
+  track_id: number
   title: string
   artist: string
   duration: string
@@ -447,7 +447,7 @@ export default function TrackTile({
   onPlayToggle: onPlayToggle,
 }: TrackTileProps) {
   const { currentTrack, isPlaying, duration, currentTime } = usePlayer()
-  const isActive = currentTrack?.id === track.id
+  const isActive = currentTrack?.track_id === track.track_id
   const [draftCommentPosition, setDraftCommentPosition] = useState<
     number | null
   >(null)
@@ -503,7 +503,7 @@ export default function TrackTile({
             audioData={track.audioData}
             isPlaying={isPlaying && isActive}
             onPlayPause={handlePlayToggle}
-            trackId={track.id}
+            trackId={track.track_id}
             waveform={[track.waveform]}
           />
           <CommentAvatarsContainer>
@@ -528,7 +528,7 @@ export default function TrackTile({
         </WaveformWrapper>
         <ActiveComments
           comments={track.comments}
-          trackId={track.id}
+          trackId={track.track_id}
           duration={duration}
         />
         {isPlaying && isActive && (

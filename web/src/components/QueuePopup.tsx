@@ -130,7 +130,7 @@ export default function QueuePopup({
       <Header>Queue</Header>
       {queue.tracks.map((t, idx) => (
         <Item
-          key={t.id ?? idx}
+          key={t.track_id ?? idx}
           $active={queue.currentIndex === idx}
           onClick={() => onSelect(idx)}
         >

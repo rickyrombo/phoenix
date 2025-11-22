@@ -46,7 +46,7 @@ function TrendingPage() {
       <TracksGrid>
         {trendingTracks.map((track, i) => (
           <TrackTile
-            key={track.id}
+            key={track.track_id}
             track={track}
             context={<TrendingTrackContext ranking={i + 1} />}
             onPlayToggle={() => {

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import styled from 'styled-components'
-import { usePlayer } from '../contexts/PlayerContext'
+import { useState, useEffect, useRef } from "react"
+import styled from "styled-components"
+import { usePlayer } from "../contexts/PlayerContext"
 
 interface Comment {
   position: number
@@ -37,11 +37,11 @@ const ActiveCommentDisplay = styled.div<{ $fadingOut: boolean }>`
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 0;
-  opacity: ${props => props.$fadingOut ? 0 : 1};
+  opacity: ${(props) => (props.$fadingOut ? 0 : 1)};
   transition: opacity 0.4s ease-in-out;
   animation: fadeIn 0.4s ease-in-out;
-  pointer-events: ${props => props.$fadingOut ? 'none' : 'auto'};
-  
+  pointer-events: ${(props) => (props.$fadingOut ? "none" : "auto")};
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -84,7 +84,7 @@ const CommentTimestamp = styled.a`
   color: oklch(71.4% 0.203 305.504);
   text-decoration: none;
   cursor: pointer;
-  
+
   &:hover {
     text-decoration: underline;
   }
@@ -102,9 +102,13 @@ const CommentText = styled.p`
   -webkit-box-orient: vertical;
 `
 
-export default function ActiveComments({ comments, trackId, duration }: ActiveCommentsProps) {
+export default function ActiveComments({
+  comments,
+  trackId,
+  duration,
+}: ActiveCommentsProps) {
   const { currentTrack, isPlaying, currentTime, seek } = usePlayer()
-  const isActive = currentTrack?.id === trackId
+  const isActive = currentTrack?.track_id === trackId
   const [activeComments, setActiveComments] = useState<ActiveComment[]>([])
   const nextCommentIdRef = useRef(0)
   const lastShownCommentRef = useRef<Map<number, number>>(new Map())
@@ -113,54 +117,62 @@ export default function ActiveComments({ comments, trackId, duration }: ActiveCo
     if (!isActive || !isPlaying || duration === 0) return
 
     const currentProgress = (currentTime / duration) * 100
-    
+
     // Find if we just passed a comment timestamp
     comments.forEach((comment, index) => {
-      const isAtPosition = currentProgress >= comment.position && currentProgress < comment.position + 0.5
-      
+      const isAtPosition =
+        currentProgress >= comment.position &&
+        currentProgress < comment.position + 0.5
+
       // Check if this comment is already being shown
-      const alreadyActive = activeComments.some(ac => ac.commentIndex === index && !ac.fadingOut)
-      
+      const alreadyActive = activeComments.some(
+        (ac) => ac.commentIndex === index && !ac.fadingOut,
+      )
+
       if (isAtPosition && !alreadyActive) {
         const lastShown = lastShownCommentRef.current.get(index) || 0
         const now = Date.now()
-        
+
         // Prevent showing the same comment too quickly (at least 4 seconds between shows)
         if (now - lastShown < 4000) {
           return
         }
-        
+
         lastShownCommentRef.current.set(index, now)
-        
+
         // Fade out all existing comments
-        setActiveComments(prev => prev.map(c => ({ ...c, fadingOut: true })))
-        
+        setActiveComments((prev) =>
+          prev.map((c) => ({ ...c, fadingOut: true })),
+        )
+
         // Remove faded comments after transition completes
         setTimeout(() => {
-          setActiveComments(prev => prev.filter(c => !c.fadingOut))
+          setActiveComments((prev) => prev.filter((c) => !c.fadingOut))
         }, 400)
-        
+
         // Add new comment to the stack
         const commentId = nextCommentIdRef.current++
         const newComment: ActiveComment = {
           commentIndex: index,
           id: commentId,
-          fadingOut: false
+          fadingOut: false,
         }
-        
+
         setTimeout(() => {
-          setActiveComments(prev => [...prev, newComment])
+          setActiveComments((prev) => [...prev, newComment])
         }, 50)
-        
+
         // Start fade-out after 10 seconds
         setTimeout(() => {
-          setActiveComments(prev => prev.map(c => 
-            c.id === commentId ? { ...c, fadingOut: true } : c
-          ))
-          
+          setActiveComments((prev) =>
+            prev.map((c) =>
+              c.id === commentId ? { ...c, fadingOut: true } : c,
+            ),
+          )
+
           // Remove completely after fade-out completes
           setTimeout(() => {
-            setActiveComments(prev => prev.filter(c => c.id !== commentId))
+            setActiveComments((prev) => prev.filter((c) => c.id !== commentId))
           }, 400)
         }, 10000)
       }
@@ -181,15 +193,15 @@ export default function ActiveComments({ comments, trackId, duration }: ActiveCo
       {activeComments.map((activeComment) => {
         const comment = comments[activeComment.commentIndex]
         return (
-          <ActiveCommentDisplay key={activeComment.id} $fadingOut={activeComment.fadingOut}>
-            <ActiveCommentAvatar 
-              src={comment.avatar} 
-              alt={comment.user} 
-            />
+          <ActiveCommentDisplay
+            key={activeComment.id}
+            $fadingOut={activeComment.fadingOut}
+          >
+            <ActiveCommentAvatar src={comment.avatar} alt={comment.user} />
             <ActiveCommentContent>
               <CommentHeader>
                 <CommentUser>{comment.user}</CommentUser>
-                <CommentTimestamp 
+                <CommentTimestamp
                   onClick={(e) => {
                     e.preventDefault()
                     if (duration > 0) {
@@ -198,12 +210,13 @@ export default function ActiveComments({ comments, trackId, duration }: ActiveCo
                     }
                   }}
                 >
-                  @ {(() => {
+                  @{" "}
+                  {(() => {
                     const position = comment.position
                     const timeInSeconds = (position / 100) * duration
                     const mins = Math.floor(timeInSeconds / 60)
                     const secs = Math.floor(timeInSeconds % 60)
-                    return `${mins}:${secs.toString().padStart(2, '0')}`
+                    return `${mins}:${secs.toString().padStart(2, "0")}`
                   })()}
                 </CommentTimestamp>
               </CommentHeader>

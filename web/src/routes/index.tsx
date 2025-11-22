@@ -46,7 +46,7 @@ function FeedPage() {
       <TracksGrid>
         {feedTracks.map((track, i) => (
           <TrackTile
-            key={track.id}
+            key={track.track_id}
             track={track}
             context={<FeedTrackContext {...track} />}
             onPlayToggle={() => {

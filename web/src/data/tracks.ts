@@ -2,7 +2,7 @@ import type { Track } from "../components/TrackTile"
 
 export const feedTracks: Track[] = [
   {
-    id: 1,
+    track_id: 1,
     title: "Summer Vibes",
     artist: "DJ Alex",
     duration: "3:45",
@@ -47,7 +47,7 @@ export const feedTracks: Track[] = [
     contextTime: "9 min ago",
   },
   {
-    id: 2,
+    track_id: 2,
     title: "Night Drive",
     artist: "Luna Wave",
     duration: "4:12",
@@ -80,7 +80,7 @@ export const feedTracks: Track[] = [
     contextTime: "23 min ago",
   },
   {
-    id: 3,
+    track_id: 3,
     title: "Electric Dreams",
     artist: "Nova Sound",
     duration: "3:28",
@@ -235,7 +235,7 @@ export const feedTracks: Track[] = [
     contextTime: "1 hr ago",
   },
   {
-    id: 4,
+    track_id: 4,
     title: "Sunset Boulevard",
     artist: "Metro Beats",
     duration: "5:03",
@@ -271,7 +271,7 @@ export const feedTracks: Track[] = [
 
 export const trendingTracks: Track[] = [
   {
-    id: 11,
+    track_id: 11,
     title: "Bassline Fury",
     artist: "Sub Rumble",
     duration: "3:33",
@@ -304,7 +304,7 @@ export const trendingTracks: Track[] = [
     contextTime: "15 min ago",
   },
   {
-    id: 12,
+    track_id: 12,
     title: "Neon Nights",
     artist: "Cyber Dreams",
     duration: "4:44",
@@ -337,7 +337,7 @@ export const trendingTracks: Track[] = [
     contextTime: "32 min ago",
   },
   {
-    id: 13,
+    track_id: 13,
     title: "Tropical Paradise",
     artist: "Island Rhythm",
     duration: "3:58",
@@ -370,7 +370,7 @@ export const trendingTracks: Track[] = [
     contextTime: "1 hr ago",
   },
   {
-    id: 14,
+    track_id: 14,
     title: "Dark Matter",
     artist: "Void Walker",
     duration: "5:21",
@@ -403,7 +403,7 @@ export const trendingTracks: Track[] = [
     contextTime: "2 hrs ago",
   },
   {
-    id: 15,
+    track_id: 15,
     title: "Golden Hour",
     artist: "Sunset Collective",
     duration: "4:05",
