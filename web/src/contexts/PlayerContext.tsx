@@ -47,6 +47,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const timeListenersRef = useRef(new Set<() => void>())
   const rafRef = useRef<number | null>(null)
   const queue = usePlayQueue()
+
+  // Keep refs to the latest queue and its methods so audio event handlers
+  // (which are created once on mount) can read/update the current queue.
+  const queueRef = useRef(queue)
+  const nextRef = useRef(queue.next)
+  const prevRef = useRef(queue.prev)
+  const setIndexRef = useRef(queue.set)
+
+  useEffect(() => {
+    queueRef.current = queue
+    nextRef.current = queue.next
+    prevRef.current = queue.prev
+    setIndexRef.current = queue.set
+  }, [queue])
+
   const lastDir = useRef<"next" | "prev">("next")
 
   const {
@@ -90,13 +105,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Try to play next track
-      const hasNext = queue.index < queue.items.length - 1
+      // Use the refs so we observe the latest queue state/methods
+      const q = queueRef.current
+      const hasNext = q && q.items && q.index < q.items.length - 1
+
       if (hasNext) {
-        queue.next()
-        lastDir.current = "next"
-      } else if (repeatMode === "all" && queue.items.length > 0) {
-        queue.set(0)
+        // call the latest next() implementation
+        if (typeof nextRef.current === "function") {
+          nextRef.current()
+          lastDir.current = "next"
+        }
+      } else if (repeatMode === "all" && q && q.items && q.items.length > 0) {
+        // call the latest set(index) implementation
+        if (typeof setIndexRef.current === "function") {
+          setIndexRef.current(0)
+        }
       } else {
         setIsPlaying(false)
       }
