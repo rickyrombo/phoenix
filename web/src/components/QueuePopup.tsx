@@ -188,8 +188,6 @@ export default function QueuePopup() {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
-  console.log("QueuePopup render", { queue })
-
   if (!queue || queue.items.length === 0) return null
 
   return (

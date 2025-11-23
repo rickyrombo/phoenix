@@ -60,7 +60,7 @@ const getPagePosition = (pages: PlayQueueItem[][], globalIndex: number) => {
       i++
     }
   }
-  return { pageIndex: -1, index: -1 }
+  return { pageIndex: pageIndex - 1, index }
 }
 
 const insertIntoPages = (
@@ -275,7 +275,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
       if (options.initialData && options.initialData.pages.length > 0)
         options.initialData = {
           ...options.initialData,
-          pages: insertIntoPages(options.initialData.pages, index, keepers),
+          pages: insertIntoPages(options.initialData.pages, index + 1, keepers),
         }
 
       setQueryOptions(options)

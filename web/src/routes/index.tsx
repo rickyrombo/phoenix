@@ -72,8 +72,8 @@ function FeedPage() {
 
   const handlePlayToggle = useCallback(
     (txHash: string) => {
-      if (queue.queueKey?.[1] !== "feed") {
-        console.log("Changing queue to feed")
+      const i = queue.items.findIndex((item) => item.cursor === txHash)
+      if (!isPlaying || queue.index !== i) {
         const index = feed?.pages
           .flat()
           .findIndex((item) => item.tx_hash === txHash)
@@ -83,14 +83,7 @@ function FeedPage() {
           index,
         )
         play()
-        return
-      }
-      const i = queue.items.findIndex((item) => item.cursor === txHash)
-      if (queue.index !== i) {
-        console.log("Changing track")
-        queue.set(i)
-      }
-      if (!isPlaying || queue.index === i) {
+      } else {
         togglePlay()
       }
     },
