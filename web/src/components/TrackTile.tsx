@@ -19,6 +19,7 @@ import type { Track } from "../queries/useTrack"
 import useUser from "../queries/useUser"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
+import useTrackComments from "../queries/useTrackComments"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -472,8 +473,6 @@ interface TrackTileProps {
   onPlayToggle?: () => void
 }
 
-const comments: Comment[] = []
-
 export default function TrackTile({
   track,
   context,
@@ -485,6 +484,8 @@ export default function TrackTile({
   const queue = usePlayQueue()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const { data: comments } = useTrackComments(track.track_id)
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -562,11 +563,19 @@ export default function TrackTile({
           />
           <CommentAvatarsContainer>
             {comments?.map((comment, i) => (
-              <CommentMarker key={i} style={{ left: `${comment.position}%` }}>
-                <CommentIndicator src={comment.avatar} alt={comment.user} />
+              <CommentMarker
+                key={comment.comment_id}
+                style={{
+                  left: `${(Math.max(comment.timestamp ?? 0, i + 1) / track.duration) * 100}%`,
+                }}
+              >
+                <CommentIndicator
+                  src={comment.user_profile_picture}
+                  alt={comment.user_name}
+                />
                 <CommentTooltip className="comment-tooltip" $isVisible={false}>
-                  <CommentUser>{comment.user}</CommentUser>
-                  <CommentText>{comment.text}</CommentText>
+                  <CommentUser>{comment.user_name}</CommentUser>
+                  <CommentText>{comment.content}</CommentText>
                 </CommentTooltip>
               </CommentMarker>
             ))}

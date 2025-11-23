@@ -56,6 +56,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Use(cors.New())
 	app.Get("/feed", server.getFeed)
 	app.Get("/tracks", server.getTracks)
+	app.Get("/tracks/:id/comments", server.getComments)
 	app.Get("/users", server.getUsers)
 
 	server.App = app

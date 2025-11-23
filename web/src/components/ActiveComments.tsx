@@ -1,13 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
 import { usePlayer, useAudioTime } from "../contexts/PlayerContext"
-
-interface Comment {
-  position: number
-  user: string
-  avatar: string
-  text: string
-}
+import type { Comment } from "../queries/useTrackComments"
 
 interface ActiveComment {
   commentIndex: number
@@ -117,13 +111,11 @@ export default function ActiveComments({
   useEffect(() => {
     if (!isActive || !isPlaying || duration === 0) return
 
-    const currentProgress = (currentTime / duration) * 100
-
     // Find if we just passed a comment timestamp
     comments.forEach((comment, index) => {
       const isAtPosition =
-        currentProgress >= comment.position &&
-        currentProgress < comment.position + 0.5
+        currentTime >= Math.max(comment.timestamp ?? 0, index + 1) &&
+        currentTime < Math.max(comment.timestamp ?? 0, index + 1) + 0.5
 
       // Check if this comment is already being shown
       const alreadyActive = activeComments.some(
@@ -198,30 +190,31 @@ export default function ActiveComments({
             key={activeComment.id}
             $fadingOut={activeComment.fadingOut}
           >
-            <ActiveCommentAvatar src={comment.avatar} alt={comment.user} />
+            <ActiveCommentAvatar
+              src={comment.user_profile_picture}
+              alt={comment.user_name}
+            />
             <ActiveCommentContent>
               <CommentHeader>
-                <CommentUser>{comment.user}</CommentUser>
-                <CommentTimestamp
-                  onClick={(e) => {
-                    e.preventDefault()
-                    if (duration > 0) {
-                      const seekTime = (comment.position / 100) * duration
-                      seek(seekTime)
-                    }
-                  }}
-                >
-                  @{" "}
-                  {(() => {
-                    const position = comment.position
-                    const timeInSeconds = (position / 100) * duration
-                    const mins = Math.floor(timeInSeconds / 60)
-                    const secs = Math.floor(timeInSeconds % 60)
-                    return `${mins}:${secs.toString().padStart(2, "0")}`
-                  })()}
-                </CommentTimestamp>
+                <CommentUser>{comment.user_name}</CommentUser>
+                {comment.timestamp ? (
+                  <CommentTimestamp
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (duration > 0) {
+                        seek(comment.timestamp)
+                      }
+                    }}
+                  >
+                    {(() => {
+                      const mins = Math.floor(comment.timestamp / 60)
+                      const secs = Math.floor(comment.timestamp % 60)
+                      return `${mins}:${secs.toString().padStart(2, "0")}`
+                    })()}
+                  </CommentTimestamp>
+                ) : null}
               </CommentHeader>
-              <CommentText>{comment.text}</CommentText>
+              <CommentText>{comment.content}</CommentText>
             </ActiveCommentContent>
           </ActiveCommentDisplay>
         )
