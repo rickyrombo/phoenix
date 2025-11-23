@@ -21,7 +21,7 @@ const AppContainer = styled.div`
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto auto;
   min-height: 100vh;
-  background: #000000;
+  background: #111;
   color: #ffffff;
   font-family:
     "Kode Mono", ui-monospace, "Cascadia Code", "Source Code Pro", Menlo,
