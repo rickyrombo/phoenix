@@ -48,7 +48,7 @@ const syncFeedPageToPlayQueue = (
 const getFeedPage = async ({ before }: { before?: string }) => {
   const qp = new URLSearchParams()
   qp.append("user_id", "1")
-  qp.append("limit", "3")
+  qp.append("limit", "10")
   if (before) {
     qp.append("before", before)
   }

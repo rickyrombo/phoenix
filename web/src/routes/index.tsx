@@ -4,7 +4,7 @@ import TrackTile from "../components/TrackTile"
 import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import type { InfiniteData } from "@tanstack/react-query"
@@ -56,7 +56,8 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
-  const { data: feed, fetchNextPage } = useFeed()
+  const { data: feed, fetchNextPage, hasNextPage } = useFeed()
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -69,6 +70,33 @@ function FeedPage() {
       )
     }
   }, [queue, feed])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const options = {
+      root: null,
+      rootMargin: "500px",
+      threshold: 0.01,
+    }
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      console.log("IntersectionObserver entries:", entries)
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && hasNextPage) {
+          fetchNextPage()
+        }
+      })
+    }
+
+    const observer = new IntersectionObserver(handleIntersect, options)
+
+    observer.observe(sentinel)
+    return () => {
+      observer.disconnect()
+    }
+  }, [fetchNextPage, hasNextPage])
 
   const handlePlayToggle = useCallback(
     (txHash: string) => {
@@ -102,7 +130,7 @@ function FeedPage() {
           />
         ))}
       </TracksGrid>
-      <button onClick={() => fetchNextPage()}>Load More</button>
+      <div ref={sentinelRef} style={{ height: "1px" }} />
     </PageContainer>
   )
 }
