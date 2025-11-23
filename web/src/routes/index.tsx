@@ -56,7 +56,7 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
-  const { data: feed, fetchNextPage, hasNextPage } = useFeed()
+  const { data: feed, fetchNextPage, hasNextPage } = useFeed(1)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   const { isPlaying, play, togglePlay } = usePlayer()

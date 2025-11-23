@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 import TrackTile from "../components/TrackTile"
-import { TrendingTrackContext } from "../components/TrackTileContext"
-import { trendingTracks } from "../data/tracks"
+import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
+import { useTrack } from "../queries/useTrack"
+import { FeedTrackContext } from "../components/TrackTileContext"
+import { useCallback, useEffect, useRef } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
-import { useEffect } from "react"
+import { usePlayQueue } from "../contexts/PlayQueueContext"
+import type { InfiniteData } from "@tanstack/react-query"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -25,48 +28,112 @@ const TracksGrid = styled.div`
   flex-direction: column;
 `
 
-function TrendingPage() {
-  const { setQueue, queue, isPlaying, togglePlay } = usePlayer()
+type FeedItemProps = FeedItem & {
+  onPlayToggle: () => void
+}
+
+const TrackFeedItem = ({
+  user_id,
+  action,
+  timestamp,
+  entity_id,
+  onPlayToggle,
+}: FeedItemProps) => {
+  const { data: track, isSuccess } = useTrack(entity_id)
+  return isSuccess && track ? (
+    <TrackTile
+      track={track!}
+      context={
+        <FeedTrackContext
+          contextUserId={user_id}
+          contextType={action as "Repost" | "Create"}
+          contextTime={timestamp}
+        />
+      }
+      onPlayToggle={onPlayToggle}
+    />
+  ) : null
+}
+
+function FeedPage() {
+  const { data: feed, fetchNextPage, hasNextPage } = useFeed(4)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const { isPlaying, play, togglePlay } = usePlayer()
+  const queue = usePlayQueue()
 
   useEffect(() => {
-    // Reset queue when navigating to trending page
-    if (queue.tracks.length === 0 && queue.source !== "trending") {
-      setQueue({
-        tracks: trendingTracks,
-        currentIndex: 0,
-        name: "Trending",
-        source: "trending",
+    if (queue.queueKey === undefined || queue.items.length === 0) {
+      queue.changeQueue(
+        getFeedPlayQueue(feed as InfiniteData<FeedItem[], string>),
+        0,
+      )
+    }
+  }, [queue, feed])
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const options = {
+      root: null,
+      rootMargin: "500px",
+      threshold: 0.01,
+    }
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      console.log("IntersectionObserver entries:", entries)
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && hasNextPage) {
+          fetchNextPage()
+        }
       })
     }
-  }, [queue.source, queue.tracks.length, setQueue])
+
+    const observer = new IntersectionObserver(handleIntersect, options)
+
+    observer.observe(sentinel)
+    return () => {
+      observer.disconnect()
+    }
+  }, [fetchNextPage, hasNextPage])
+
+  const handlePlayToggle = useCallback(
+    (txHash: string) => {
+      const i = queue.items.findIndex((item) => item.cursor === txHash)
+      if (!isPlaying || queue.index !== i) {
+        const index = feed?.pages
+          .flat()
+          .findIndex((item) => item.tx_hash === txHash)
+        queue.changeQueue(
+          // TODO: fix type assertion - why is TS not inferring correctly?
+          getFeedPlayQueue(feed as InfiniteData<FeedItem[], string>),
+          index,
+        )
+        play()
+      } else {
+        togglePlay()
+      }
+    },
+    [isPlaying, queue, feed, togglePlay, play],
+  )
 
   return (
     <PageContainer>
       <PageTitle>Trending</PageTitle>
       <TracksGrid>
-        {trendingTracks.map((track, i) => (
-          <TrackTile
-            key={track.track_id}
-            track={track}
-            context={<TrendingTrackContext ranking={i + 1} />}
-            onPlayToggle={() => {
-              setQueue({
-                tracks: trendingTracks,
-                currentIndex: i,
-                name: "Trending",
-                source: "trending",
-              })
-              if (!isPlaying || queue.currentIndex === i) {
-                togglePlay()
-              }
-            }}
+        {feed?.pages.flat().map((feedItem) => (
+          <TrackFeedItem
+            key={feedItem.tx_hash}
+            {...feedItem}
+            onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
           />
         ))}
       </TracksGrid>
+      <div ref={sentinelRef} style={{ height: "1px" }} />
     </PageContainer>
   )
 }
-
 export const Route = createFileRoute("/trending")({
-  component: TrendingPage,
+  component: FeedPage,
 })
