@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import styled from "styled-components"
-import { usePlayer } from "../contexts/PlayerContext"
+import { usePlayer, useAudioTime } from "../contexts/PlayerContext"
 
 interface Comment {
   position: number
@@ -107,7 +107,8 @@ export default function ActiveComments({
   trackId,
   duration,
 }: ActiveCommentsProps) {
-  const { track, isPlaying, currentTime, seek } = usePlayer()
+  const { track, isPlaying, seek } = usePlayer()
+  const currentTime = useAudioTime()
   const isActive = track?.track_id === trackId
   const [activeComments, setActiveComments] = useState<ActiveComment[]>([])
   const nextCommentIdRef = useRef(0)

@@ -1,7 +1,8 @@
-import React, { useLayoutEffect, useRef, useState } from "react"
+import { useRef } from "react"
 import styled from "styled-components"
 import { useTracks } from "../queries/useTrack"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
+import { usePlayer } from "../contexts/PlayerContext"
 
 const Popup = styled.div`
   width: 320px;
@@ -71,53 +72,23 @@ const Artist = styled.div`
   text-overflow: ellipsis;
 `
 
-export default function QueuePopup({
-  anchorRef,
-}: {
-  anchorRef?: React.RefObject<HTMLElement | null>
-}) {
+export default function QueuePopup() {
+  const { play } = usePlayer()
   const queue = usePlayQueue()
   const { data: tracks } = useTracks(queue.items.map((item) => item.trackId))
   const popupRef = useRef<HTMLDivElement | null>(null)
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
-
-  useLayoutEffect(() => {
-    const anchor = anchorRef?.current
-    const popup = popupRef.current
-    if (!anchor || !popup) return
-
-    const anchorRect = anchor.getBoundingClientRect()
-    const popupRect = popup.getBoundingClientRect()
-
-    // position above the anchor, centered horizontally
-    const preferredLeft =
-      anchorRect.left + anchorRect.width / 2 - popupRect.width / 2
-    const clampedLeft = Math.max(
-      8,
-      Math.min(preferredLeft, window.innerWidth - popupRect.width - 8),
-    )
-    const topAbove = anchorRect.top - popupRect.height - 8
-    const topBelow = anchorRect.bottom + 8
-
-    // prefer above; if not enough space, show below
-    const top =
-      topAbove > 8
-        ? topAbove
-        : Math.min(topBelow, window.innerHeight - popupRect.height - 8)
-
-    setPos({ left: clampedLeft, top })
-  }, [anchorRef, queue])
+  console.log(tracks)
 
   if (!queue || queue.items.length === 0) return null
 
   return (
     <Popup
       ref={popupRef}
-      style={
-        pos
-          ? { position: "fixed", left: pos.left, top: pos.top }
-          : { position: "fixed", right: 16, bottom: 110 }
-      }
+      style={{
+        position: "fixed",
+        right: 16,
+        bottom: 110,
+      }}
       role="dialog"
       aria-label="play-queue"
     >
@@ -127,8 +98,12 @@ export default function QueuePopup({
           <Item
             key={t.track_id ?? idx}
             $active={queue.index === idx}
-            onClick={() => queue.set(idx)}
+            onClick={() => {
+              queue.set(idx)
+              play()
+            }}
           >
+            {idx + 1}
             <Thumb src={t.cover_art?.medium} alt={t.title} />
             <Meta>
               <Title>{t.title}</Title>

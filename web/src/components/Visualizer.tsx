@@ -175,11 +175,11 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
     return Object.keys(presets)
   }, [])
 
-  const { audioElement, track, isPlaying, togglePlay, playNext, playPrevious } =
+  const { getAudio, track, isPlaying, togglePlay, playNext, playPrevious } =
     usePlayer()
-
   // Initialize visualizer
   useEffect(() => {
+    const audioElement = getAudio()
     if (!isVisible || !canvasRef.current || !audioElement) return
 
     const canvas = canvasRef.current
@@ -260,7 +260,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [isVisible, audioElement, currentPresetIndex, presetNames])
+  }, [isVisible, getAudio, currentPresetIndex, presetNames])
 
   // Handle preset changes
   const changePreset = useCallback(

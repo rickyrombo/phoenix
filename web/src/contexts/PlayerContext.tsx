@@ -5,6 +5,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  useSyncExternalStore,
   type ReactNode,
 } from "react"
 import { useTrack, type Track } from "../queries/useTrack"
@@ -15,13 +16,14 @@ type RepeatMode = "off" | "one" | "all"
 interface PlayerContextType {
   track?: Track | null
   isPlaying: boolean
-  currentTime: number
   duration: number
   volume: number
-  audioElement: HTMLAudioElement | null
   repeatMode: RepeatMode
   shuffle: boolean
-  setIsPlaying: (playing: boolean) => void
+  subscribeToTime: (listener: () => void) => () => void
+  getAudio: () => HTMLAudioElement | null
+  play: () => void
+  pause: () => void
   togglePlay: () => void
   seek: (time: number) => void
   setVolume: (volume: number) => void
@@ -35,13 +37,15 @@ const PlayerContext = createContext<PlayerContextType | undefined>(undefined)
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(1)
   const [repeatMode, setRepeatMode] = useState<RepeatMode>("off")
   const [shuffle, setShuffle] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(new Audio())
-
+  const loadSeqRef = useRef(0)
+  const playPromiseRef = useRef<Promise<void> | null>(null)
+  const timeListenersRef = useRef(new Set<() => void>())
+  const rafRef = useRef<number | null>(null)
   const queue = usePlayQueue()
 
   const { data: track } = useTrack(queue.items[queue.index]?.trackId, {
@@ -54,11 +58,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     audio.crossOrigin = "anonymous" // Enable CORS for Web Audio API
     audio.volume = volume
     audioRef.current = audio
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime)
-    }
-
     const handleDurationChange = () => {
       setDuration(audio.duration)
     }
@@ -79,16 +78,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         queue.set(0)
       } else {
         setIsPlaying(false)
-        setCurrentTime(0)
       }
     }
 
-    audio.addEventListener("timeupdate", handleTimeUpdate)
     audio.addEventListener("durationchange", handleDurationChange)
     audio.addEventListener("ended", handleEnded)
 
     return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate)
       audio.removeEventListener("durationchange", handleDurationChange)
       audio.removeEventListener("ended", handleEnded)
       audio.pause()
@@ -104,35 +100,142 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [volume])
 
-  // Load new track
+  // Load new track safely: use a load sequence to ignore stale loads
   useEffect(() => {
-    if (track?.stream.url && audioRef.current) {
-      const wasPlaying = isPlaying
-      audioRef.current.src = track.stream.url
-      audioRef.current.load()
+    const audio = audioRef.current
+    if (!audio) return
 
-      // If was playing, auto-play the new track
-      if (wasPlaying) {
-        audioRef.current.play().catch((err) => {
-          console.error("Playback error:", err)
-          setIsPlaying(false)
-        })
+    const url = track?.stream?.url
+    // bump sequence for this load
+    const mySeq = ++loadSeqRef.current
+
+    if (!url) {
+      // no track: stop and clear src
+      try {
+        audio.pause()
+      } catch (e: unknown) {
+        console.error("Playback error:", e)
+      }
+      audio.src = ""
+      playPromiseRef.current = null
+      return
+    }
+
+    // Pause before changing src to reduce AbortError races
+    try {
+      audio.pause()
+    } catch (err: unknown) {
+      console.error("Playback error:", err)
+    }
+
+    audio.src = url
+    audio.load()
+
+    let didStart = false
+
+    const onCanPlay = () => {
+      if (mySeq !== loadSeqRef.current) return
+      didStart = true
+      if (!isPlaying) return
+      try {
+        const p = audio.play()
+        playPromiseRef.current =
+          p instanceof Promise ? (p as Promise<void>) : null
+        if (p && typeof (p as Promise<void>).catch === "function") {
+          ;(p as Promise<void>)
+            .catch((err: unknown) => {
+              const e = err as { name?: string }
+              if (e?.name === "AbortError") return
+              console.error("Playback error:", err)
+              setIsPlaying(false)
+            })
+            .finally(() => {
+              playPromiseRef.current = null
+            })
+        }
+      } catch (err: unknown) {
+        const e = err as { name?: string }
+        if (e?.name === "AbortError") return
+        console.error("Playback error:", err)
+        setIsPlaying(false)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track])
 
-  // Handle play/pause
+    audio.addEventListener("canplay", onCanPlay)
+
+    // Fallback: try to play shortly after load if canplay doesn't fire
+    const fallback = setTimeout(() => {
+      if (mySeq !== loadSeqRef.current) return
+      if (didStart || !isPlaying) return
+      try {
+        const p = audio.play()
+        playPromiseRef.current =
+          p instanceof Promise ? (p as Promise<void>) : null
+        if (p && typeof (p as Promise<void>).catch === "function") {
+          ;(p as Promise<void>)
+            .catch((err: unknown) => {
+              const e = err as { name?: string }
+              if (e?.name === "AbortError") return
+              console.error("Playback error:", err)
+              setIsPlaying(false)
+            })
+            .finally(() => {
+              playPromiseRef.current = null
+            })
+        }
+      } catch (err: unknown) {
+        const e = err as { name?: string }
+        if (e?.name === "AbortError") return
+        console.error("Playback error:", err)
+        setIsPlaying(false)
+      }
+    }, 500)
+
+    return () => {
+      audio.removeEventListener("canplay", onCanPlay)
+      clearTimeout(fallback)
+    }
+    // only re-run when track url or playing flag changes
+  }, [track?.stream?.url, isPlaying])
+
+  // Handle play/pause safely and avoid racing play() calls
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch((err) => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    if (isPlaying) {
+      // If a play is already in-flight, leave it
+      if (!playPromiseRef.current) {
+        try {
+          const p = audio.play()
+          playPromiseRef.current =
+            p instanceof Promise ? (p as Promise<void>) : null
+          if (p && typeof (p as Promise<void>).catch === "function") {
+            ;(p as Promise<void>)
+              .catch((err: unknown) => {
+                const e = err as { name?: string }
+                if (e?.name === "AbortError") return
+                console.error("Playback error:", err)
+                setIsPlaying(false)
+              })
+              .finally(() => {
+                playPromiseRef.current = null
+              })
+          }
+        } catch (err: unknown) {
+          const e = err as { name?: string }
+          if (e?.name === "AbortError") return
           console.error("Playback error:", err)
           setIsPlaying(false)
-        })
-      } else {
-        audioRef.current.pause()
+        }
       }
+    } else {
+      try {
+        audio.pause()
+      } catch {
+        void 0
+      }
+      playPromiseRef.current = null
     }
   }, [isPlaying])
 
@@ -143,7 +246,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const seek = useCallback((time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time
-      setCurrentTime(time)
     }
   }, [])
 
@@ -160,14 +262,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [queue, repeatMode])
 
   const playPrevious = useCallback(() => {
-    if (currentTime > 3) {
+    const now = audioRef.current?.currentTime ?? 0
+    if (now > 3) {
       seek(0)
     } else if (queue.index > 0) {
       queue.prev()
     } else if (repeatMode === "all" && queue.items.length > 0) {
       queue.set(0)
     }
-  }, [currentTime, queue, repeatMode, seek])
+  }, [queue, repeatMode, seek])
 
   const toggleShuffle = () => {
     setShuffle(!shuffle)
@@ -190,18 +293,43 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [playNext, playPrevious])
 
+  const subscribeToTime = useCallback((listener: () => void) => {
+    timeListenersRef.current.add(listener)
+    // start RAF loop when first listener is added
+    if (rafRef.current == null) {
+      const loop = () => {
+        const audio = audioRef.current
+        if (!audio) return
+        timeListenersRef.current.forEach((l) => l())
+        rafRef.current = requestAnimationFrame(loop)
+      }
+      rafRef.current = requestAnimationFrame(loop)
+    }
+
+    return () => {
+      timeListenersRef.current.delete(listener)
+      if (timeListenersRef.current.size === 0 && rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+    }
+  }, [])
+
+  const getAudio = useCallback(() => audioRef.current ?? null, [])
+
   return (
     <PlayerContext.Provider
       value={{
         track,
         isPlaying,
-        currentTime,
         duration,
         volume,
-        audioElement: audioRef.current,
         repeatMode,
         shuffle,
-        setIsPlaying,
+        subscribeToTime,
+        getAudio,
+        play: () => setIsPlaying(true),
+        pause: () => setIsPlaying(false),
         togglePlay,
         seek,
         setVolume: handleSetVolume,
@@ -223,4 +351,16 @@ export function usePlayer() {
     throw new Error("usePlayer must be used within a PlayerProvider")
   }
   return context
+}
+
+// Hook for components that need high-frequency currentTime updates
+// Uses React's useSyncExternalStore so only subscribing components re-render
+// eslint-disable-next-line react-refresh/only-export-components
+export function useAudioTime(): number {
+  const { subscribeToTime, getAudio } = usePlayer()
+  return useSyncExternalStore(
+    subscribeToTime,
+    () => getAudio()?.currentTime ?? 0,
+    () => 0,
+  )
 }

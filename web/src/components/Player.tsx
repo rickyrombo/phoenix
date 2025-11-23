@@ -1,5 +1,5 @@
 import styled from "styled-components"
-import { usePlayer } from "../contexts/PlayerContext"
+import { usePlayer, useAudioTime } from "../contexts/PlayerContext"
 import React, { useState, useRef } from "react"
 import QueuePopup from "./QueuePopup"
 import {
@@ -264,7 +264,6 @@ export default function Player() {
     track,
     isPlaying,
     togglePlay,
-    currentTime,
     duration,
     volume,
     seek,
@@ -276,6 +275,7 @@ export default function Player() {
     shuffle,
     toggleShuffle,
   } = usePlayer()
+  const currentTime = useAudioTime()
 
   const [showQueue, setShowQueue] = useState(false)
 
@@ -439,7 +439,7 @@ export default function Player() {
             onChange={handleVolumeChange}
           />
         </VolumeControl>
-        {showQueue && <QueuePopup anchorRef={queueBtnRef} />}
+        {showQueue && <QueuePopup />}
       </PlayerExtras>
     </PlayerFooter>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useSyncExternalStore } from "react"
 import WaveSurfer from "wavesurfer.js"
 import styled from "styled-components"
 import { usePlayer } from "../contexts/PlayerContext"
@@ -23,6 +23,13 @@ interface WaveformPlayerProps {
   waveform: number[][]
 }
 
+const useCurrentTime = () => {
+  const { subscribeToTime, getAudio } = usePlayer()
+  const subscribe = (listener: () => void) => subscribeToTime(listener)
+  const getSnapshot = () => getAudio()?.currentTime ?? 0
+  return useSyncExternalStore(subscribe, getSnapshot, () => 0)
+}
+
 export default function WaveformPlayer({
   onPlayPause,
   trackId,
@@ -30,7 +37,8 @@ export default function WaveformPlayer({
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
-  const { currentTime, duration, track, seek } = usePlayer()
+  const { duration, track, seek } = usePlayer()
+  const currentTime = useCurrentTime()
 
   const isCurrentTrack = track?.track_id === trackId
 
@@ -59,7 +67,7 @@ export default function WaveformPlayer({
     return () => {
       wavesurfer.destroy()
     }
-  }, [])
+  }, [waveform])
 
   // Update waveform progress based on actual playback position
   useEffect(() => {

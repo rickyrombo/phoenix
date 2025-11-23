@@ -47,22 +47,22 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 				(manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Create')
 				OR (manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Repost')
 			)
-			AND (
-				@before::TEXT IS NULL 
-				OR (
-					blocks.number = (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
-					AND manage_entity_txs.tx_hash < @before
-				) 
-				OR (
-					blocks.number < (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
-				)
-			)
 		ORDER BY 
 			manage_entity_txs.entity_id, 
 			manage_entity_txs.entity_type,
 			manage_entity_txs.block_number DESC,
 			manage_entity_txs.tx_hash DESC
 	) AS sub
+	WHERE (
+		@before::TEXT IS NULL 
+		OR (
+			sub.block_number = (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+			AND sub.tx_hash < @before
+		) 
+		OR (
+			sub.block_number < (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+		)
+	)
 	ORDER BY 
 		sub.block_number DESC NULLS LAST,
 		sub.tx_hash DESC NULLS LAST

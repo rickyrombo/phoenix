@@ -2,7 +2,7 @@ import styled from "styled-components"
 import SocialButton from "./SocialButton"
 import WaveformPlayer from "./WaveformPlayer"
 import ActiveComments from "./ActiveComments"
-import { usePlayer } from "../contexts/PlayerContext"
+import { usePlayer, useAudioTime } from "../contexts/PlayerContext"
 import {
   IconPlayerPlay,
   IconPlayerPause,
@@ -429,7 +429,8 @@ export default function TrackTile({
   context,
   onPlayToggle: onPlayToggle,
 }: TrackTileProps) {
-  const { track: currentTrack, isPlaying, duration, currentTime } = usePlayer()
+  const { track: currentTrack, isPlaying, duration } = usePlayer()
+  const currentTime = useAudioTime()
   const { data: user } = useUser(track.owner_id)
 
   const isActive = currentTrack?.track_id === track.track_id

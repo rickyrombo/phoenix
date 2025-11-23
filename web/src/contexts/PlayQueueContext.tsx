@@ -98,6 +98,9 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
           } satisfies InfiniteData<PlayQueueItem[]>
         }
         const page = data.pages[pos.pageIndex]
+        if (!page) {
+          return { ...data, pages: [...data.pages, [item]] }
+        }
         let j = pos.index
         if (atEndOfManuallyAdded) {
           // Move j to the end of manually added items
@@ -123,6 +126,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
         if (data === undefined || pos === undefined) return undefined
         const page = data.pages[pos.pageIndex]
+        if (!page) return data
         const newPage = [
           ...page.slice(0, pos.index),
           ...page.slice(pos.index + 1),
@@ -212,7 +216,12 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
 
   // Load more when nearing the end of the queue
   useEffect(() => {
+    console.log("PlayQueueProvider useEffect checking for more fetch", {
+      queueLength: queue,
+      currentIndex,
+    })
     if (currentIndex > queue.length - 2) {
+      console.log("PlayQueueProvider fetching next page")
       fetchNextPage()
     }
   }, [queue, currentIndex, fetchNextPage])
