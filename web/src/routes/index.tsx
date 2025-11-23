@@ -4,7 +4,7 @@ import TrackTile from "../components/TrackTile"
 import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
-import { useCallback } from "react"
+import { useCallback, useEffect } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import type { InfiniteData } from "@tanstack/react-query"
@@ -60,6 +60,15 @@ function FeedPage() {
 
   const { isPlaying, play } = usePlayer()
   const queue = usePlayQueue()
+
+  useEffect(() => {
+    if (queue.queueKey === undefined || queue.items.length === 0) {
+      queue.changeQueue(
+        getFeedPlayQueue(feed as InfiniteData<FeedItem[], string>),
+        0,
+      )
+    }
+  }, [queue, feed])
 
   const handlePlayToggle = useCallback(
     (txHash: string) => {
