@@ -1,4 +1,4 @@
-import { queryOptions, useQueries, useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 import type { ImageMirrors } from "./useUser"
 
 export type StreamMirrors = {
@@ -48,22 +48,5 @@ export const useTrack = (
   return useQuery({
     ...options,
     ...getTrackQueryOptions(trackId),
-  })
-}
-
-export const useTracks = (trackIds: number[]) => {
-  return useQueries({
-    queries: trackIds.map((id) => getTrackQueryOptions(id)),
-    combine: (results) => {
-      return {
-        data: results.every((r) => r.data !== undefined)
-          ? results.map((r) => r.data)
-          : [],
-        isPending: results.some((r) => r.isPending),
-        isLoading: results.some((r) => r.isLoading),
-        isSuccess: results.every((r) => r.isSuccess),
-        isError: results.some((r) => r.isError),
-      }
-    },
   })
 }

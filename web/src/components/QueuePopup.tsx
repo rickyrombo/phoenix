@@ -1,6 +1,6 @@
 import { useRef } from "react"
 import styled from "styled-components"
-import { useTracks } from "../queries/useTrack"
+import { useTrack } from "../queries/useTrack"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import { usePlayer } from "../contexts/PlayerContext"
 
@@ -86,11 +86,34 @@ const Artist = styled.div`
   text-overflow: ellipsis;
 `
 
+const QueueItem = ({
+  trackId,
+  isActive,
+  onClick,
+}: {
+  trackId: number
+  isActive: boolean
+  onClick: () => void
+}) => {
+  const { data: track } = useTrack(trackId)
+  if (!track) return null
+  return (
+    <Item $active={isActive} onClick={onClick}>
+      <Thumb src={track.cover_art?.medium} alt={track.title} />
+      <Meta>
+        <Title>{track.title}</Title>
+        <Artist>{track.owner_id}</Artist>
+      </Meta>
+    </Item>
+  )
+}
+
 export default function QueuePopup() {
   const { play } = usePlayer()
   const queue = usePlayQueue()
-  const { data: tracks } = useTracks(queue.items.map((item) => item.trackId))
   const popupRef = useRef<HTMLDivElement | null>(null)
+
+  console.log("QueuePopup render", { queue })
 
   if (!queue || queue.items.length === 0) return null
 
@@ -107,25 +130,17 @@ export default function QueuePopup() {
     >
       <Header>Queue</Header>
       <Items>
-        {tracks.map((t, idx) =>
-          t ? (
-            <Item
-              key={t.track_id ?? idx}
-              $active={queue.index === idx}
-              onClick={() => {
-                queue.set(idx)
-                play()
-              }}
-            >
-              {idx + 1}
-              <Thumb src={t.cover_art?.medium} alt={t.title} />
-              <Meta>
-                <Title>{t.title}</Title>
-                <Artist>{t.owner_id}</Artist>
-              </Meta>
-            </Item>
-          ) : null,
-        )}
+        {queue.items.map((t, idx) => (
+          <QueueItem
+            key={t.cursor}
+            trackId={t.trackId}
+            isActive={queue.index === idx}
+            onClick={() => {
+              queue.set(idx)
+              play()
+            }}
+          />
+        ))}
       </Items>
     </Popup>
   )
