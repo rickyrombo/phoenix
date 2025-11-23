@@ -3,6 +3,7 @@ import styled from "styled-components"
 import { useTrack } from "../queries/useTrack"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import { usePlayer } from "../contexts/PlayerContext"
+import { IconGripVertical, IconX } from "@tabler/icons-react"
 
 const Popup = styled.div`
   width: 320px;
@@ -55,6 +56,38 @@ const Item = styled.div<{ $active?: boolean; $isOver?: boolean }>`
     background: rgb(30 30 36);
     color: #ffffff;
   }
+
+  .drag-handle {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 0.25rem;
+  }
+
+  .remove-btn {
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #bbb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &:hover .drag-handle {
+    opacity: 1;
+  }
+
+  &:hover .remove-btn {
+    opacity: 1;
+  }
 `
 
 const Thumb = styled.img`
@@ -92,21 +125,21 @@ const QueueItem = ({
   trackId,
   isActive,
   onClick,
-  draggable,
   onDragStart,
   onDragOver,
   onDrop,
   onDragEnd,
+  onRemove,
   isOver,
 }: {
   trackId: number
   isActive: boolean
   onClick: () => void
-  draggable?: boolean
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void
   onDragOver?: (e: DragEvent<HTMLDivElement>) => void
   onDrop?: (e: DragEvent<HTMLDivElement>) => void
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void
+  onRemove?: () => void
   isOver?: boolean
 }) => {
   const { data: track } = useTrack(trackId)
@@ -116,17 +149,34 @@ const QueueItem = ({
       $active={isActive}
       $isOver={isOver}
       onClick={onClick}
-      draggable={draggable}
+      draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
+      <div
+        className="drag-handle"
+        title={isActive ? "Currently playing" : "Drag to reorder"}
+      >
+        <IconGripVertical size={16} stroke={1.5} />
+      </div>
       <Thumb src={track.cover_art?.medium} alt={track.title} />
       <Meta>
         <Title>{track.title}</Title>
         <Artist>{track.owner_id}</Artist>
       </Meta>
+      <button
+        className="remove-btn"
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove?.()
+        }}
+        aria-label="Remove from queue"
+        title="Remove"
+      >
+        <IconX size={16} stroke={2} />
+      </button>
     </Item>
   )
 }
@@ -161,7 +211,6 @@ export default function QueuePopup() {
             trackId={t.trackId}
             isActive={queue.index === idx}
             isOver={dragOverIndex === idx}
-            draggable
             onDragStart={(e) => {
               setDragIndex(idx)
               e.dataTransfer.effectAllowed = "move"
@@ -190,6 +239,9 @@ export default function QueuePopup() {
             onDragEnd={() => {
               setDragIndex(null)
               setDragOverIndex(null)
+            }}
+            onRemove={() => {
+              queue.remove(idx)
             }}
             onClick={() => {
               queue.set(idx)

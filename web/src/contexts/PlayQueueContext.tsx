@@ -27,6 +27,7 @@ type PlayQueueContextType = {
   move: (fromIndex: number, toIndex: number) => void
   next: () => void
   prev: () => void
+  remove: (index: number) => void
   queueKey?: readonly unknown[]
   changeQueue: (options: GetPlayQueueQueryOptions, index?: number) => void
   set: (index: number) => void
@@ -196,8 +197,11 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
           pages: removeFromPages(data.pages, index),
         }
       })
+      if (index < currentIndex) {
+        setCurrentIndex((prev) => prev - 1)
+      }
     },
-    [queryClient, queryOptions],
+    [currentIndex, queryClient, queryOptions.queryKey],
   )
 
   const move = useCallback(
@@ -299,6 +303,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
         index: currentIndex,
         add,
         move,
+        remove: removeAt,
         next,
         prev,
         set,
