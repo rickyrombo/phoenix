@@ -9,6 +9,7 @@ import {
 import butterchurnModule, { type Visualizer } from "butterchurn"
 import butterchurnPresets from "butterchurn-presets"
 import { usePlayer } from "../contexts/PlayerContext"
+import useUser from "../queries/useUser"
 
 const butterchurn = butterchurnModule.default
 
@@ -177,6 +178,8 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
 
   const { getAudio, track, isPlaying, togglePlay, playNext, playPrevious } =
     usePlayer()
+  const { data: user } = useUser(track?.owner_id || 0, { enabled: !!track })
+
   // Initialize visualizer
   useEffect(() => {
     const audioElement = getAudio()
@@ -363,7 +366,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
           <TrackContent>
             <TrackText>
               <TrackTitleText>{track.title}</TrackTitleText>
-              <TrackArtistText>{track.owner_id}</TrackArtistText>
+              <TrackArtistText>{user?.name}</TrackArtistText>
             </TrackText>
 
             <Controls>

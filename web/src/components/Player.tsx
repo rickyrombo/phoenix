@@ -15,6 +15,7 @@ import {
   IconUserCheck,
   IconPlaylist,
 } from "@tabler/icons-react"
+import useUser from "../queries/useUser"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -320,6 +321,8 @@ export default function Player() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
+  const { data: user } = useUser(track?.owner_id || 0, { enabled: !!track })
+
   return (
     <PlayerFooter>
       <PlayerTrackInfo>
@@ -328,9 +331,7 @@ export default function Player() {
         </PlayerArtwork>
         <PlayerDetails>
           <PlayerTitle>{track?.title || "No track selected"}</PlayerTitle>
-          <PlayerArtist>
-            {track?.owner_id || "Select a track to play"}
-          </PlayerArtist>
+          <PlayerArtist>{user?.name || "Select a track to play"}</PlayerArtist>
         </PlayerDetails>
       </PlayerTrackInfo>
 
