@@ -688,10 +688,12 @@ export default function TrackTile({
       </TrackContent>
       {isPlaying && isActive && (
         <TrackDetails>
-          <TrackDescription>
-            <DetailsHeading>DESCRIPTION</DetailsHeading>
-            <p>{track.description}</p>
-          </TrackDescription>
+          {track.description ? (
+            <TrackDescription>
+              <DetailsHeading>DESCRIPTION</DetailsHeading>
+              <p>{track.description}</p>
+            </TrackDescription>
+          ) : null}
         </TrackDetails>
       )}
     </Tile>
