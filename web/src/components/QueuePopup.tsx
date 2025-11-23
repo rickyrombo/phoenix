@@ -12,7 +12,6 @@ const Popup = styled.div`
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   overflow: auto;
   z-index: 1200;
-  padding: 0.5rem;
   border-radius: 6px;
 `
 
@@ -20,6 +19,11 @@ const Header = styled.div`
   font-weight: 600;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #1a1a1a;
+  /* Make header stick to top of the scrollable popup */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #0f0f0f;
   margin-bottom: 0.25rem;
   color: #eee;
   font-family:
@@ -30,15 +34,24 @@ const Header = styled.div`
   font-size: 0.875rem;
 `
 
+const Items = styled.div`
+  padding: 0.5rem 0;
+`
+
 const Item = styled.div<{ $active?: boolean }>`
   display: flex;
   gap: 0.75rem;
   padding: 0.5rem;
   align-items: center;
   cursor: pointer;
-  background: ${(p) => (p.$active ? "rgb(20 20 24)" : "transparent")};
+  background: ${(p) => (p.$active ? "rgb(34 34 40)" : "transparent")};
+  color: ${(p) => (p.$active ? "#ffffff" : "inherit")};
+  box-shadow: ${(p) =>
+    p.$active ? "inset 0 0 0 1px rgba(111,111,255,0.03)" : "none"};
+
   &:hover {
-    background: rgb(18 18 22);
+    background: rgb(30 30 36);
+    color: #ffffff;
   }
 `
 
@@ -66,7 +79,8 @@ const Title = styled.div`
 
 const Artist = styled.div`
   font-size: 0.75rem;
-  color: #888;
+  color: inherit;
+  opacity: 0.8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -77,7 +91,6 @@ export default function QueuePopup() {
   const queue = usePlayQueue()
   const { data: tracks } = useTracks(queue.items.map((item) => item.trackId))
   const popupRef = useRef<HTMLDivElement | null>(null)
-  console.log(tracks)
 
   if (!queue || queue.items.length === 0) return null
 
@@ -93,25 +106,27 @@ export default function QueuePopup() {
       aria-label="play-queue"
     >
       <Header>Queue</Header>
-      {tracks.map((t, idx) =>
-        t ? (
-          <Item
-            key={t.track_id ?? idx}
-            $active={queue.index === idx}
-            onClick={() => {
-              queue.set(idx)
-              play()
-            }}
-          >
-            {idx + 1}
-            <Thumb src={t.cover_art?.medium} alt={t.title} />
-            <Meta>
-              <Title>{t.title}</Title>
-              <Artist>{t.owner_id}</Artist>
-            </Meta>
-          </Item>
-        ) : null,
-      )}
+      <Items>
+        {tracks.map((t, idx) =>
+          t ? (
+            <Item
+              key={t.track_id ?? idx}
+              $active={queue.index === idx}
+              onClick={() => {
+                queue.set(idx)
+                play()
+              }}
+            >
+              {idx + 1}
+              <Thumb src={t.cover_art?.medium} alt={t.title} />
+              <Meta>
+                <Title>{t.title}</Title>
+                <Artist>{t.owner_id}</Artist>
+              </Meta>
+            </Item>
+          ) : null,
+        )}
+      </Items>
     </Popup>
   )
 }

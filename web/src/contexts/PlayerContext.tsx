@@ -47,10 +47,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const timeListenersRef = useRef(new Set<() => void>())
   const rafRef = useRef<number | null>(null)
   const queue = usePlayQueue()
+  const lastDir = useRef<"next" | "prev">("next")
 
-  const { data: track } = useTrack(queue.items[queue.index]?.trackId, {
+  const {
+    data: track,
+    isSuccess,
+    isLoading,
+  } = useTrack(queue.items[queue.index]?.trackId, {
     enabled: !!queue.items[queue.index]?.trackId,
   })
+
+  useEffect(() => {
+    if (isSuccess && !track && !isLoading) {
+      console.error(
+        "Failed to load track",
+        queue.items[queue.index]?.trackId,
+        queue.index,
+      )
+      if (lastDir.current === "next") {
+        queue.next()
+      } else {
+        queue.prev()
+      }
+    }
+  }, [isSuccess, isLoading, track, queue])
 
   // Initialize audio element
   useEffect(() => {
@@ -74,6 +94,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const hasNext = queue.index < queue.items.length - 1
       if (hasNext) {
         queue.next()
+        lastDir.current = "next"
       } else if (repeatMode === "all" && queue.items.length > 0) {
         queue.set(0)
       } else {
@@ -256,6 +277,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playNext = useCallback(() => {
     if (queue.index < queue.items.length - 1) {
       queue.next()
+      lastDir.current = "next"
     } else if (repeatMode === "all" && queue.items.length > 0) {
       queue.set(0)
     }
@@ -267,6 +289,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       seek(0)
     } else if (queue.index > 0) {
       queue.prev()
+      lastDir.current = "prev"
     } else if (repeatMode === "all" && queue.items.length > 0) {
       queue.set(0)
     }

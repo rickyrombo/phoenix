@@ -29,7 +29,9 @@ const getTrackFn = async (trackId: number) => {
   const response = await fetch(`http://localhost:8000/tracks?id=${trackId}`)
   if (!response.ok) throw new Error("failed to fetch track")
   const res = await response.json()
-  return (res.data[0] ?? null) as Track | null
+  const track = res.data[0]
+  if (!track) return null
+  return track as Track
 }
 
 const getTrackQueryOptions = (trackId: number) =>

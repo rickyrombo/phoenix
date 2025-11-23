@@ -29,7 +29,6 @@ const TracksGrid = styled.div`
 `
 
 type FeedItemProps = FeedItem & {
-  queuePosition: number
   onPlayToggle: () => void
 }
 
@@ -82,7 +81,8 @@ function FeedPage() {
   const queue = usePlayQueue()
 
   const handlePlayToggle = useCallback(
-    (i: number) => {
+    (txHash: string) => {
+      const i = queue.items.findIndex((item) => item.cursor === txHash)
       if (queue.queueKey?.[1] !== "feed") {
         console.log("Changing queue to feed")
         queue.changeQueue(feedQueueQueryOptions)
@@ -103,12 +103,11 @@ function FeedPage() {
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        {feed?.pages.flat().map((feedItem, i) => (
+        {feed?.pages.flat().map((feedItem) => (
           <TrackFeedItem
-            key={feedItem.entity_id}
-            queuePosition={i}
+            key={feedItem.tx_hash}
             {...feedItem}
-            onPlayToggle={() => handlePlayToggle(i)}
+            onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
           />
         ))}
       </TracksGrid>

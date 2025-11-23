@@ -36,6 +36,7 @@ const PlayerTrackInfo = styled.div`
   align-items: center;
   gap: 1rem;
   min-width: 200px;
+  flex: 0 1 25%;
 
   @media (max-width: 768px) {
     min-width: 150px;
@@ -79,8 +80,7 @@ const PlayerArtist = styled.div`
 `
 
 const PlayerMain = styled.div`
-  flex: 1;
-  max-width: 600px;
+  flex: 0 1 50%;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -168,6 +168,7 @@ const PlayerExtras = styled.div`
   gap: 1.5rem;
   min-width: 200px;
   justify-content: flex-end;
+  flex: 0 1 25%;
 
   @media (max-width: 768px) {
     min-width: 100px;
