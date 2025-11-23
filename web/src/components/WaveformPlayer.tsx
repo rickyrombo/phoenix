@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react"
 import WaveSurfer from "wavesurfer.js"
 import styled from "styled-components"
 import { usePlayer } from "../contexts/PlayerContext"
+import { useTrack } from "../queries/useTrack"
 
 const WaveformContainer = styled.div`
   width: 100%;
@@ -20,7 +21,6 @@ interface WaveformPlayerProps {
   isPlaying: boolean
   onPlayPause: () => void
   trackId: number
-  waveform: number[][]
 }
 
 const useCurrentTime = () => {
@@ -33,19 +33,17 @@ const useCurrentTime = () => {
 export default function WaveformPlayer({
   onPlayPause,
   trackId,
-  waveform,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
-  const { duration, track, seek } = usePlayer()
+  const { duration, track: nowPlaying, seek } = usePlayer()
   const currentTime = useCurrentTime()
 
-  const isCurrentTrack = track?.track_id === trackId
+  const isCurrentTrack = nowPlaying?.track_id === trackId
+  const { data: track } = useTrack(trackId)
 
   useEffect(() => {
     if (!containerRef.current) return
-
-    // Generate placeholder waveform data
 
     // Initialize WaveSurfer with peaks directly
     const wavesurfer = WaveSurfer.create({
@@ -58,8 +56,6 @@ export default function WaveformPlayer({
       height: 80,
       interact: true,
       hideScrollbar: true,
-      peaks: waveform,
-      duration: 180,
     })
 
     wavesurferRef.current = wavesurfer
@@ -67,7 +63,19 @@ export default function WaveformPlayer({
     return () => {
       wavesurfer.destroy()
     }
-  }, [waveform])
+  }, [])
+
+  useEffect(() => {
+    const ws = wavesurferRef.current
+    if (!ws) return
+    if (!track?.stream.url) return
+
+    if (track?.waveform) {
+      ws.load(track.stream.url, [track.waveform])
+    } else {
+      ws.load(track.stream.url)
+    }
+  }, [track?.stream.url, track?.waveform])
 
   // Update waveform progress based on actual playback position
   useEffect(() => {

@@ -491,7 +491,6 @@ export default function TrackTile({
             isPlaying={isPlaying && isActive}
             onPlayPause={handlePlayToggle}
             trackId={track.track_id}
-            waveform={[track.waveform]}
           />
           <CommentAvatarsContainer>
             {comments?.map((comment, i) => (

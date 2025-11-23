@@ -58,7 +58,7 @@ const TrackFeedItem = ({
 function FeedPage() {
   const { data: feed, fetchNextPage } = useFeed()
 
-  const { isPlaying, play } = usePlayer()
+  const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
 
   useEffect(() => {
@@ -91,10 +91,10 @@ function FeedPage() {
         queue.set(i)
       }
       if (!isPlaying || queue.index === i) {
-        play()
+        togglePlay()
       }
     },
-    [isPlaying, queue, feed, play],
+    [isPlaying, queue, feed, togglePlay, play],
   )
 
   return (
