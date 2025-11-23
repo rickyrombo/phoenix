@@ -142,27 +142,22 @@ const PlayQueueContext = createContext<PlayQueueContextType | undefined>(
 )
 
 export function PlayQueueProvider({ children }: { children: ReactNode }) {
-  const [queryOptions, setQueryOptions] = useState<GetPlayQueueQueryOptions>()
+  const [queryOptionsParam, setQueryOptions] =
+    useState<GetPlayQueueQueryOptions>()
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const queryClient = useQueryClient()
 
-  const { data, fetchNextPage } = useInfiniteQuery(
-    queryOptions ?? getPlayQueueQueryOptions(),
-  )
+  const queryOptions = queryOptionsParam ?? getPlayQueueQueryOptions()
+  const { data, fetchNextPage } = useInfiniteQuery(queryOptions)
 
   const queue = useMemo(() => data?.pages.flat() ?? [], [data])
-  console.log("PlayQueueProvider useInfiniteQuery", {
-    queue,
-    queryOptions,
-    currentIndex,
-  })
 
   const insertAt = useCallback(
     (index: number, items: PlayQueueItem[], atEndOfManuallyAdded = false) => {
-      queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
+      queryClient.setQueryData(queryOptions.queryKey, (data) => {
         if (data === undefined) return data
-        return {
+        const res = {
           ...data,
           pages: insertIntoPages(
             data.pages,
@@ -171,14 +166,15 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
             atEndOfManuallyAdded,
           ),
         }
+        return res
       })
     },
-    [queryClient],
+    [queryClient, queryOptions],
   )
 
   const removeAt = useCallback(
     (index: number) => {
-      queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
+      queryClient.setQueryData(queryOptions.queryKey, (data) => {
         if (data === undefined) return data
         return {
           ...data,
@@ -186,12 +182,12 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
         }
       })
     },
-    [queryClient],
+    [queryClient, queryOptions],
   )
 
   const update = useCallback(
     (index: number, newItem: Partial<PlayQueueItem>) => {
-      queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
+      queryClient.setQueryData(queryOptions.queryKey, (data) => {
         if (data === undefined) return data
         return {
           ...data,
@@ -199,7 +195,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
         }
       })
     },
-    [queryClient],
+    [queryClient, queryOptions],
   )
 
   useEffect(() => {
@@ -210,7 +206,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback(
     (item: PlayQueueItem) => {
-      insertAt(currentIndex, [item], true)
+      insertAt(currentIndex + 1, [item], true)
     },
     [insertAt, currentIndex],
   )

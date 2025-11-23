@@ -12,10 +12,12 @@ import {
   IconDownload,
   IconMessage,
   IconSend2,
+  IconDots,
 } from "@tabler/icons-react"
-import { useState, type ReactNode } from "react"
+import { useState, useRef, useEffect, type ReactNode } from "react"
 import type { Track } from "../queries/useTrack"
 import useUser from "../queries/useUser"
+import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
 
 const Tile = styled.div<{ $isActive: boolean }>`
@@ -177,6 +179,54 @@ const PlayBtn = styled.button`
     color: #000000;
     box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
   }
+`
+
+const OverflowBtn = styled.button`
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #fff;
+  }
+`
+
+const OverflowMenu = styled.div`
+  position: absolute;
+  right: 0.5rem;
+  top: 2.5rem;
+  background: #0f0f0f;
+  border: 1px solid #222;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 1300;
+  min-width: 160px;
+  border-radius: 6px;
+  overflow: hidden;
+`
+
+const OverflowMenuItem = styled.button`
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: #ddd;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+  }
+`
+
+const OverflowContainer = styled.div`
+  position: relative;
 `
 
 const WaveformWrapper = styled.div`
@@ -432,6 +482,20 @@ export default function TrackTile({
   const { track: currentTrack, isPlaying, duration } = usePlayer()
   const currentTime = useAudioTime()
   const { data: user } = useUser(track.owner_id)
+  const queue = usePlayQueue()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!menuRef.current) return
+      if (!menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    if (menuOpen) document.addEventListener("click", onDocClick)
+    return () => document.removeEventListener("click", onDocClick)
+  }, [menuOpen])
 
   const isActive = currentTrack?.track_id === track.track_id
   const [draftCommentPosition, setDraftCommentPosition] = useState<
@@ -480,6 +544,10 @@ export default function TrackTile({
           <StatsColumn>
             {track.genre && <TrackGenreRow>{track.genre}</TrackGenreRow>}
             <TrackStats>
+              <StatItem>{track.musical_key}</StatItem>
+              <StatItem>
+                {track.bpm ? Math.round(track.bpm) + " bpm" : null}
+              </StatItem>
               <StatItem>
                 {dayjs.duration(track.duration, "seconds").format("m:ss")}
               </StatItem>
@@ -566,6 +634,36 @@ export default function TrackTile({
                 title="Download"
                 expanded={isPlaying && isActive}
               />
+              <OverflowContainer>
+                <OverflowBtn
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuOpen((v) => !v)
+                  }}
+                  aria-haspopup="true"
+                  aria-expanded={menuOpen}
+                  title="More"
+                >
+                  <IconDots size={18} stroke={2} />
+                </OverflowBtn>
+                {menuOpen && (
+                  <OverflowMenu ref={menuRef}>
+                    <OverflowMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        queue.add({
+                          cursor: `track:${track.track_id}`,
+                          trackId: track.track_id,
+                          manuallyAdded: true,
+                        })
+                        setMenuOpen(false)
+                      }}
+                    >
+                      Add to Queue
+                    </OverflowMenuItem>
+                  </OverflowMenu>
+                )}
+              </OverflowContainer>
             </ButtonGroup>
             <FooterStats>
               <StatItem>

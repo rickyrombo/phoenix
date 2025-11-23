@@ -114,4 +114,8 @@ export const getFeedPlayQueue = (feed?: InfiniteData<FeedItem[], string>) =>
           pageParams: feed.pageParams,
         }
       : undefined,
+    staleTime: Infinity,
+    refetchInterval: false,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   })
