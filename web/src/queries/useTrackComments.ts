@@ -7,6 +7,7 @@ export type Comment = {
   timestamp: number
   user_name: string
   user_profile_picture?: string
+  thread: Comment[]
 }
 const getTrackCommentsQueryFn = async (trackId: number) => {
   const response = await fetch(

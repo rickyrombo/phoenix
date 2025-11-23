@@ -566,7 +566,7 @@ export default function TrackTile({
               <CommentMarker
                 key={comment.comment_id}
                 style={{
-                  left: `${(Math.max(comment.timestamp ?? 0, i + 1) / track.duration) * 100}%`,
+                  left: `${Math.min(Math.max(comment.timestamp ?? 0, i + 1) / track.duration, 1) * 100}%`,
                 }}
               >
                 <CommentIndicator
