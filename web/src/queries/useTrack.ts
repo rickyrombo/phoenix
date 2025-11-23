@@ -39,6 +39,7 @@ const getTrackQueryOptions = (trackId: number) =>
     queryKey: ["track", trackId],
     enabled: typeof trackId === "number" && trackId > 0,
     queryFn: () => getTrackFn(trackId),
+    staleTime: 5 * 60 * 1000,
   })
 
 export const useTrack = (

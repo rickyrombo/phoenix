@@ -71,11 +71,11 @@ export default function WaveformPlayer({
     if (!track?.stream.url) return
 
     if (track?.waveform) {
-      ws.load(track.stream.url, [track.waveform])
+      ws.load(track.stream.url, [track.waveform], track.duration)
     } else {
-      ws.load(track.stream.url)
+      ws.load(track.stream.url, undefined, track.duration)
     }
-  }, [track?.stream.url, track?.waveform])
+  }, [track?.stream.url, track?.waveform, track?.duration])
 
   // Update waveform progress based on actual playback position
   useEffect(() => {
