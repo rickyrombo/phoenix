@@ -65,17 +65,18 @@ export default function WaveformPlayer({
     }
   }, [])
 
-  useEffect(() => {
-    const ws = wavesurferRef.current
-    if (!ws) return
-    if (!track?.stream.url) return
+  // disable while testing to prevent obnoxious downloads
+  // useEffect(() => {
+  //   const ws = wavesurferRef.current
+  //   if (!ws) return
+  //   if (!track?.stream.url) return
 
-    if (track?.waveform) {
-      ws.load(track.stream.url, [track.waveform], track.duration)
-    } else {
-      ws.load(track.stream.url, undefined, track.duration)
-    }
-  }, [track?.stream.url, track?.waveform, track?.duration])
+  //   if (track?.waveform) {
+  //     ws.load(track.stream.url, [track.waveform], track.duration)
+  //   } else {
+  //     ws.load(track.stream.url, undefined, track.duration)
+  //   }
+  // }, [track?.stream.url, track?.waveform, track?.duration])
 
   // Update waveform progress based on actual playback position
   useEffect(() => {

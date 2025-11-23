@@ -107,6 +107,21 @@ const removeFromPages = (pages: PlayQueueItem[][], globalIndex: number) => {
   return updatedPages
 }
 
+const movePageItem = (
+  pages: PlayQueueItem[][],
+  fromGlobalIndex: number,
+  toGlobalIndex: number,
+) => {
+  if (fromGlobalIndex < toGlobalIndex) {
+    toGlobalIndex--
+  }
+  const itemPos = getPagePosition(pages, fromGlobalIndex)
+  const item = pages[itemPos.pageIndex][itemPos.index]
+  let updatedPages = removeFromPages(pages, fromGlobalIndex)
+  updatedPages = insertIntoPages(updatedPages, toGlobalIndex, [item])
+  return updatedPages
+}
+
 const updatePageItem = (
   pages: PlayQueueItem[][],
   globalIndex: number,
@@ -185,6 +200,24 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
     [queryClient, queryOptions],
   )
 
+  const move = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      queryClient.setQueryData(queryOptions.queryKey, (data) => {
+        if (data === undefined) return data
+        return {
+          ...data,
+          pages: movePageItem(data.pages, fromIndex, toIndex),
+        }
+      })
+      if (fromIndex < currentIndex && toIndex >= currentIndex) {
+        setCurrentIndex((prev) => prev - 1)
+      } else if (fromIndex > currentIndex && toIndex <= currentIndex) {
+        setCurrentIndex((prev) => prev + 1)
+      }
+    },
+    [currentIndex, queryClient, queryOptions.queryKey],
+  )
+
   const update = useCallback(
     (index: number, newItem: Partial<PlayQueueItem>) => {
       queryClient.setQueryData(queryOptions.queryKey, (data) => {
@@ -209,15 +242,6 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
       insertAt(currentIndex + 1, [item], true)
     },
     [insertAt, currentIndex],
-  )
-
-  const move = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      const item = queue[fromIndex]
-      removeAt(fromIndex)
-      insertAt(toIndex, [item])
-    },
-    [removeAt, insertAt, queue],
   )
 
   const next = useCallback(() => {

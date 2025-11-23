@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState, type DragEvent } from "react"
 import styled from "styled-components"
 import { useTrack } from "../queries/useTrack"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
@@ -38,7 +38,7 @@ const Items = styled.div`
   padding: 0.5rem 0;
 `
 
-const Item = styled.div<{ $active?: boolean }>`
+const Item = styled.div<{ $active?: boolean; $isOver?: boolean }>`
   display: flex;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -48,6 +48,8 @@ const Item = styled.div<{ $active?: boolean }>`
   color: ${(p) => (p.$active ? "#ffffff" : "inherit")};
   box-shadow: ${(p) =>
     p.$active ? "inset 0 0 0 1px rgba(111,111,255,0.03)" : "none"};
+  border-top: ${(p) =>
+    p.$isOver ? "2px solid oklch(71.4% 0.203 305.504)" : "none"};
 
   &:hover {
     background: rgb(30 30 36);
@@ -90,15 +92,36 @@ const QueueItem = ({
   trackId,
   isActive,
   onClick,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isOver,
 }: {
   trackId: number
   isActive: boolean
   onClick: () => void
+  draggable?: boolean
+  onDragStart?: (e: DragEvent<HTMLDivElement>) => void
+  onDragOver?: (e: DragEvent<HTMLDivElement>) => void
+  onDrop?: (e: DragEvent<HTMLDivElement>) => void
+  onDragEnd?: (e: DragEvent<HTMLDivElement>) => void
+  isOver?: boolean
 }) => {
   const { data: track } = useTrack(trackId)
   if (!track) return null
   return (
-    <Item $active={isActive} onClick={onClick}>
+    <Item
+      $active={isActive}
+      $isOver={isOver}
+      onClick={onClick}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
       <Thumb src={track.cover_art?.medium} alt={track.title} />
       <Meta>
         <Title>{track.title}</Title>
@@ -112,6 +135,8 @@ export default function QueuePopup() {
   const { play } = usePlayer()
   const queue = usePlayQueue()
   const popupRef = useRef<HTMLDivElement | null>(null)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
 
   console.log("QueuePopup render", { queue })
 
@@ -135,6 +160,37 @@ export default function QueuePopup() {
             key={t.cursor}
             trackId={t.trackId}
             isActive={queue.index === idx}
+            isOver={dragOverIndex === idx}
+            draggable
+            onDragStart={(e) => {
+              setDragIndex(idx)
+              e.dataTransfer.effectAllowed = "move"
+              try {
+                e.dataTransfer.setData("text/plain", String(idx))
+              } catch {
+                /* ignore - some browsers may disallow setData in dragstart */
+              }
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              setDragOverIndex(idx)
+              e.dataTransfer.dropEffect = "move"
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              const from =
+                dragIndex ?? Number(e.dataTransfer.getData("text/plain"))
+              const to = idx
+              if (from !== null && from !== to) {
+                queue.move(from, to)
+              }
+              setDragIndex(null)
+              setDragOverIndex(null)
+            }}
+            onDragEnd={() => {
+              setDragIndex(null)
+              setDragOverIndex(null)
+            }}
             onClick={() => {
               queue.set(idx)
               play()

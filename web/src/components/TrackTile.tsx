@@ -652,7 +652,7 @@ export default function TrackTile({
                       onClick={(e) => {
                         e.stopPropagation()
                         queue.add({
-                          cursor: `track:${track.track_id}`,
+                          cursor: `track:${track.track_id}:${Date.now()}`,
                           trackId: track.track_id,
                           manuallyAdded: true,
                         })
