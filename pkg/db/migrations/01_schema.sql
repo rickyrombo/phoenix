@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS users (
     -- Flags
     is_deactivated BOOLEAN DEFAULT false,
     is_verified BOOLEAN DEFAULT false,
+    profile_type TEXT,
     
     -- Timestamps
     block_number BIGINT NOT NULL,
