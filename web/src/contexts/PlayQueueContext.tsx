@@ -2,7 +2,6 @@ import {
   infiniteQueryOptions,
   useInfiniteQuery,
   useQueryClient,
-  type InfiniteData,
 } from "@tanstack/react-query"
 import {
   createContext,
@@ -29,7 +28,7 @@ type PlayQueueContextType = {
   next: () => void
   prev: () => void
   queueKey?: readonly unknown[]
-  changeQueue: (options: GetPlayQueueQueryOptions) => void
+  changeQueue: (options: GetPlayQueueQueryOptions, index?: number) => void
   set: (index: number) => void
 }
 
@@ -44,7 +43,97 @@ const getPlayQueueQueryOptions = () =>
       return lastPage[lastPage.length - 1].cursor
     },
     initialPageParam: "",
+    initialData: { pages: [[]], pageParams: [""] },
   })
+
+const getPagePosition = (pages: PlayQueueItem[][], globalIndex: number) => {
+  let i = 0
+  let pageIndex = 0
+  let index = 0
+  for (pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+    const page = pages[pageIndex]
+    for (index = 0; index < page.length; index++) {
+      if (i === globalIndex) {
+        return { pageIndex, index }
+      }
+      i++
+    }
+  }
+  return { pageIndex: -1, index: -1 }
+}
+
+const insertIntoPages = (
+  pages: PlayQueueItem[][],
+  globalIndex: number,
+  items: PlayQueueItem[],
+  atEndOfManuallyAdded = false,
+) => {
+  const pos = getPagePosition(pages, globalIndex)
+  const page = pages[pos.pageIndex]
+  if (!page) {
+    throw new Error(
+      "insertIntoPages: page not found - ensure queue is setup before manually adding items",
+    )
+  }
+  let j = pos.index
+  if (atEndOfManuallyAdded) {
+    // Move j to the end of manually ad ded items
+    while (j < page.length && page[j]?.manuallyAdded) {
+      j++
+    }
+  }
+  const updatedPage = [...page.slice(0, j), ...items, ...page.slice(j)]
+  const updatedPages = [
+    ...pages.slice(0, pos.pageIndex),
+    updatedPage,
+    ...pages.slice(pos.pageIndex + 1),
+  ]
+  return updatedPages
+}
+
+const removeFromPages = (pages: PlayQueueItem[][], globalIndex: number) => {
+  const pos = getPagePosition(pages, globalIndex)
+  const page = pages[pos.pageIndex]
+
+  const updatedPage = [
+    ...page.slice(0, pos.index),
+    ...page.slice(pos.index + 1),
+  ]
+  const updatedPages = [
+    ...pages.slice(0, pos.pageIndex),
+    updatedPage,
+    ...pages.slice(pos.pageIndex + 1),
+  ]
+  return updatedPages
+}
+
+const updatePageItem = (
+  pages: PlayQueueItem[][],
+  globalIndex: number,
+  newItem: Partial<PlayQueueItem>,
+) => {
+  const pos = getPagePosition(pages, globalIndex)
+  const page = pages[pos.pageIndex]
+  if (!page) {
+    return pages
+  }
+  const old = page[pos.index]
+  if (old) {
+    const updatedItem = { ...old, ...newItem }
+    const updatedPage = [
+      ...page.slice(0, pos.index),
+      updatedItem,
+      ...page.slice(pos.index + 1),
+    ]
+    const updatedPages = [
+      ...pages.slice(0, pos.pageIndex),
+      updatedPage,
+      ...pages.slice(pos.pageIndex + 1),
+    ]
+    return updatedPages
+  }
+  return pages
+}
 
 type GetPlayQueueQueryOptions = ReturnType<typeof getPlayQueueQueryOptions>
 
@@ -69,88 +158,48 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
     currentIndex,
   })
 
-  const getPosition = useCallback(
-    (index: number) => {
-      if (data === undefined) return undefined
-      if (data.pages === undefined) return undefined
-      let i = 0
-      for (let p = 0; p < data.pages.length; p++) {
-        const page = data.pages[p]
-        for (let j = 0; j < page.length; j++) {
-          if (i === index) {
-            return { pageIndex: p, index: j }
-          }
-          i++
-        }
-      }
-    },
-    [data],
-  )
-
   const insertAt = useCallback(
-    (index: number, item: PlayQueueItem, atEndOfManuallyAdded = false) => {
-      const pos = getPosition(index)
+    (index: number, items: PlayQueueItem[], atEndOfManuallyAdded = false) => {
       queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
-        if (pos === undefined || data === undefined) {
-          return {
-            pages: [[item]],
-            pageParams: [0],
-          } satisfies InfiniteData<PlayQueueItem[]>
+        if (data === undefined) return data
+        return {
+          ...data,
+          pages: insertIntoPages(
+            data.pages,
+            index,
+            items,
+            atEndOfManuallyAdded,
+          ),
         }
-        const page = data.pages[pos.pageIndex]
-        if (!page) {
-          return { ...data, pages: [...data.pages, [item]] }
-        }
-        let j = pos.index
-        if (atEndOfManuallyAdded) {
-          // Move j to the end of manually added items
-          while (j < page.length && page[j]?.manuallyAdded) {
-            j++
-          }
-        }
-        const newPage = [...page.slice(0, j), item, ...page.slice(j)]
-        const newPages = [
-          ...data.pages.slice(0, pos.pageIndex),
-          newPage,
-          ...data.pages.slice(pos.pageIndex + 1),
-        ]
-        return { ...data, pages: newPages }
       })
     },
-    [queryClient, getPosition],
+    [queryClient],
   )
 
   const removeAt = useCallback(
     (index: number) => {
-      const pos = getPosition(index)
       queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
-        if (data === undefined || pos === undefined) return undefined
-        const page = data.pages[pos.pageIndex]
-        if (!page) return data
-        const newPage = [
-          ...page.slice(0, pos.index),
-          ...page.slice(pos.index + 1),
-        ]
-        const newPages = [
-          ...data.pages.slice(0, pos.pageIndex),
-          newPage,
-          ...data.pages.slice(pos.pageIndex + 1),
-        ]
-        return { ...data, pages: newPages }
+        if (data === undefined) return data
+        return {
+          ...data,
+          pages: removeFromPages(data.pages, index),
+        }
       })
     },
-    [queryClient, getPosition],
+    [queryClient],
   )
 
   const update = useCallback(
     (index: number, newItem: Partial<PlayQueueItem>) => {
-      const old = queue[index]
-      if (old) {
-        removeAt(index)
-        insertAt(index, { ...old, ...newItem })
-      }
+      queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, (data) => {
+        if (data === undefined) return data
+        return {
+          ...data,
+          pages: updatePageItem(data.pages, index, newItem),
+        }
+      })
     },
-    [insertAt, queue, removeAt],
+    [queryClient],
   )
 
   useEffect(() => {
@@ -161,7 +210,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback(
     (item: PlayQueueItem) => {
-      insertAt(currentIndex, item, true)
+      insertAt(currentIndex, [item], true)
     },
     [insertAt, currentIndex],
   )
@@ -170,7 +219,7 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
     (fromIndex: number, toIndex: number) => {
       const item = queue[fromIndex]
       removeAt(fromIndex)
-      insertAt(toIndex, item)
+      insertAt(toIndex, [item])
     },
     [removeAt, insertAt, queue],
   )
@@ -188,28 +237,25 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const changeQueue = useCallback(
-    async (options: GetPlayQueueQueryOptions) => {
+    async (options: GetPlayQueueQueryOptions, index: number = 0) => {
       // keep manually added, unplayed items
       const keepers = queue.filter((item) => item.manuallyAdded && !item.played)
 
-      // set cache synchronously so UI shows keepers immediately
-      queryClient.setQueryData(getPlayQueueQueryOptions().queryKey, () => {
-        return {
-          pages: [keepers],
-          pageParams: [null],
-        } as InfiniteData<PlayQueueItem[]>
-      })
+      // Clear the existing queue
+      queryClient.removeQueries({ queryKey: options.queryKey })
 
-      // update local options so the provider uses the new queryFn for subsequent behavior
-      setQueryOptions(options)
-      setCurrentIndex(0)
-
-      // Immediately issue a fetch using the merged options so the new queryFn runs now
-      const merged = {
-        ...getPlayQueueQueryOptions(),
-        ...options,
+      if (typeof options.initialData === "function") {
+        throw new Error("initialData as function not supported")
       }
-      await queryClient.fetchInfiniteQuery(merged)
+
+      if (options.initialData && options.initialData.pages.length > 0)
+        options.initialData = {
+          ...options.initialData,
+          pages: insertIntoPages(options.initialData.pages, index, keepers),
+        }
+
+      setQueryOptions(options)
+      setCurrentIndex(index)
     },
     [queryClient, queue],
   )

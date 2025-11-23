@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 import TrackTile from "../components/TrackTile"
-import { getFeedQueryFn, useFeed, type FeedItem } from "../queries/useFeed"
+import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
 import { useCallback } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
-import { usePlayQueue, type PlayQueueItem } from "../contexts/PlayQueueContext"
-import { infiniteQueryOptions } from "@tanstack/react-query"
+import { usePlayQueue } from "../contexts/PlayQueueContext"
+import type { InfiniteData } from "@tanstack/react-query"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -55,48 +55,37 @@ const TrackFeedItem = ({
   ) : null
 }
 
-const feedQueueQueryOptions = infiniteQueryOptions({
-  queryKey: ["playQueue", "feed"],
-  queryFn: async ({ pageParam }: { pageParam?: string }) => {
-    const data = await getFeedQueryFn({ before: pageParam })
-    const playQueue = data.map(
-      (t): PlayQueueItem => ({
-        trackId: t.entity_id,
-        cursor: t.tx_hash,
-      }),
-    )
-    return playQueue
-  },
-  getNextPageParam: (lastPage) => {
-    if (lastPage.length === 0) return undefined
-    return lastPage[lastPage.length - 1].cursor
-  },
-  initialPageParam: "",
-})
-
 function FeedPage() {
-  const { data: feed } = useFeed()
+  const { data: feed, fetchNextPage } = useFeed()
 
-  const { isPlaying, togglePlay } = usePlayer()
+  const { isPlaying, play } = usePlayer()
   const queue = usePlayQueue()
 
   const handlePlayToggle = useCallback(
     (txHash: string) => {
-      const i = queue.items.findIndex((item) => item.cursor === txHash)
       if (queue.queueKey?.[1] !== "feed") {
         console.log("Changing queue to feed")
-        queue.changeQueue(feedQueueQueryOptions)
+        const index = feed?.pages
+          .flat()
+          .findIndex((item) => item.tx_hash === txHash)
+        queue.changeQueue(
+          // TODO: fix type assertion - why is TS not inferring correctly?
+          getFeedPlayQueue(feed as InfiniteData<FeedItem[], string>),
+          index,
+        )
+        play()
+        return
       }
+      const i = queue.items.findIndex((item) => item.cursor === txHash)
       if (queue.index !== i) {
         console.log("Changing track")
         queue.set(i)
       }
       if (!isPlaying || queue.index === i) {
-        console.log("Toggling play")
-        togglePlay()
+        play()
       }
     },
-    [isPlaying, queue, togglePlay],
+    [isPlaying, queue, feed, play],
   )
 
   return (
@@ -111,6 +100,7 @@ function FeedPage() {
           />
         ))}
       </TracksGrid>
+      <button onClick={() => fetchNextPage()}>Load More</button>
     </PageContainer>
   )
 }
