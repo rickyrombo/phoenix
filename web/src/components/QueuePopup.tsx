@@ -4,16 +4,21 @@ import { useTrack } from "../queries/useTrack"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import { usePlayer } from "../contexts/PlayerContext"
 import { IconGripVertical, IconX } from "@tabler/icons-react"
+import useUser from "../queries/useUser"
 
 const Popup = styled.div`
-  width: 320px;
-  max-height: 360px;
+  width: 360px;
+  max-height: 480px;
   background: #0f0f0f;
   border: 1px solid #222;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   overflow: auto;
   z-index: 1200;
   border-radius: 6px;
+
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
 `
 
 const Header = styled.div`
@@ -143,6 +148,9 @@ const QueueItem = ({
   isOver?: boolean
 }) => {
   const { data: track } = useTrack(trackId)
+  const { data: user } = useUser(track?.owner_id ?? 0, {
+    enabled: !!track?.owner_id,
+  })
   if (!track) return null
   return (
     <Item
@@ -164,7 +172,7 @@ const QueueItem = ({
       <Thumb src={track.cover_art?.medium} alt={track.title} />
       <Meta>
         <Title>{track.title}</Title>
-        <Artist>{track.owner_id}</Artist>
+        <Artist>{user?.name}</Artist>
       </Meta>
       <button
         className="remove-btn"
@@ -191,16 +199,7 @@ export default function QueuePopup() {
   if (!queue || queue.items.length === 0) return null
 
   return (
-    <Popup
-      ref={popupRef}
-      style={{
-        position: "fixed",
-        right: 16,
-        bottom: 110,
-      }}
-      role="dialog"
-      aria-label="play-queue"
-    >
+    <Popup ref={popupRef} style={{}} role="dialog" aria-label="play-queue">
       <Header>Queue</Header>
       <Items>
         {queue.items.map((t, idx) => (

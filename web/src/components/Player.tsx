@@ -425,6 +425,7 @@ export default function Player() {
         </FavoriteBtn>
         <QueueBtn
           ref={queueBtnRef}
+          className={showQueue ? "active" : ""}
           onClick={openQueue}
           title="Queue"
           aria-label="Open queue"
