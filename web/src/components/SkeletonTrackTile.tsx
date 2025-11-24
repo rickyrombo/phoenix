@@ -4,12 +4,13 @@ const Tile = styled.div`
   width: 100%;
   background: transparent;
   border-bottom: 1px solid #333333;
-  padding: 1rem 0 1.5rem 0;
   display: grid;
   grid-template-columns: 180px 1fr;
-  gap: 0;
+  gap: 1rem;
   position: relative;
   overflow: hidden;
+  padding: 1.5rem 0;
+  box-sizing: border-box;
 
   @keyframes shimmer {
     0% {
@@ -31,7 +32,6 @@ const Cover = styled.div`
 `
 
 const Content = styled.div`
-  padding: 0 0 0 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -112,8 +112,8 @@ export default function SkeletonTrackTile() {
           <HeaderLeft>
             <PlayButton />
             <TextGroup>
-              <Text $width="500px" />
-              <Text $width="360px" />
+              <Text $width="60%" />
+              <Text $width="40%" />
             </TextGroup>
           </HeaderLeft>
           <Text $width="80px" />

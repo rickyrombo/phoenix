@@ -35,6 +35,9 @@ const Tile = styled.div<{ $isActive: boolean }>`
   transition: all 0.2s;
   position: relative;
 
+  // Fixes overflow caused by the comments
+  overflow: hidden;
+
   ${(props) =>
     props.$isActive &&
     `

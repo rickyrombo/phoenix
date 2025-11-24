@@ -71,7 +71,12 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
-  const { data: feed, fetchNextPage, hasNextPage } = useFeed(1)
+  const {
+    data: feed,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFeed(1)
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -107,10 +112,17 @@ function FeedPage() {
     [isPlaying, queue, feed, togglePlay, play],
   )
 
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+
   return (
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
+        <SkeletonTrackTile />
         {feedItems.map((feedItem) => (
           <TrackFeedItem
             key={feedItem.tx_hash}
@@ -118,15 +130,9 @@ function FeedPage() {
             onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
           />
         ))}
-        {hasNextPage && <LoadingIndicator>Loading...</LoadingIndicator>}
+        {isFetchingNextPage && <LoadingIndicator>Loading...</LoadingIndicator>}
       </TracksGrid>
-      <Sentinel
-        onIntersect={() => {
-          if (hasNextPage) {
-            fetchNextPage()
-          }
-        }}
-      />
+      <Sentinel onIntersect={loadMore} />
     </PageContainer>
   )
 }
