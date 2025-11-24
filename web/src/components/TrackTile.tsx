@@ -86,18 +86,6 @@ const TrackDetails = styled.div`
   display: flex;
   flex-direction: column;
   padding: 1.5rem 1rem 1rem 1rem;
-  overflow: hidden;
-  animation: expandDetails 0.3s ease-out;
-  max-height: 500px;
-
-  @keyframes expandDetails {
-    from {
-      max-height: 0;
-    }
-    to {
-      max-height: 500px;
-    }
-  }
 `
 
 const TrackHeader = styled.div`
@@ -722,7 +710,9 @@ function TrackTile({
             <TrackDescription>
               <DetailsHeading>DESCRIPTION</DetailsHeading>
               <p>
-                <Linkify options={{ target: "_blank", rel: "noopener noreferrer" }}>
+                <Linkify
+                  options={{ target: "_blank", rel: "noopener noreferrer" }}
+                >
                   {track.description}
                 </Linkify>
               </p>
