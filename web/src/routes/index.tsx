@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 import TrackTile from "../components/TrackTile"
+import SkeletonTrackTile from "../components/SkeletonTrackTile"
 import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
@@ -40,12 +41,9 @@ const VirtualRow = styled.div<{ $start: number }>`
   top: 0;
   left: 0;
   width: 100%;
+  overflow-x: hidden;
   transform: translateY(${(props) => props.$start}px);
-`
-
-const SkeletonTrackTile = styled.div`
-  width: 100%;
-  height: 256px;
+  border-bottom: 1px solid #333333;
 `
 
 const LoadingIndicator = styled.div`
