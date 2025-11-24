@@ -6,7 +6,7 @@ const MarqueeWrapper = styled.div`
   position: relative;
 
   &:hover .marquee-mover {
-    animation: marquee 2s linear infinite;
+    animation: marquee 5s linear infinite;
   }
 `
 
@@ -38,6 +38,23 @@ export const Marquee = ({ children, separator = "•" }: MarqueeProps) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [needsMarquee, setNeedsMarquee] = useState<boolean | null>(null)
   const separatorWidthRef = useRef<number>(0)
+  const [resizeKey, setResizeKey] = useState(0)
+
+  // ResizeObserver to watch for size changes
+  useEffect(() => {
+    if (!wrapperRef.current || !contentRef.current) return
+
+    const resizeObserver = new ResizeObserver(() => {
+      setResizeKey((prev) => prev + 1)
+    })
+
+    resizeObserver.observe(wrapperRef.current)
+    resizeObserver.observe(contentRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     if (contentRef.current && wrapperRef.current) {
@@ -78,7 +95,7 @@ export const Marquee = ({ children, separator = "•" }: MarqueeProps) => {
         styleSheet.textContent = keyframes
       }
     }
-  }, [children, needsMarquee])
+  }, [children, needsMarquee, resizeKey])
 
   return (
     <MarqueeWrapper ref={wrapperRef}>
