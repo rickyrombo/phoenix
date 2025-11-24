@@ -14,36 +14,6 @@ export type FeedItem = {
   timestamp: string
 }
 
-// const syncFeedPageToPlayQueue = (
-//   client: QueryClient,
-//   pageParam: string,
-//   page: FeedItem[],
-// ) => {
-//   console.log("Syncing feed page to play queue", { page, pageParam })
-//   client.setQueryData(getFeedPlayQueue().queryKey, (data) => {
-//     const queuePage = page.map(
-//       (t): PlayQueueItem => ({
-//         trackId: t.entity_id,
-//         cursor: t.tx_hash,
-//       }),
-//     )
-//     if (!data)
-//       return {
-//         pageParams: [pageParam],
-//         pages: [queuePage],
-//       }
-//     const feedData = client.getQueryData(getFeedQueryOptions().queryKey)
-//     const feedDataPageCount = feedData ? feedData.pages.length : 0
-//     if (data.pages.length <= feedDataPageCount) {
-//       return {
-//         ...data,
-//         pageParams: [...data.pageParams, pageParam],
-//         pages: [...data.pages, queuePage],
-//       }
-//     }
-//   })
-// }
-
 const getFeedPage = async ({
   before,
   userId,

@@ -82,7 +82,6 @@ function FeedPage() {
     }
 
     const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      console.log("IntersectionObserver entries:", entries)
       entries.forEach((entry) => {
         if (entry.isIntersecting && hasNextPage) {
           fetchNextPage()

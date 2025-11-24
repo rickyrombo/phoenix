@@ -20,6 +20,7 @@ import useUser from "../queries/useUser"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
 import useTrackComments from "../queries/useTrackComments"
+import { WithMirrors } from "./WIthMirrors"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -521,7 +522,16 @@ export default function TrackTile({
   return (
     <Tile $isActive={isActive}>
       {context}
-      <CoverArt src={track.cover_art?.medium} alt={track.title} />
+      {track.cover_art ? (
+        <WithMirrors
+          url={track.cover_art.medium}
+          mirrors={track.cover_art.mirrors}
+        >
+          {(url, onError) => (
+            <CoverArt src={url} alt={track.title} onError={onError} />
+          )}
+        </WithMirrors>
+      ) : null}
       <TrackContent $isExpanded={isPlaying && isActive}>
         <TrackHeader>
           <TrackMainInfo>

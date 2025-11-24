@@ -287,7 +287,6 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
   // Load more when nearing the end of the queue
   useEffect(() => {
     if (currentIndex > queue.length - 2) {
-      console.log("PlayQueueProvider fetching next page")
       fetchNextPage()
     }
   }, [queue, currentIndex, fetchNextPage])
