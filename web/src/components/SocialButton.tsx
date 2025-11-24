@@ -1,16 +1,16 @@
-import styled from 'styled-components'
+import styled from "styled-components"
 
 const Button = styled.button<{ $expanded: boolean }>`
   background: transparent;
   border: 1px solid #333333;
   color: #808080;
-  padding: ${props => props.$expanded ? '0.25rem 0.75rem' : '0.25rem 0.375rem'};
+  padding: ${(props) =>
+    props.$expanded ? "0.25rem 0.75rem" : "0.25rem 0.375rem"};
   cursor: pointer;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Kode Mono', monospace;
+  font-family: "Kode Mono", monospace;
   font-size: 0.75rem;
   border-radius: 0;
   min-height: 0;
@@ -29,7 +29,7 @@ const Icon = styled.span`
 `
 
 const Label = styled.span<{ $expanded: boolean }>`
-  display: ${props => props.$expanded ? 'inline' : 'none'};
+  display: ${(props) => (props.$expanded ? "inline" : "none")};
   line-height: 1;
 `
 
@@ -39,7 +39,7 @@ const Count = styled.span`
   line-height: 1;
 `
 
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react"
 
 interface SocialButtonProps {
   icon: ReactNode
@@ -50,7 +50,14 @@ interface SocialButtonProps {
   onClick?: () => void
 }
 
-export default function SocialButton({ icon, label, title, expanded, count, onClick }: SocialButtonProps) {
+export default function SocialButton({
+  icon,
+  label,
+  title,
+  expanded,
+  count,
+  onClick,
+}: SocialButtonProps) {
   return (
     <Button title={title} $expanded={expanded} onClick={onClick}>
       <Icon>{icon}</Icon>

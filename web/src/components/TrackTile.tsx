@@ -86,17 +86,14 @@ const TrackDetails = styled.div`
   flex-direction: column;
   padding: 1.5rem 1rem 1rem 1rem;
   overflow: hidden;
-  will-change: max-height, opacity;
   animation: expandDetails 0.3s ease-out;
   max-height: 500px;
 
   @keyframes expandDetails {
     from {
-      opacity: 0;
       max-height: 0;
     }
     to {
-      opacity: 1;
       max-height: 500px;
     }
   }

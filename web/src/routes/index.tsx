@@ -41,10 +41,13 @@ const LoadingIndicator = styled.div`
 `
 
 type FeedItemProps = FeedItem & {
-  onPlayToggle: () => void
+  index: number
+  onPlayToggle: (tx_hash: string, index: number) => void
 }
 
 const TrackFeedItem = ({
+  index,
+  tx_hash,
   user_id,
   action,
   timestamp,
@@ -52,9 +55,15 @@ const TrackFeedItem = ({
   onPlayToggle,
 }: FeedItemProps) => {
   const { data: track, isSuccess, isLoading } = useTrack(entity_id)
+
+  const onPlayToggleBound = useCallback(() => {
+    onPlayToggle(tx_hash, index)
+  }, [onPlayToggle, tx_hash, index])
+
   if (isLoading) {
     return <SkeletonTrackTile />
   }
+
   return isSuccess && track ? (
     <TrackTile
       track={track!}
@@ -65,7 +74,7 @@ const TrackFeedItem = ({
           contextTime={timestamp}
         />
       }
-      onPlayToggle={onPlayToggle}
+      onPlayToggle={onPlayToggleBound}
     />
   ) : null
 }
@@ -93,12 +102,9 @@ function FeedPage() {
   }, [queue, feed])
 
   const handlePlayToggle = useCallback(
-    (txHash: string) => {
+    (txHash: string, index: number) => {
       const i = queue.items.findIndex((item) => item.cursor === txHash)
       if (!isPlaying || queue.index !== i) {
-        const index = feed?.pages
-          .flat()
-          .findIndex((item) => item.tx_hash === txHash)
         queue.changeQueue(
           // TODO: fix type assertion - why is TS not inferring correctly?
           getFeedPlayQueue(feed as InfiniteData<FeedItem[], string>),
@@ -122,11 +128,12 @@ function FeedPage() {
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        {feedItems.map((feedItem) => (
+        {feedItems.map((feedItem, i) => (
           <TrackFeedItem
             key={feedItem.tx_hash}
+            index={i}
             {...feedItem}
-            onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
+            onPlayToggle={handlePlayToggle}
           />
         ))}
         {isFetchingNextPage && <LoadingIndicator>Loading...</LoadingIndicator>}
