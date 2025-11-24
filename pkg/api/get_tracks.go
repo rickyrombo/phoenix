@@ -58,7 +58,7 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 		Title           string    `json:"title"`
 		Description     *string   `json:"description"`
 		CoverArtSizes   *string   `json:"-"`
-		Genre           string    `json:"genre"`
+		Genre           *string   `json:"genre"`
 		Mood            *string   `json:"mood"`
 		BPM             *float32  `json:"bpm"`
 		MusicalKey      *string   `json:"musical_key"`

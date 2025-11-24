@@ -49,7 +49,6 @@ const getFeedQueryOptions = (userId: number) =>
       return lastPage[lastPage.length - 1].tx_hash
     },
     initialPageParam: "",
-    maxPages: 2,
   })
 
 export const useFeed = (
