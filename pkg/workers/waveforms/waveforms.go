@@ -111,8 +111,8 @@ func (j *Job) Run(ctx context.Context) error {
 				defer wg.Done()
 				defer func() { <-sem }()
 				j.ProcessCID(ctx, t.TrackCID)
-				if t.PreviewCID != "" {
-					j.ProcessCID(ctx, t.PreviewCID)
+				if t.PreviewCID != nil {
+					j.ProcessCID(ctx, *t.PreviewCID)
 				}
 			}(t)
 		}
@@ -190,8 +190,8 @@ func (j *Job) ProcessCID(ctx context.Context, cid string) error {
 }
 
 type waveformTaskRow struct {
-	TrackCID   string `db:"track_cid"`
-	PreviewCID string `db:"preview_cid"`
+	TrackCID   string  `db:"track_cid"`
+	PreviewCID *string `db:"preview_cid"`
 }
 
 // fetchPendingWaveformTasks returns a slice of tasks (track id + cid) to process.
