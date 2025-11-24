@@ -122,7 +122,6 @@ function FeedPage() {
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        <SkeletonTrackTile />
         {feedItems.map((feedItem) => (
           <TrackFeedItem
             key={feedItem.tx_hash}
