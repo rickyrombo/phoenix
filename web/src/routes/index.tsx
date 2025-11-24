@@ -71,8 +71,7 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
-  const { data: feed, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useFeed(1)
+  const { data: feed, fetchNextPage, hasNextPage } = useFeed(1)
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -80,8 +79,9 @@ function FeedPage() {
   // Flatten feed items for virtualization
   const feedItems = feed?.pages.flat() ?? []
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizer = useVirtualizer({
-    count: feedItems.length,
+    count: hasNextPage ? feedItems.length + 1 : feedItems.length,
     getScrollElement: () => document.documentElement,
     estimateSize: () => 250,
     overscan: 5,
@@ -116,16 +116,16 @@ function FeedPage() {
     [isPlaying, queue, feed, togglePlay, play],
   )
 
-  // Add extra height when loading next page to prevent footer from showing
-  const totalHeight = virtualizer.getTotalSize() + (isFetchingNextPage ? 2500 : 0)
-
   return (
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        <VirtualList style={{ height: `${totalHeight}px` }}>
+        <VirtualList style={{ height: `${virtualizer.getTotalSize()}px` }}>
           {virtualizer.getVirtualItems().map((virtualItem) => {
             const feedItem = feedItems[virtualItem.index]
+            if (!feedItem) {
+              return null
+            }
             return (
               <VirtualRow
                 key={feedItem.tx_hash}
