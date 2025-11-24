@@ -16,6 +16,7 @@ import {
   IconPlaylist,
 } from "@tabler/icons-react"
 import useUser from "../queries/useUser"
+import { Marquee } from "./Marquee"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -62,15 +63,12 @@ const PlayerArtwork = styled.div`
 
 const PlayerDetails = styled.div`
   min-width: 0;
+  /* overflow: hidden; */
 `
 
 const PlayerTitle = styled.div`
   font-weight: 600;
   font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `
 
 const PlayerArtist = styled.div`
@@ -331,7 +329,9 @@ export default function Player() {
           {track && <img src={track.cover_art?.medium} alt={track.title} />}
         </PlayerArtwork>
         <PlayerDetails>
-          <PlayerTitle>{track?.title || "No track selected"}</PlayerTitle>
+          <Marquee>
+            <PlayerTitle>{track?.title || "No track selected"}</PlayerTitle>
+          </Marquee>
           <PlayerArtist>{user?.name || "Select a track to play"}</PlayerArtist>
         </PlayerDetails>
       </PlayerTrackInfo>
