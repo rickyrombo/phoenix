@@ -43,6 +43,11 @@ const VirtualRow = styled.div<{ $start: number }>`
   transform: translateY(${(props) => props.$start}px);
 `
 
+const SkeletonTrackTile = styled.div`
+  width: 100%;
+  height: 256px;
+`
+
 type FeedItemProps = FeedItem & {
   onPlayToggle: () => void
 }
@@ -54,7 +59,10 @@ const TrackFeedItem = ({
   entity_id,
   onPlayToggle,
 }: FeedItemProps) => {
-  const { data: track, isSuccess } = useTrack(entity_id)
+  const { data: track, isSuccess, isLoading } = useTrack(entity_id)
+  if (isLoading) {
+    return <SkeletonTrackTile />
+  }
   return isSuccess && track ? (
     <TrackTile
       track={track!}
@@ -83,7 +91,7 @@ function FeedPage() {
   const virtualizer = useVirtualizer({
     count: hasNextPage ? feedItems.length + 1 : feedItems.length,
     getScrollElement: () => document.documentElement,
-    estimateSize: () => 250,
+    estimateSize: () => 256,
     overscan: 5,
   })
 
