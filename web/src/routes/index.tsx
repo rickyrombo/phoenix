@@ -71,7 +71,8 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
-  const { data: feed, fetchNextPage, hasNextPage } = useFeed(1)
+  const { data: feed, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useFeed(1)
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -115,11 +116,14 @@ function FeedPage() {
     [isPlaying, queue, feed, togglePlay, play],
   )
 
+  // Add extra height when loading next page to prevent footer from showing
+  const totalHeight = virtualizer.getTotalSize() + (isFetchingNextPage ? 2500 : 0)
+
   return (
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        <VirtualList style={{ height: `${virtualizer.getTotalSize()}px` }}>
+        <VirtualList style={{ height: `${totalHeight}px` }}>
           {virtualizer.getVirtualItems().map((virtualItem) => {
             const feedItem = feedItems[virtualItem.index]
             return (

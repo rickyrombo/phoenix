@@ -2,19 +2,21 @@ import { useEffect, useRef } from "react"
 
 type SentinelProps = {
   onIntersect: () => void
+  options?: IntersectionObserverInit
 }
 
-export const Sentinel = ({ onIntersect }: SentinelProps) => {
+export const Sentinel = ({ onIntersect, options }: SentinelProps) => {
   const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel) return
 
-    const options = {
+    const intersectObserverOptions = {
       root: null,
-      rootMargin: "500px",
+      rootMargin: "1000px",
       threshold: 0.01,
+      ...options,
     }
 
     const handleIntersect = (entries: IntersectionObserverEntry[]) => {
@@ -25,12 +27,16 @@ export const Sentinel = ({ onIntersect }: SentinelProps) => {
       })
     }
 
-    const observer = new IntersectionObserver(handleIntersect, options)
+    const observer = new IntersectionObserver(
+      handleIntersect,
+      intersectObserverOptions,
+    )
 
     observer.observe(sentinel)
     return () => {
       observer.disconnect()
     }
-  }, [onIntersect])
+  }, [onIntersect, options])
+
   return <div ref={sentinelRef} style={{ height: "1px" }} />
 }
