@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react"
+import { useEffect, useRef } from "react"
 import WaveSurfer from "wavesurfer.js"
 import styled from "styled-components"
 import { usePlayer } from "../contexts/PlayerContext"
@@ -23,21 +23,14 @@ interface WaveformPlayerProps {
   trackId: number
 }
 
-const useCurrentTime = () => {
-  const { subscribeToTime, getAudio } = usePlayer()
-  const subscribe = (listener: () => void) => subscribeToTime(listener)
-  const getSnapshot = () => getAudio()?.currentTime ?? 0
-  return useSyncExternalStore(subscribe, getSnapshot, () => 0)
-}
-
-export default function WaveformPlayer({
+function WaveformPlayer({
   onPlayPause,
   trackId,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
-  const { duration, track: nowPlaying, seek } = usePlayer()
-  const currentTime = useCurrentTime()
+  const rafIdRef = useRef<number | null>(null)
+  const { duration, track: nowPlaying, seek, getAudio, isPlaying } = usePlayer()
 
   const isCurrentTrack = nowPlaying?.track_id === trackId
   const { data: track } = useTrack(trackId)
@@ -75,18 +68,40 @@ export default function WaveformPlayer({
   //   ws.load(track.stream.url, undefined, track.duration)
   // }, [track?.stream.url, track?.waveform, track?.duration])
 
-  // Update waveform progress based on actual playback position
+  // Update waveform progress using RAF instead of subscribing to time updates
   useEffect(() => {
-    if (wavesurferRef.current) {
-      if (isCurrentTrack && duration > 0) {
-        const progress = currentTime / duration
-        wavesurferRef.current.seekTo(progress)
-      } else {
-        // Reset to start for non-active tracks
-        wavesurferRef.current.seekTo(0)
+    const ws = wavesurferRef.current
+    if (!ws) return
+
+    // Reset to start for non-active tracks
+    if (!isCurrentTrack) {
+      ws.seekTo(0)
+      return
+    }
+
+    // Only run RAF loop when this track is active and playing
+    if (!isPlaying || duration <= 0) {
+      return
+    }
+
+    const updateProgress = () => {
+      const audio = getAudio()
+      if (audio && ws && duration > 0) {
+        const progress = audio.currentTime / duration
+        ws.seekTo(progress)
+      }
+      rafIdRef.current = requestAnimationFrame(updateProgress)
+    }
+
+    rafIdRef.current = requestAnimationFrame(updateProgress)
+
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
       }
     }
-  }, [currentTime, duration, isCurrentTrack])
+  }, [isCurrentTrack, isPlaying, duration, getAudio])
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return
@@ -108,3 +123,6 @@ export default function WaveformPlayer({
 
   return <WaveformContainer ref={containerRef} onClick={handleClick} />
 }
+
+// React Compiler handles memoization automatically
+export default WaveformPlayer

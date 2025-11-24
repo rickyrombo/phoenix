@@ -12,7 +12,6 @@ interface ActiveComment {
 interface ActiveCommentsProps {
   comments: Comment[]
   trackId: number
-  duration: number
 }
 
 const ActiveCommentWrapper = styled.div`
@@ -99,17 +98,19 @@ const CommentText = styled.p`
 export default function ActiveComments({
   comments,
   trackId,
-  duration,
 }: ActiveCommentsProps) {
-  const { track, isPlaying, seek } = usePlayer()
+  const { track, isPlaying, seek, duration } = usePlayer()
   const currentTime = useAudioTime()
   const isActive = track?.track_id === trackId
+
+  // Only subscribe to time updates when this track is active and playing
+  const shouldUpdate = isActive && isPlaying
   const [activeComments, setActiveComments] = useState<ActiveComment[]>([])
   const nextCommentIdRef = useRef(0)
   const lastShownCommentRef = useRef<Map<number, number>>(new Map())
 
   useEffect(() => {
-    if (!isActive || !isPlaying || duration === 0) return
+    if (!shouldUpdate || duration === 0) return
 
     // Find if we just passed a comment timestamp
     comments.forEach((comment, index) => {
@@ -170,14 +171,14 @@ export default function ActiveComments({
         }, 10000)
       }
     })
-  }, [isActive, isPlaying, currentTime, duration, comments, activeComments])
+  }, [shouldUpdate, currentTime, duration, comments, activeComments])
 
   // Clear all comments when track stops or becomes inactive
   useEffect(() => {
-    if (!isActive || !isPlaying) {
+    if (!shouldUpdate) {
       setTimeout(() => setActiveComments([]), 0)
     }
-  }, [isActive, isPlaying])
+  }, [shouldUpdate])
 
   if (activeComments.length === 0) return null
 

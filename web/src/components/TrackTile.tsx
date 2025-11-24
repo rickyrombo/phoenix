@@ -2,7 +2,7 @@ import styled from "styled-components"
 import SocialButton from "./SocialButton"
 import WaveformPlayer from "./WaveformPlayer"
 import ActiveComments from "./ActiveComments"
-import { usePlayer, useAudioTime } from "../contexts/PlayerContext"
+import { usePlayer } from "../contexts/PlayerContext"
 import {
   IconPlayerPlay,
   IconPlayerPause,
@@ -436,7 +436,6 @@ const TrackHost = styled.p`
 const ButtonGroup = styled.div`
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
 `
 
 const FooterStats = styled.div`
@@ -447,14 +446,12 @@ const FooterStats = styled.div`
   color: #808080;
   letter-spacing: 0.5px;
   font-weight: 500;
-  flex-wrap: wrap;
 `
 
 const FooterLeft = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
 `
 
 export interface Comment {
@@ -470,13 +467,57 @@ interface TrackTileProps {
   onPlayToggle?: () => void
 }
 
-export default function TrackTile({
+// Separate component to isolate time subscription
+function CommentInputBox({
+  isActive,
+  isPlaying,
+  onDraftPositionChange,
+}: {
+  isActive: boolean
+  isPlaying: boolean
+  onDraftPositionChange: (position: number | null) => void
+}) {
+  const { duration, getAudio } = usePlayer()
+
+  const handleFocus = () => {
+    const audio = getAudio()
+    if (audio && duration > 0) {
+      const position = (audio.currentTime / duration) * 100
+      onDraftPositionChange(position)
+    }
+  }
+
+  const handleBlur = () => {
+    onDraftPositionChange(null)
+  }
+
+  if (!isPlaying || !isActive) return null
+
+  return (
+    <CommentInputSection>
+      <CommentUserAvatar
+        src="https://picsum.photos/seed/currentuser/100"
+        alt="You"
+      />
+      <CommentInput
+        type="text"
+        placeholder="Add a comment..."
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+      />
+      <CommentSubmit title="Send comment">
+        <IconSend2 size={16} stroke={2} />
+      </CommentSubmit>
+    </CommentInputSection>
+  )
+}
+
+function TrackTile({
   track,
   context,
   onPlayToggle: onPlayToggle,
 }: TrackTileProps) {
-  const { track: currentTrack, isPlaying, duration } = usePlayer()
-  const currentTime = useAudioTime()
+  const { track: currentTrack, isPlaying } = usePlayer()
   const { data: user } = useUser(track.owner_id)
   const queue = usePlayQueue()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -503,18 +544,6 @@ export default function TrackTile({
   const handlePlayToggle = () => {
     onPlayToggle?.()
   }
-
-  const handleCommentInputFocus = () => {
-    if (duration > 0) {
-      const position = (currentTime / duration) * 100
-      setDraftCommentPosition(position)
-    }
-  }
-
-  const handleCommentInputBlur = () => {
-    setDraftCommentPosition(null)
-  }
-
   return (
     <Tile $isActive={isActive}>
       {context}
@@ -572,7 +601,7 @@ export default function TrackTile({
               <CommentMarker
                 key={comment.comment_id}
                 style={{
-                  left: `${Math.min(Math.max(comment.timestamp ?? 0, i + 1) / track.duration, 1) * 100}%`,
+                  left: `${Math.min(Math.max(comment.timestamp ?? 0, i) / track.duration, 1) * 100}%`,
                 }}
               >
                 <CommentIndicator
@@ -595,30 +624,14 @@ export default function TrackTile({
             )}
           </CommentAvatarsContainer>
         </WaveformWrapper>
-        {comments ? (
-          <ActiveComments
-            comments={comments}
-            trackId={track.track_id}
-            duration={duration}
-          />
+        {comments && isActive ? (
+          <ActiveComments comments={comments} trackId={track.track_id} />
         ) : null}
-        {isPlaying && isActive && (
-          <CommentInputSection>
-            <CommentUserAvatar
-              src="https://picsum.photos/seed/currentuser/100"
-              alt="You"
-            />
-            <CommentInput
-              type="text"
-              placeholder="Add a comment..."
-              onFocus={handleCommentInputFocus}
-              onBlur={handleCommentInputBlur}
-            />
-            <CommentSubmit title="Send comment">
-              <IconSend2 size={16} stroke={2} />
-            </CommentSubmit>
-          </CommentInputSection>
-        )}
+        <CommentInputBox
+          isActive={isActive}
+          isPlaying={isPlaying}
+          onDraftPositionChange={setDraftCommentPosition}
+        />
         <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
           <FooterLeft>
@@ -705,3 +718,6 @@ export default function TrackTile({
     </Tile>
   )
 }
+
+// React Compiler handles memoization automatically
+export default TrackTile
