@@ -391,6 +391,7 @@ const TrackDescription = styled.div`
     line-height: 1.6;
     color: #b0b0b0;
     margin: 0;
+    white-space: pre-wrap;
   }
 `
 
