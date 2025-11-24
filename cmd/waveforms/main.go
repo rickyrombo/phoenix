@@ -32,15 +32,14 @@ func main() {
 	}
 
 	config := &waveforms.Config{
-		BatchSize: 50,
-		Buckets:   750,
-		DatabaseURL: databaseURL,
-		AudiusURL: audiusURL,
+		BatchSize:          50,
+		Buckets:            750,
+		DatabaseURL:        databaseURL,
+		AudiusURL:          audiusURL,
 		DelegatePrivateKey: delegatePrivateKey,
-		Logger:    logger,
+		Logger:             logger,
 	}
 
-	
 	j, err := waveforms.NewJob(config)
 	if err != nil {
 		logger.Error("failed to create job", "error", err)
@@ -48,9 +47,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	cid := "baeaaaiqsearhicuqwaojxxagysqks6mk5zyq466m2vlo4ay3sfb4r2h2ckzs4"
-	err = j.ProcessCID(ctx, cid)
-	if err != nil {
-		logger.Error("failed to process waveform", "error", err)
+	if err := j.Run(ctx); err != nil {
+		logger.Error("failed to run job", "error", err)
 	}
 }

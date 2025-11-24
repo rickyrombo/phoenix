@@ -107,10 +107,13 @@ func (j *Job) Run(ctx context.Context) error {
 			}
 			sem <- struct{}{}
 			wg.Add(1)
-			go func(t waveformTask) {
+			go func(t waveformTaskRow) {
 				defer wg.Done()
 				defer func() { <-sem }()
-				j.ProcessCID(ctx, t.CID)
+				j.ProcessCID(ctx, t.TrackCID)
+				if t.PreviewCID != "" {
+					j.ProcessCID(ctx, t.PreviewCID)
+				}
 			}(t)
 		}
 		wg.Wait()
@@ -186,16 +189,15 @@ func (j *Job) ProcessCID(ctx context.Context, cid string) error {
 	return nil
 }
 
-// waveformTask represents a single track -> cid work unit.
-type waveformTask struct {
-	TrackID int    `db:"track_id"`
-	CID     string `db:"cid"`
+type waveformTaskRow struct {
+	TrackCID   string `db:"track_cid"`
+	PreviewCID string `db:"preview_cid"`
 }
 
 // fetchPendingWaveformTasks returns a slice of tasks (track id + cid) to process.
-func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]waveformTask, error) {
+func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]waveformTaskRow, error) {
 	querySQL := `
-        SELECT t.id, t.track_cid, t.preview_cid
+        SELECT t.track_cid, t.preview_cid
         FROM tracks t
         LEFT JOIN waveforms w1 ON w1.cid = t.track_cid
         LEFT JOIN waveforms w2 ON w2.cid = t.preview_cid
@@ -209,7 +211,7 @@ func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]w
 		return nil, fmt.Errorf("failed querying tracks for waveform job: %w", err)
 	}
 
-	tasks, err := pgx.CollectRows(rows, pgx.RowToStructByName[waveformTask])
+	tasks, err := pgx.CollectRows(rows, pgx.RowToStructByName[waveformTaskRow])
 	if err != nil {
 		return nil, fmt.Errorf("failed collecting waveform tasks: %w", err)
 	}

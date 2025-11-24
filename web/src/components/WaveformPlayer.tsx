@@ -56,6 +56,8 @@ export default function WaveformPlayer({
       height: 80,
       interact: true,
       hideScrollbar: true,
+      peaks: track?.waveform ? [track.waveform] : undefined,
+      duration: track?.duration,
     })
 
     wavesurferRef.current = wavesurfer
@@ -63,19 +65,15 @@ export default function WaveformPlayer({
     return () => {
       wavesurfer.destroy()
     }
-  }, [])
+  }, [track?.waveform, track?.duration])
 
-  useEffect(() => {
-    const ws = wavesurferRef.current
-    if (!ws) return
-    if (!track?.stream.url) return
-
-    if (track?.waveform) {
-      ws.load(track.stream.url, [track.waveform], track.duration)
-    } else {
-      ws.load(track.stream.url, undefined, track.duration)
-    }
-  }, [track?.stream.url, track?.waveform, track?.duration])
+  // Load the track URL if waveform data is not available
+  // useEffect(() => {
+  //   const ws = wavesurferRef.current
+  //   if (!ws) return
+  //   if (!track?.stream.url || track?.waveform) return
+  //   ws.load(track.stream.url, undefined, track.duration)
+  // }, [track?.stream.url, track?.waveform, track?.duration])
 
   // Update waveform progress based on actual playback position
   useEffect(() => {

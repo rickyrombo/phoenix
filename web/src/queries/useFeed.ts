@@ -79,7 +79,7 @@ export const getFeedPlayQueue = (feed?: InfiniteData<FeedItem[], string>) =>
       if (lastPage.length === 0) return undefined
       return lastPage[lastPage.length - 1].cursor
     },
-    initialPageParam: "",
+    initialPageParam: feed?.pageParams[0] ?? "",
     initialData: feed
       ? {
           pages: feed.pages.map((page) =>
