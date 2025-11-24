@@ -25,6 +25,7 @@ import { WithMirrors } from "./WIthMirrors"
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
   border: none;
+  border-bottom: 1px solid #333333;
   border-radius: 0;
   padding: 1rem 0 1.5rem 0;
   display: grid;
@@ -33,6 +34,14 @@ const Tile = styled.div<{ $isActive: boolean }>`
   gap: 0;
   transition: all 0.2s;
   position: relative;
+
+  ${(props) =>
+    props.$isActive &&
+    `
+    border-bottom-color: oklch(71.4% 0.203 305.504);
+    background: transparent;
+    box-shadow: none;
+  `}
 
   ${(props) =>
     props.$isActive &&

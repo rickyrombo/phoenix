@@ -43,7 +43,6 @@ const VirtualRow = styled.div<{ $start: number }>`
   width: 100%;
   overflow-x: hidden;
   transform: translateY(${(props) => props.$start}px);
-  border-bottom: 1px solid #333333;
 `
 
 const LoadingIndicator = styled.div`

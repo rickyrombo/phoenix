@@ -3,6 +3,7 @@ import styled from "styled-components"
 const Tile = styled.div`
   width: 100%;
   background: transparent;
+  border-bottom: 1px solid #333333;
   padding: 1rem 0 1.5rem 0;
   display: grid;
   grid-template-columns: 180px 1fr;
