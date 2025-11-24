@@ -23,7 +23,7 @@ const getFeedPage = async ({
 }) => {
   const qp = new URLSearchParams()
   qp.append("user_id", userId.toString())
-  qp.append("limit", "10")
+  qp.append("limit", "5")
   if (before) {
     qp.append("before", before)
   }

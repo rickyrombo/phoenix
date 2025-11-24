@@ -48,6 +48,15 @@ const SkeletonTrackTile = styled.div`
   height: 256px;
 `
 
+const LoadingIndicator = styled.div`
+  width: 100%;
+  height: 256px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+`
+
 type FeedItemProps = FeedItem & {
   onPlayToggle: () => void
 }
@@ -130,9 +139,8 @@ function FeedPage() {
       <TracksGrid>
         <VirtualList style={{ height: `${virtualizer.getTotalSize()}px` }}>
           {virtualizer.getVirtualItems().map((virtualItem) => {
-            const feedItem = feedItems[virtualItem.index]
-            if (!feedItem) {
-              return null
+            const feedItem = feedItems[virtualItem.index] ?? {
+              tx_hash: "loading",
             }
             return (
               <VirtualRow
@@ -141,10 +149,14 @@ function FeedPage() {
                 ref={virtualizer.measureElement}
                 data-index={virtualItem.index}
               >
-                <TrackFeedItem
-                  {...feedItem}
-                  onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
-                />
+                {feedItem.tx_hash === "loading" ? (
+                  <LoadingIndicator>Loading...</LoadingIndicator>
+                ) : (
+                  <TrackFeedItem
+                    {...feedItem}
+                    onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
+                  />
+                )}
               </VirtualRow>
             )
           })}
