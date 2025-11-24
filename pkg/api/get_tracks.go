@@ -42,6 +42,8 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 		LEFT JOIN waveforms track_waveforms ON track_waveforms.cid = tracks.track_cid
 		LEFT JOIN waveforms preview_waveforms ON preview_waveforms.cid = tracks.preview_cid
 		WHERE track_id = ANY(@ids)
+			AND is_unlisted = FALSE
+			AND stem_of IS NULL
 		;
 	`
 	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
