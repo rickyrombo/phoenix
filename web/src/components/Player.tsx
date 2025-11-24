@@ -25,6 +25,7 @@ const PlayerFooter = styled.footer`
   justify-content: center;
   padding: 0 2rem;
   gap: 2rem;
+  border-top: 1px solid #1a1a1a;
 
   @media (max-width: 1024px) {
     padding: 0 1rem;

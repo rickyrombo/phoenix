@@ -9,6 +9,7 @@ import { usePlayer } from "../contexts/PlayerContext"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import type { InfiniteData } from "@tanstack/react-query"
 import { Sentinel } from "../components/Sentinel"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -27,6 +28,19 @@ const PageTitle = styled.h1`
 const TracksGrid = styled.div`
   display: flex;
   flex-direction: column;
+`
+
+const VirtualList = styled.div`
+  width: 100%;
+  position: relative;
+`
+
+const VirtualRow = styled.div<{ $start: number }>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${(props) => props.$start}px);
 `
 
 type FeedItemProps = FeedItem & {
@@ -62,6 +76,16 @@ function FeedPage() {
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
 
+  // Flatten feed items for virtualization
+  const feedItems = feed?.pages.flat() ?? []
+
+  const virtualizer = useVirtualizer({
+    count: feedItems.length,
+    getScrollElement: () => document.documentElement,
+    estimateSize: () => 250,
+    overscan: 5,
+  })
+
   useEffect(() => {
     if (queue.queueKey === undefined || queue.items.length === 0) {
       queue.changeQueue(
@@ -95,13 +119,24 @@ function FeedPage() {
     <PageContainer>
       <PageTitle>Feed</PageTitle>
       <TracksGrid>
-        {feed?.pages.flat().map((feedItem) => (
-          <TrackFeedItem
-            key={feedItem.tx_hash}
-            {...feedItem}
-            onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
-          />
-        ))}
+        <VirtualList style={{ height: `${virtualizer.getTotalSize()}px` }}>
+          {virtualizer.getVirtualItems().map((virtualItem) => {
+            const feedItem = feedItems[virtualItem.index]
+            return (
+              <VirtualRow
+                key={feedItem.tx_hash}
+                $start={virtualItem.start}
+                ref={virtualizer.measureElement}
+                data-index={virtualItem.index}
+              >
+                <TrackFeedItem
+                  {...feedItem}
+                  onPlayToggle={() => handlePlayToggle(feedItem.tx_hash)}
+                />
+              </VirtualRow>
+            )
+          })}
+        </VirtualList>
       </TracksGrid>
       <Sentinel
         onIntersect={() => {
