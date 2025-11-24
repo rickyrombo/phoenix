@@ -21,6 +21,7 @@ import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
 import useTrackComments from "../queries/useTrackComments"
 import { WithMirrors } from "./WIthMirrors"
+import Linkify from "linkify-react"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -393,6 +394,15 @@ const TrackDescription = styled.div`
     margin: 0;
     white-space: pre-wrap;
   }
+
+  a {
+    color: oklch(71.4% 0.203 305.504);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `
 
 const TrackFooter = styled.div`
@@ -711,7 +721,11 @@ function TrackTile({
           {track.description ? (
             <TrackDescription>
               <DetailsHeading>DESCRIPTION</DetailsHeading>
-              <p>{track.description}</p>
+              <p>
+                <Linkify options={{ target: "_blank", rel: "noopener noreferrer" }}>
+                  {track.description}
+                </Linkify>
+              </p>
             </TrackDescription>
           ) : null}
         </TrackDetails>
