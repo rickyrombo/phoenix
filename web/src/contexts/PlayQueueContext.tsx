@@ -2,7 +2,6 @@ import {
   infiniteQueryOptions,
   useInfiniteQuery,
   useQueryClient,
-  type InfiniteData,
 } from "@tanstack/react-query"
 import {
   createContext,
@@ -266,25 +265,21 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
       // keep manually added, unplayed items
       const keepers = queue.filter((item) => item.manuallyAdded && !item.played)
 
-      // Clear the existing queues
-      queryClient.removeQueries({ queryKey: ["playQueue"] })
-
       if (typeof options.initialData === "function") {
         throw new Error("initialData as function not supported")
       }
 
-      if (options.initialData && options.initialData.pages.length > 0)
-        options.initialData = {
-          ...options.initialData,
-          pages: insertIntoPages(options.initialData.pages, index + 1, keepers),
+      // Reset the query data with the "initialData" from the new options,
+      // plus any keepers inserted after the initial data
+      let newInitialData = options.initialData
+      if (newInitialData && newInitialData.pages.length > 0) {
+        newInitialData = {
+          ...newInitialData,
+          pages: insertIntoPages(newInitialData.pages, index + 1, keepers),
         }
+      }
+      queryClient.setQueryData(queryOptions.queryKey, newInitialData)
 
-      console.log(
-        "Change queue",
-        options.initialData?.pages[0][1]?.cursor,
-        (queryOptions.initialData as InfiniteData<PlayQueueItem[]>)?.pages[0][1]
-          ?.cursor,
-      )
       setQueryOptions(options)
       setCurrentIndex(index)
     },
