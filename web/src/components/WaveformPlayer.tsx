@@ -18,15 +18,11 @@ const WaveformContainer = styled.div`
 `
 
 interface WaveformPlayerProps {
-  isPlaying: boolean
   onPlayPause: () => void
   trackId: number
 }
 
-function WaveformPlayer({
-  onPlayPause,
-  trackId,
-}: WaveformPlayerProps) {
+function WaveformPlayer({ onPlayPause, trackId }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
   const rafIdRef = useRef<number | null>(null)

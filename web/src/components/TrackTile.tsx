@@ -387,11 +387,9 @@ interface TrackTileProps {
 // Separate component to isolate time subscription
 function CommentInputBox({
   isActive,
-  isPlaying,
   onDraftPositionChange,
 }: {
   isActive: boolean
-  isPlaying: boolean
   onDraftPositionChange: (position: number | null) => void
 }) {
   const { duration, getAudio } = usePlayer()
@@ -408,7 +406,7 @@ function CommentInputBox({
     onDraftPositionChange(null)
   }
 
-  if (!isPlaying || !isActive) return null
+  if (!isActive) return null
 
   return (
     <CommentInputSection>
@@ -509,7 +507,6 @@ function TrackTile({
         </TrackHeader>
         <WaveformWrapper>
           <WaveformPlayer
-            isPlaying={isPlaying && isActive}
             onPlayPause={handlePlayToggle}
             trackId={track.track_id}
           />
@@ -524,7 +521,6 @@ function TrackTile({
         ) : null}
         <CommentInputBox
           isActive={isActive}
-          isPlaying={isPlaying}
           onDraftPositionChange={setDraftCommentPosition}
         />
         <TrackFooter>
