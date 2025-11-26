@@ -2,6 +2,7 @@ import styled from "styled-components"
 import SocialButton from "./SocialButton"
 import WaveformPlayer from "./WaveformPlayer"
 import ActiveComments from "./ActiveComments"
+import TimestampedComments from "./TimestampedComments"
 import { usePlayer } from "../contexts/PlayerContext"
 import {
   IconPlayerPlay,
@@ -221,83 +222,6 @@ const WaveformWrapper = styled.div`
   margin-bottom: 12px;
 `
 
-const TimestampedCommentsContainer = styled.div`
-  position: absolute;
-  left: -12px;
-  right: -12px;
-  bottom: 0;
-  padding: 0 12px;
-  height: 24px;
-  overflow: hidden;
-  pointer-events: none;
-`
-
-const TimestampedCommentsAvatars = styled.div`
-  position: relative;
-  width: 100%;
-  height: 24px;
-`
-
-const CommentMarker = styled.div`
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 2px;
-  background: transparent;
-  cursor: pointer;
-  z-index: 10;
-  pointer-events: auto;
-
-  &:hover .comment-tooltip {
-    opacity: 1;
-  }
-`
-
-const CommentIndicator = styled.img`
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: none;
-  object-fit: cover;
-  box-shadow: 0 0 8px oklch(71.4% 0.203 305.504 / 0.6);
-`
-
-const CommentTooltip = styled.div<{ $isVisible: boolean }>`
-  position: absolute;
-  bottom: calc(100% + 0.5rem);
-  left: 50%;
-  transform: translateX(-50%);
-  background: #0a0a0a;
-  border: 1px solid oklch(71.4% 0.203 305.504);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-  z-index: 20;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-`
-
-const CommentUser = styled.span`
-  display: block;
-  color: oklch(71.4% 0.203 305.504);
-  font-weight: 600;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-`
-
-const CommentText = styled.span`
-  display: block;
-  color: #b0b0b0;
-  font-size: 0.875rem;
-`
-
 const CommentInputSection = styled.div`
   display: flex;
   align-items: center;
@@ -454,13 +378,6 @@ const FooterLeft = styled.div`
   gap: 1rem;
 `
 
-export interface Comment {
-  user: string
-  text: string
-  position: number
-  avatar: string
-}
-
 interface TrackTileProps {
   track: Track
   context?: ReactNode
@@ -596,38 +513,11 @@ function TrackTile({
             onPlayPause={handlePlayToggle}
             trackId={track.track_id}
           />
-          <TimestampedCommentsContainer>
-            <TimestampedCommentsAvatars>
-              {comments?.map((comment, i) => (
-                <CommentMarker
-                  key={comment.comment_id}
-                  style={{
-                    left: `${Math.min(Math.max(comment.timestamp ?? 0, i) / track.duration, 1) * 100}%`,
-                  }}
-                >
-                  <CommentIndicator
-                    src={comment.user_profile_picture}
-                    alt={comment.user_name}
-                  />
-                  <CommentTooltip
-                    className="comment-tooltip"
-                    $isVisible={false}
-                  >
-                    <CommentUser>{comment.user_name}</CommentUser>
-                    <CommentText>{comment.content}</CommentText>
-                  </CommentTooltip>
-                </CommentMarker>
-              ))}
-              {draftCommentPosition !== null && (
-                <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
-                  <CommentIndicator
-                    src="https://picsum.photos/seed/currentuser/100"
-                    alt="Your comment"
-                  />
-                </CommentMarker>
-              )}
-            </TimestampedCommentsAvatars>
-          </TimestampedCommentsContainer>
+          <TimestampedComments
+            comments={comments}
+            trackDuration={track.duration}
+            draftCommentPosition={draftCommentPosition}
+          />
         </WaveformWrapper>
         {comments && isActive ? (
           <ActiveComments comments={comments} trackId={track.track_id} />
