@@ -46,6 +46,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playPromiseRef = useRef<Promise<void> | null>(null)
   const timeListenersRef = useRef(new Set<() => void>())
   const rafRef = useRef<number | null>(null)
+  const isPlayingRef = useRef(isPlaying)
   const queue = usePlayQueue()
 
   // Keep refs to the latest queue and its methods so audio event handlers
@@ -61,6 +62,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     prevRef.current = queue.prev
     setIndexRef.current = queue.set
   }, [queue])
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying
+  }, [isPlaying])
 
   const lastDir = useRef<"next" | "prev">("next")
 
@@ -180,7 +185,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const onCanPlay = () => {
       if (mySeq !== loadSeqRef.current) return
       didStart = true
-      if (!isPlaying) return
+      // Only auto-play if isPlaying is true
+      if (!isPlayingRef.current) return
       try {
         const p = audio.play()
         playPromiseRef.current =
@@ -210,7 +216,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     // Fallback: try to play shortly after load if canplay doesn't fire
     const fallback = setTimeout(() => {
       if (mySeq !== loadSeqRef.current) return
-      if (didStart || !isPlaying) return
+      if (didStart || !isPlayingRef.current) return
       try {
         const p = audio.play()
         playPromiseRef.current =
@@ -239,8 +245,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("canplay", onCanPlay)
       clearTimeout(fallback)
     }
-    // only re-run when track url or playing flag changes
-  }, [track?.stream?.url, isPlaying])
+    // only re-run when track url changes
+  }, [track?.stream?.url])
 
   // Handle play/pause safely and avoid racing play() calls
   useEffect(() => {
