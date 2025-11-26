@@ -1,4 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState, useMemo, type ReactNode } from "react"
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  useMemo,
+  type ReactNode,
+} from "react"
 import { createPortal } from "react-dom"
 import styled from "styled-components"
 
@@ -28,7 +34,7 @@ const PopupContainer = styled.div<{
 function calculateInitialPosition(
   anchorElement: HTMLElement | null,
   placement: "top" | "bottom" | "left" | "right",
-  offset: number
+  offset: number,
 ): { top: number; left: number } {
   if (!anchorElement) return { top: 0, left: 0 }
 
@@ -70,7 +76,7 @@ export default function AnchoredPopup({
 
   const initialPosition = useMemo(
     () => calculateInitialPosition(anchorElement, placement, offset),
-    [anchorElement, placement, offset]
+    [anchorElement, placement, offset],
   )
 
   const [position, setPosition] = useState(initialPosition)

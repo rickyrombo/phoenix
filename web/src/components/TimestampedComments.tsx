@@ -2,6 +2,7 @@ import { useState } from "react"
 import styled from "styled-components"
 import AnchoredPopup from "./AnchoredPopup"
 import type { Comment } from "../queries/useTrackComments"
+import dayjs from "dayjs"
 
 interface TimestampedCommentsProps {
   comments?: Comment[]
@@ -55,8 +56,8 @@ const CommentTooltip = styled.div`
   border: 1px solid oklch(71.4% 0.203 305.504);
   padding: 0.5rem 0.75rem;
   border-radius: 0;
-  white-space: nowrap;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  max-width: 360px;
 `
 
 const CommentUser = styled.span`
@@ -69,9 +70,20 @@ const CommentUser = styled.span`
 `
 
 const CommentText = styled.span`
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   color: #b0b0b0;
   font-size: 0.875rem;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  line-height: 1.4;
+`
+
+const CommentTimestamp = styled.span`
+  color: #808080;
+  font-size: 0.75rem;
+  margin-left: 0.25rem;
 `
 
 export default function TimestampedComments({
@@ -108,17 +120,18 @@ export default function TimestampedComments({
               />
             </CommentMarker>
           ))}
-          {draftCommentPosition !== null && draftCommentPosition !== undefined && (
+          {draftCommentPosition !== null &&
+          draftCommentPosition !== undefined ? (
             <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
               <CommentIndicator
                 src="https://picsum.photos/seed/currentuser/100"
                 alt="Your comment"
               />
             </CommentMarker>
-          )}
+          ) : null}
         </TimestampedCommentsAvatars>
       </TimestampedCommentsContainer>
-      {hoveredComment !== null && comments && (
+      {hoveredComment !== null && comments ? (
         <AnchoredPopup
           isVisible={true}
           anchorElement={hoveredComment.element}
@@ -126,14 +139,20 @@ export default function TimestampedComments({
         >
           <CommentTooltip>
             <CommentUser>
-              {comments[hoveredComment.index].user_name}
+              {comments[hoveredComment.index].user_name}{" "}
+              {comments[hoveredComment.index].timestamp !== undefined ? (
+                <CommentTimestamp>
+                  {"@ " +
+                    dayjs
+                      .duration(comments[hoveredComment.index].timestamp)
+                      .format("m:ss")}
+                </CommentTimestamp>
+              ) : null}
             </CommentUser>
-            <CommentText>
-              {comments[hoveredComment.index].content}
-            </CommentText>
+            <CommentText>{comments[hoveredComment.index].content}</CommentText>
           </CommentTooltip>
         </AnchoredPopup>
-      )}
+      ) : null}
     </>
   )
 }
