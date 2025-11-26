@@ -17,8 +17,8 @@ interface ActiveCommentsProps {
 const ActiveCommentWrapper = styled.div`
   position: relative;
   min-height: 60px;
-  margin-top: 0.5rem;
   border-top: 1px solid #1a1a1a;
+  margin-bottom: 1rem;
 `
 
 const ActiveCommentDisplay = styled.div<{ $fadingOut: boolean }>`
@@ -87,11 +87,10 @@ const CommentText = styled.p`
   font-size: 0.8125rem;
   line-height: 1.4;
   color: #b0b0b0;
-  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
 `
 

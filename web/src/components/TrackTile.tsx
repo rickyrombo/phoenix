@@ -36,9 +36,6 @@ const Tile = styled.div<{ $isActive: boolean }>`
   transition: all 0.2s;
   position: relative;
 
-  // Fixes overflow caused by the comments
-  overflow: hidden;
-
   ${(props) =>
     props.$isActive &&
     `
@@ -224,17 +221,21 @@ const WaveformWrapper = styled.div`
   margin-bottom: 12px;
 `
 
-const Spacer = styled.div<{ $isExpanded: boolean }>`
-  flex: ${(props) => (props.$isExpanded ? "0" : "1")};
+const TimestampedCommentsContainer = styled.div`
+  position: absolute;
+  left: -12px;
+  right: -12px;
+  bottom: 0;
+  padding: 0 12px;
+  height: 24px;
+  overflow: hidden;
+  pointer-events: none;
 `
 
-const CommentAvatarsContainer = styled.div`
-  position: absolute;
-  bottom: -12px;
-  left: 0;
-  right: 0;
+const TimestampedCommentsAvatars = styled.div`
+  position: relative;
+  width: 100%;
   height: 24px;
-  pointer-events: none;
 `
 
 const CommentMarker = styled.div`
@@ -300,7 +301,7 @@ const CommentText = styled.span`
 const CommentInputSection = styled.div`
   display: flex;
   align-items: center;
-  margin: 1rem 0;
+  margin-bottom: 1rem;
   gap: 0.75rem;
   position: relative;
   animation: fadeIn 0.3s ease-out;
@@ -556,7 +557,7 @@ function TrackTile({
           )}
         </WithMirrors>
       ) : null}
-      <TrackContent $isExpanded={isPlaying && isActive}>
+      <TrackContent $isExpanded={isActive}>
         <TrackHeader>
           <TrackMainInfo>
             <PlayBtn
@@ -595,33 +596,38 @@ function TrackTile({
             onPlayPause={handlePlayToggle}
             trackId={track.track_id}
           />
-          <CommentAvatarsContainer>
-            {comments?.map((comment, i) => (
-              <CommentMarker
-                key={comment.comment_id}
-                style={{
-                  left: `${Math.min(Math.max(comment.timestamp ?? 0, i) / track.duration, 1) * 100}%`,
-                }}
-              >
-                <CommentIndicator
-                  src={comment.user_profile_picture}
-                  alt={comment.user_name}
-                />
-                <CommentTooltip className="comment-tooltip" $isVisible={false}>
-                  <CommentUser>{comment.user_name}</CommentUser>
-                  <CommentText>{comment.content}</CommentText>
-                </CommentTooltip>
-              </CommentMarker>
-            ))}
-            {draftCommentPosition !== null && (
-              <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
-                <CommentIndicator
-                  src="https://picsum.photos/seed/currentuser/100"
-                  alt="Your comment"
-                />
-              </CommentMarker>
-            )}
-          </CommentAvatarsContainer>
+          <TimestampedCommentsContainer>
+            <TimestampedCommentsAvatars>
+              {comments?.map((comment, i) => (
+                <CommentMarker
+                  key={comment.comment_id}
+                  style={{
+                    left: `${Math.min(Math.max(comment.timestamp ?? 0, i) / track.duration, 1) * 100}%`,
+                  }}
+                >
+                  <CommentIndicator
+                    src={comment.user_profile_picture}
+                    alt={comment.user_name}
+                  />
+                  <CommentTooltip
+                    className="comment-tooltip"
+                    $isVisible={false}
+                  >
+                    <CommentUser>{comment.user_name}</CommentUser>
+                    <CommentText>{comment.content}</CommentText>
+                  </CommentTooltip>
+                </CommentMarker>
+              ))}
+              {draftCommentPosition !== null && (
+                <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
+                  <CommentIndicator
+                    src="https://picsum.photos/seed/currentuser/100"
+                    alt="Your comment"
+                  />
+                </CommentMarker>
+              )}
+            </TimestampedCommentsAvatars>
+          </TimestampedCommentsContainer>
         </WaveformWrapper>
         {comments && isActive ? (
           <ActiveComments comments={comments} trackId={track.track_id} />
@@ -631,7 +637,6 @@ function TrackTile({
           isPlaying={isPlaying}
           onDraftPositionChange={setDraftCommentPosition}
         />
-        <Spacer $isExpanded={isPlaying && isActive} />
         <TrackFooter>
           <FooterLeft>
             <ButtonGroup>
@@ -639,27 +644,27 @@ function TrackTile({
                 icon={<IconHeart size={16} stroke={2} />}
                 label="Favorite"
                 title="Favorite"
-                expanded={isPlaying && isActive}
+                expanded={isActive}
                 count={track.save_count}
               />
               <SocialButton
                 icon={<IconRepeat size={16} stroke={2} />}
                 label="Repost"
                 title="Repost"
-                expanded={isPlaying && isActive}
+                expanded={isActive}
                 count={track.repost_count}
               />
               <SocialButton
                 icon={<IconShare3 size={16} stroke={2} />}
                 label="Share"
                 title="Share"
-                expanded={isPlaying && isActive}
+                expanded={isActive}
               />
               <SocialButton
                 icon={<IconDownload size={16} stroke={2} />}
                 label="Download"
                 title="Download"
-                expanded={isPlaying && isActive}
+                expanded={isActive}
               />
               <OverflowContainer>
                 <OverflowBtn
@@ -704,7 +709,7 @@ function TrackTile({
           <TrackHost>served by {new URL(track.stream.url).host}</TrackHost>
         </TrackFooter>
       </TrackContent>
-      {isPlaying && isActive && (
+      {isActive && (
         <TrackDetails>
           {track.description ? (
             <TrackDescription>
