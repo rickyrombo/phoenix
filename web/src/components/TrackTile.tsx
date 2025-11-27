@@ -21,7 +21,7 @@ import useUser from "../queries/useUser"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
 import useTrackComments from "../queries/useTrackComments"
-import { WithMirrors } from "./WIthMirrors"
+import { WithMirrors } from "./WithMirrors"
 import Linkify from "linkify-react"
 
 const Tile = styled.div<{ $isActive: boolean }>`

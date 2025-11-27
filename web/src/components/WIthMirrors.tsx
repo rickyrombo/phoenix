@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
 
 type WithMirrorsProps = {
   url: string
@@ -23,5 +23,12 @@ export const WithMirrors = ({ url, mirrors, children }: WithMirrorsProps) => {
       console.error("All mirrors failed for url", url)
     }
   }, [currentMirrorIndex, mirrors, url])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentUrl(url)
+    setCurrentMirrorIndex(0)
+  }, [url])
+
   return children(currentUrl, onError)
 }

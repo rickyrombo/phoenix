@@ -38,5 +38,5 @@ export const Sentinel = ({ onIntersect, options }: SentinelProps) => {
     }
   }, [onIntersect, options])
 
-  return <div ref={sentinelRef} style={{ height: "1px" }} />
+  return <div ref={sentinelRef} />
 }

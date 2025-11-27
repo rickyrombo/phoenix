@@ -76,11 +76,7 @@ export function FeedTrackContext({
 export function TrendingTrackContext({ ranking }: { ranking: number }) {
   return (
     <ContextLine>
-      <ContextLeft>
-        <span style={{ fontWeight: 700, fontSize: "1.1em", color: "#fff" }}>
-          #{ranking}
-        </span>
-      </ContextLeft>
+      <ContextLeft>#{ranking}</ContextLeft>
     </ContextLine>
   )
 }

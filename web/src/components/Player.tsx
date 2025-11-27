@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react"
 import useUser from "../queries/useUser"
 import { Marquee } from "./Marquee"
+import { WithMirrors } from "./WithMirrors"
 
 const PlayerFooter = styled.footer`
   height: 90px;
@@ -326,7 +327,16 @@ export default function Player() {
     <PlayerFooter>
       <PlayerTrackInfo>
         <PlayerArtwork>
-          {track && <img src={track.cover_art?.medium} alt={track.title} />}
+          {track?.cover_art ? (
+            <WithMirrors
+              url={track.cover_art.medium}
+              mirrors={track.cover_art.mirrors}
+            >
+              {(url, onError) => (
+                <img src={url} alt={track.title} onError={onError} />
+              )}
+            </WithMirrors>
+          ) : null}
         </PlayerArtwork>
         <PlayerDetails>
           <Marquee>
