@@ -75,7 +75,7 @@ func NewJob(cfg *Config) (*Job, error) {
 		batchSize:   cfg.BatchSize,
 		buckets:     cfg.Buckets,
 		concurrency: cfg.Concurrency,
-		client:      &http.Client{Timeout: 2 * time.Minute},
+		client:      &http.Client{Timeout: 10 * time.Minute},
 		pool:        pool,
 		sdk:         openAudioSdk,
 		logger:      cfg.Logger,
