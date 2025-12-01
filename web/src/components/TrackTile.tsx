@@ -471,6 +471,15 @@ function TrackTile({
             <CoverArt src={url} alt={track.title} onError={onError} />
           )}
         </WithMirrors>
+      ) : user?.profile_picture ? (
+        <WithMirrors
+          url={user.profile_picture.medium}
+          mirrors={user.profile_picture.mirrors}
+        >
+          {(url, onError) => (
+            <CoverArt src={url} alt={user.name} onError={onError} />
+          )}
+        </WithMirrors>
       ) : null}
       <TrackContent $isExpanded={isActive}>
         <TrackHeader>
