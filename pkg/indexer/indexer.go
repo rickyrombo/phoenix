@@ -199,6 +199,14 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 		err = d.indexUser(ctx, sqlTx, entity, blockNumber)
 	case Entity_Comment:
 		err = d.indexComment(ctx, sqlTx, entity, blockNumber)
+	case Entity_Playlist:
+		err = d.indexPlaylist(ctx, sqlTx, entity, blockNumber)
+	case Entity_AssociatedWallet:
+		err = d.indexWallet(ctx, sqlTx, entity, blockNumber)
+	case Entity_Notification:
+		// do nothing for notifications for now
+	default:
+		err = fmt.Errorf("unknown entity type: %s", entity.EntityType)
 	}
 	if err != nil {
 		d.logger.Error("Failed to index entity",

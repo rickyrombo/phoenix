@@ -26,9 +26,8 @@ func (d *Indexer) indexTrack(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Manag
 	case Action_Download:
 		return downloadTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	default:
-		d.logger.Warn("Unknown track action", "action", tx.Action)
+		return fmt.Errorf("unrecognized track action %s", tx.Action)
 	}
-	return nil
 }
 
 var knownTrackFields = map[string]bool{

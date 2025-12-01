@@ -24,9 +24,8 @@ func (d *Indexer) indexComment(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Man
 	case Action_Unpin:
 		return unpinComment(ctx, sqlTx, tx)
 	default:
-		d.logger.Warn("Unknown comment action", "action", tx.Action)
+		return fmt.Errorf("unrecognized comment action %s", tx.Action)
 	}
-	return nil
 }
 
 func upsertComment(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLegacy, blockNumber int64) error {

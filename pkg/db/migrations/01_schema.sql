@@ -219,6 +219,7 @@ COMMENT ON TABLE playlist_libraries IS 'Stores the personal playlist library for
 
 CREATE TABLE IF NOT EXISTS user_wallets (
     wallet TEXT PRIMARY KEY,
+    curve TEXT NOT NULL, -- secp256k1 or ed25519
     user_id INT NOT NULL,
     block_number BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -290,3 +291,60 @@ CREATE TABLE comment_pins (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- =========================
+--       PLAYLISTS
+-- =========================
+
+CREATE TABLE IF NOT EXISTS playlists (
+    playlist_id INT PRIMARY KEY,
+    
+    -- Core metadata
+    title TEXT NOT NULL,
+    description TEXT,
+    is_private BOOLEAN DEFAULT false,
+    is_album BOOLEAN DEFAULT false,
+    cover_art_sizes TEXT,
+    tracks JSONB,
+    owner_id INTEGER NOT NULL,
+    upc TEXT,
+    
+    -- Timestamps
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_playlists_owner_id ON playlists(owner_id);
+CREATE INDEX IF NOT EXISTS idx_playlists_title ON playlists USING gin(to_tsvector('english', title));
+CREATE INDEX IF NOT EXISTS idx_playlists_is_private ON playlists(is_private);
+CREATE INDEX IF NOT EXISTS idx_playlists_is_album ON playlists(is_album) WHERE is_album = true;
+CREATE INDEX IF NOT EXISTS idx_playlists_tracks_gin ON playlists USING gin (tracks);
+
+CREATE TABLE IF NOT EXISTS playlist_aggregates (
+    playlist_id INT PRIMARY KEY,
+    play_count BIGINT DEFAULT 0,
+    save_count BIGINT DEFAULT 0,
+    repost_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS playlist_saves (
+    user_id INT NOT NULL,
+    playlist_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, playlist_id)
+);
+CREATE INDEX IF NOT EXISTS idx_playlist_saves_playlist_id ON playlist_saves(playlist_id);
+
+CREATE TABLE IF NOT EXISTS playlist_reposts (
+    user_id INT NOT NULL,
+    playlist_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, playlist_id)
+);
+CREATE INDEX IF NOT EXISTS idx_playlist_reposts_playlist_id ON playlist_reposts(playlist_id);

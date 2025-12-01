@@ -28,9 +28,10 @@ const (
 )
 
 const (
-	Entity_Track        = "Track"
-	Entity_User         = "User"
-	Entity_Playlist     = "Playlist"
-	Entity_Comment      = "Comment"
-	Entity_Notification = "Notification"
+	Entity_Track            = "Track"
+	Entity_User             = "User"
+	Entity_Playlist         = "Playlist"
+	Entity_Comment          = "Comment"
+	Entity_Notification     = "Notification"
+	Entity_AssociatedWallet = "AssociatedWallet"
 )

@@ -25,9 +25,8 @@ func (d *Indexer) indexUser(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Manage
 		return unsubscribeUser(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
 
 	default:
-		d.logger.Warn("Unknown user action", "action", tx.Action)
+		return fmt.Errorf("unrecognized user action %s", tx.Action)
 	}
-	return nil
 }
 
 var knownUserFields = map[string]bool{
@@ -184,12 +183,14 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, userId int, metadata string, 
 				INSERT INTO user_wallets (
 					user_id,
 					wallet,
+					curve,
 					block_number,
 					created_at,
 					updated_at
 				) VALUES (
 					@userId,
 					@wallet,
+					'secp256k1',
 					@blockNumber,
 					NOW(),
 					NOW()
