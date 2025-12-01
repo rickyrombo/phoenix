@@ -3,6 +3,7 @@ package waveforms
 import (
 	"audius/pkg/common"
 	"context"
+	"crypto/ecdsa"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -16,7 +17,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/OpenAudio/go-openaudio/pkg/sdk/mediorum"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -35,12 +35,13 @@ type Config struct {
 }
 
 type Job struct {
+	nodeURL     string
+	privKey     *ecdsa.PrivateKey
 	batchSize   int
 	buckets     int
 	concurrency int
 	client      *http.Client
 	pool        *pgxpool.Pool
-	sdk         *sdk.OpenAudioSDK
 	logger      *slog.Logger
 }
 
@@ -55,12 +56,10 @@ func NewJob(cfg *Config) (*Job, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	openAudioSdk := sdk.NewOpenAudioSDK(cfg.AudiusURL)
 	privKey, err := crypto.HexToECDSA(cfg.DelegatePrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse delegate private key: %w", err)
 	}
-	openAudioSdk.SetPrivKey(privKey)
 
 	if cfg.BatchSize <= 0 {
 		cfg.BatchSize = 50
@@ -72,12 +71,13 @@ func NewJob(cfg *Config) (*Job, error) {
 		cfg.Concurrency = 4
 	}
 	return &Job{
+		nodeURL:     cfg.AudiusURL,
+		privKey:     privKey,
 		batchSize:   cfg.BatchSize,
 		buckets:     cfg.Buckets,
 		concurrency: cfg.Concurrency,
 		client:      &http.Client{Timeout: 10 * time.Minute},
 		pool:        pool,
-		sdk:         openAudioSdk,
 		logger:      cfg.Logger,
 	}, nil
 }
@@ -113,12 +113,12 @@ func (j *Job) Run(ctx context.Context) error {
 				defer func() { <-sem }()
 				err := j.ProcessCID(ctx, t.TrackCID)
 				if err != nil {
-					j.logger.Error("failed to process track cid", "error", err)
+					j.logger.Error("failed to process track cid", "error", err, "cid", t.TrackCID)
 				}
 				if t.PreviewCID != nil && *t.PreviewCID != "" {
 					err = j.ProcessCID(ctx, *t.PreviewCID)
 					if err != nil {
-						j.logger.Error("failed to process preview cid", "error", err)
+						j.logger.Error("failed to process preview cid", "error", err, "cid", *t.PreviewCID)
 					}
 				}
 				if err != nil {
@@ -154,13 +154,13 @@ func (j *Job) ProcessTrack(ctx context.Context, trackID int) error {
 func (j *Job) ProcessCID(ctx context.Context, cid string) error {
 	logger := j.logger.With(slog.String("cid", cid))
 
-	signature, err := common.SignStreamRequest(j.sdk.PrivKey(), cid, nil, nil)
+	signature, err := common.SignStreamRequest(j.privKey, cid, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to sign stream request: %w", err)
 	}
 
 	logger.Debug("Begin streaming")
-	r, err := j.sdk.Mediorum.StreamTrack(cid, &mediorum.StreamOptions{
+	r, err := j.StreamTrack(cid, &mediorum.StreamOptions{
 		Signature: string(signature),
 	})
 	if err != nil {
@@ -515,4 +515,44 @@ func computeWaveformFromMP3File(path string, buckets int) ([]float32, error) {
 		}
 	}
 	return out, nil
+}
+
+// Fork of Mediorum.StreamTrack with custom http client allowed
+func (j *Job) StreamTrack(cid string, opts *mediorum.StreamOptions) (io.ReadCloser, error) {
+	url := fmt.Sprintf("%s/tracks/cidstream/%s", j.nodeURL, cid)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if opts != nil {
+		q := req.URL.Query()
+		if opts.Signature != "" {
+			q.Add("signature", opts.Signature)
+		}
+		if opts.ID3 {
+			q.Add("id3", "true")
+			if opts.ID3Title != "" {
+				q.Add("id3_title", opts.ID3Title)
+			}
+			if opts.ID3Artist != "" {
+				q.Add("id3_artist", opts.ID3Artist)
+			}
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := j.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status code %d: %s", resp.StatusCode, body)
+	}
+
+	return resp.Body, nil
 }
