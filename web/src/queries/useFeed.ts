@@ -19,11 +19,13 @@ const getFeedPage = async ({
   userId,
 }: {
   before?: string
-  userId: number
+  userId?: number
 }) => {
   const qp = new URLSearchParams()
-  qp.append("user_id", userId.toString())
-  qp.append("limit", "5")
+  if (userId) {
+    qp.append("user_id", userId.toString())
+  }
+  qp.append("limit", "10")
   if (before) {
     qp.append("before", before)
   }
@@ -34,7 +36,7 @@ const getFeedPage = async ({
   return feed
 }
 
-const getFeedQueryOptions = (userId: number) =>
+const getFeedQueryOptions = (userId?: number) =>
   infiniteQueryOptions({
     queryKey: ["feed", userId],
     queryFn: async ({ pageParam, queryKey }) => {
@@ -52,7 +54,7 @@ const getFeedQueryOptions = (userId: number) =>
   })
 
 export const useFeed = (
-  userId: number,
+  userId?: number,
   options?: Partial<ReturnType<typeof getFeedQueryOptions>>,
 ) => {
   return useInfiniteQuery({

@@ -31,15 +31,6 @@ const TracksGrid = styled.div`
   gap: 1rem;
 `
 
-const LoadingIndicator = styled.div`
-  width: 100%;
-  height: 256px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-`
-
 type FeedItemProps = FeedItem & {
   index: number
   onPlayToggle: (tx_hash: string, index: number) => void
@@ -85,7 +76,7 @@ function FeedPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useFeed(1)
+  } = useFeed()
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -136,7 +127,7 @@ function FeedPage() {
             onPlayToggle={handlePlayToggle}
           />
         ))}
-        {isFetchingNextPage && <LoadingIndicator>Loading...</LoadingIndicator>}
+        {isFetchingNextPage && <SkeletonTrackTile />}
       </TracksGrid>
       <Sentinel onIntersect={loadMore} />
     </PageContainer>

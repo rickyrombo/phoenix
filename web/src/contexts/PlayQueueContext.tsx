@@ -278,12 +278,12 @@ export function PlayQueueProvider({ children }: { children: ReactNode }) {
           pages: insertIntoPages(newInitialData.pages, index + 1, keepers),
         }
       }
-      queryClient.setQueryData(queryOptions.queryKey, newInitialData)
+      queryClient.setQueryData(options.queryKey, newInitialData)
 
       setQueryOptions(options)
       setCurrentIndex(index)
     },
-    [queryClient, queue, queryOptions],
+    [queue, queryClient],
   )
 
   // Load more when nearing the end of the queue
