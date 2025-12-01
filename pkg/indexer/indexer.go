@@ -62,10 +62,15 @@ func New(cfg *Config) (*Indexer, error) {
 func (d *Indexer) Run(ctx context.Context) error {
 	d.logger.Info("Starting indexer...")
 
+	err := d.Retry(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to process retry queue: %w", err)
+	}
+
 	var blockNumber int64
 
 	var dbBlockNumber *int64
-	err := d.pool.QueryRow(ctx, `
+	err = d.pool.QueryRow(ctx, `
 		SELECT MAX(number) FROM blocks LIMIT 1;
 	`).Scan(&dbBlockNumber)
 	if err != nil && err != pgx.ErrNoRows {
@@ -122,6 +127,79 @@ func (d *Indexer) Run(ctx context.Context) error {
 	}
 }
 
+func (d *Indexer) Retry(ctx context.Context) error {
+	d.logger.Info("Starting retry processor...")
+	errorCount := 0
+	successCount := 0
+	for {
+		select {
+		case <-ctx.Done():
+			d.logger.Info("Retry processor shutting down...")
+			return ctx.Err()
+		default:
+		}
+
+		sql := `
+			SELECT signature, transaction, block_number
+			FROM retry_queue
+			ORDER BY created_at ASC
+			LIMIT 100 OFFSET @offset;
+		`
+		type RetryItem struct {
+			Signature   string
+			Transaction string
+			BlockNumber int64
+		}
+
+		rows, err := d.pool.Query(ctx, sql, pgx.NamedArgs{
+			"offset": errorCount,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to query retry queue: %w", err)
+		}
+
+		items, err := pgx.CollectRows(rows, pgx.RowToStructByName[RetryItem])
+		if err != nil {
+			return fmt.Errorf("failed to collect retry queue rows: %w", err)
+		}
+
+		if len(items) == 0 {
+			break
+		}
+
+		for i := range items {
+			var tx corev1.Transaction
+			err := protojson.Unmarshal([]byte(items[i].Transaction), &tx)
+			if err != nil {
+				d.logger.Error("Failed to unmarshal transaction from retry queue", "signature", items[i].Signature, "error", err)
+				errorCount++
+				continue
+			}
+
+			err = d.indexTransaction(ctx, &tx, items[i].BlockNumber)
+			if err != nil {
+				d.logger.Error("Failed to re-index transaction from retry queue", "signature", items[i].Signature, "error", err)
+				errorCount++
+				continue
+			}
+
+			_, err = d.pool.Exec(ctx, `
+				DELETE FROM retry_queue WHERE signature = @signature;
+			`, pgx.NamedArgs{
+				"signature": items[i].Signature,
+			})
+			if err != nil {
+				d.logger.Error("Failed to delete transaction from retry queue", "signature", items[i].Signature, "error", err)
+				errorCount++
+				continue
+			}
+			successCount++
+		}
+	}
+	d.logger.Info("Retry processor finished", "successCount", successCount, "errorCount", errorCount)
+	return nil
+}
+
 func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) error {
 	block, err := d.sdk.Core.GetBlock(context.Background(), connect.NewRequest(&corev1.GetBlockRequest{
 		Height: blockNumber,
@@ -139,7 +217,7 @@ func (d *Indexer) indexBlock(ctx context.Context, blockNumber int64) error {
 		err = d.indexTransaction(ctx, tx, block.Msg.Block.Height)
 		if err != nil {
 			d.logger.Error("Failed to index transaction", "error", err, "blockNumber", block.Msg.Block.Height, "txHash", tx.Hash)
-			d.addToRetryQueue(ctx, tx, err.Error())
+			d.addToRetryQueue(ctx, tx, err.Error(), block.Msg.Block.Height)
 			continue
 		}
 	}
@@ -274,22 +352,30 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 	return nil
 }
 
-func (d *Indexer) addToRetryQueue(ctx context.Context, tx *corev1.Transaction, errMsg string) {
-	txJson, err := protojson.Marshal(tx.Transaction)
+func (d *Indexer) addToRetryQueue(ctx context.Context, tx *corev1.Transaction, errMsg string, blockNumber int64) {
+	txJson, err := protojson.Marshal(tx)
 	if err != nil {
 		d.logger.Error("Failed to marshal transaction for retry queue", "error", err)
 		return
 	}
+
 	sql := `
-		INSERT INTO retry_queue (signature, transaction, error)
-		VALUES ($1, $2, $3)
+		INSERT INTO retry_queue (signature, transaction, error, block_number)
+		VALUES (@signature, @transaction, @error, @block_number)
 		ON CONFLICT (signature) DO UPDATE SET 
 			transaction = EXCLUDED.transaction,
 			error = EXCLUDED.error,
+			block_number = EXCLUDED.block_number,
 			updated_at = NOW()
 		;
 	`
-	_, err = d.pool.Exec(ctx, sql, tx.Transaction.GetSignature(), string(txJson), errMsg)
+
+	_, err = d.pool.Exec(ctx, sql, pgx.NamedArgs{
+		"signature":    tx.Transaction.GetSignature(),
+		"transaction":  string(txJson),
+		"error":        errMsg,
+		"block_number": blockNumber,
+	})
 	if err != nil {
 		d.logger.Error("Failed to insert failed transaction into retry queue", "error", err)
 	}
