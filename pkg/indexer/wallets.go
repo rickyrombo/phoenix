@@ -30,8 +30,8 @@ func addUserWallet(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLeg
 			updated_at
 		) VALUES (
 			@userId,
-			@metadata->>'data'->>'wallet_address',
-			CASE WHEN @metadata->>'data'->>'chain' = 'sol' THEN 'ed25519' ELSE 'secp256k1' END,
+			@metadata:jsonb->'data'->>'wallet_address',
+			CASE WHEN @metadata:jsonb->'data'->>'chain' = 'sol' THEN 'ed25519' ELSE 'secp256k1' END,
 			@blockNumber,
 			NOW(),
 			NOW()
