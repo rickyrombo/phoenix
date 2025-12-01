@@ -1,4 +1,5 @@
 import styled from "styled-components"
+import ConnectWalletButton from "./ConnectWalletButton"
 
 const StyledHeader = styled.header`
   height: 60px;
@@ -50,36 +51,6 @@ const HeaderRight = styled.div`
   gap: 1rem;
 `
 
-const Button = styled.button<{ $primary?: boolean }>`
-  padding: 0.625rem 1.25rem;
-  border-radius: 4px;
-  font-family: "Kode Mono", monospace;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border: 2px solid oklch(71.4% 0.203 305.504);
-  background: ${(props) =>
-    props.$primary ? "oklch(71.4% 0.203 305.504)" : "transparent"};
-  color: ${(props) =>
-    props.$primary ? "#000000" : "oklch(71.4% 0.203 305.504)"};
-
-  &:hover {
-    background: ${(props) =>
-      props.$primary ? "transparent" : "oklch(71.4% 0.203 305.504)"};
-    color: ${(props) =>
-      props.$primary ? "oklch(71.4% 0.203 305.504)" : "#000000"};
-    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
-  }
-
-  @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-  }
-`
-
 interface HeaderProps {
   onSearch?: (query: string) => void
 }
@@ -97,8 +68,7 @@ export default function Header({ onSearch }: HeaderProps) {
         </SearchBar>
       </HeaderCenter>
       <HeaderRight>
-        <Button>Login</Button>
-        <Button $primary>Sign Up</Button>
+        <ConnectWalletButton />
       </HeaderRight>
     </StyledHeader>
   )

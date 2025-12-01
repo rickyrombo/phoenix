@@ -10,6 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/wallet-adapter-react": "^0.15.39",
+    "@solana/wallet-adapter-react-ui": "^0.9.39",
+    "@solana/wallet-adapter-wallets": "^0.19.37",
+    "@solana/web3.js": "^1.98.4",
     "@tabler/icons-react": "^3.35.0",
     "@tanstack/react-query": "^5.90.10",
     "@tanstack/react-query-devtools": "^5.91.0",
@@ -17,6 +22,7 @@
     "@tanstack/react-virtual": "^3.13.12",
     "@tanstack/router-devtools": "^1.136.18",
     "@types/styled-components": "^5.1.36",
+    "bs58": "^6.0.0",
     "butterchurn": "^2.6.7",
     "butterchurn-presets": "^2.4.7",
     "dayjs": "^1.11.19",

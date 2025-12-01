@@ -17,6 +17,7 @@ type Config struct {
 	DatabaseURL        string
 	AudiusURL          string
 	DelegatePrivateKey string
+	AppKey             string
 	Logger             *slog.Logger
 }
 
@@ -24,6 +25,7 @@ type Server struct {
 	*fiber.App
 	pool   *pgxpool.Pool
 	sdk    *sdk.OpenAudioSDK
+	AppKey string
 	Logger *slog.Logger
 }
 
@@ -45,6 +47,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	server := &Server{
 		pool:   pool,
 		sdk:    sdk,
+		AppKey: cfg.AppKey,
 		Logger: cfg.Logger,
 	}
 
@@ -58,6 +61,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Get("/tracks", server.getTracks)
 	app.Get("/tracks/:id/comments", server.getComments)
 	app.Get("/users", server.getUsers)
+	app.Get("/login", server.login)
 
 	server.App = app
 
