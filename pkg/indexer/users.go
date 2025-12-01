@@ -114,7 +114,7 @@ func upsertUser(ctx context.Context, sqlTx pgx.Tx, userId int, metadata string, 
             NOW()
 		) ON CONFLICT (user_id) DO UPDATE SET
 			name = CASE WHEN @metadata::jsonb->'data' ? 'name' THEN EXCLUDED.name ELSE users.name END,
-			handle = CASE WHEN @metadata::jsonb->'data' ? 'handle' THEN EXCLUDED.handle ELSE users.handle END,
+			handle = CASE WHEN @metadata::jsonb->'data' ? 'handle' AND @metadata::jsonb->'data'->>'handle' != '' THEN EXCLUDED.handle ELSE users.handle END,
 			bio = CASE WHEN @metadata::jsonb->'data' ? 'bio' THEN EXCLUDED.bio ELSE users.bio END,
 			location = CASE WHEN @metadata::jsonb->'data' ? 'location' THEN EXCLUDED.location ELSE users.location END,
 			profile_picture_sizes = CASE 
