@@ -34,4 +34,5 @@ const (
 	Entity_Comment          = "Comment"
 	Entity_Notification     = "Notification"
 	Entity_AssociatedWallet = "AssociatedWallet"
+	Entity_Grant            = "Grant"
 )

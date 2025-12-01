@@ -281,6 +281,8 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 		err = d.indexPlaylist(ctx, sqlTx, entity, blockNumber)
 	case Entity_AssociatedWallet:
 		err = d.indexWallet(ctx, sqlTx, entity, blockNumber)
+	case Entity_Grant:
+		err = d.indexGrant(ctx, sqlTx, entity, blockNumber)
 	case Entity_Notification:
 		// do nothing for notifications for now
 	default:

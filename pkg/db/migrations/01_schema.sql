@@ -349,3 +349,19 @@ CREATE TABLE IF NOT EXISTS playlist_reposts (
     PRIMARY KEY (user_id, playlist_id)
 );
 CREATE INDEX IF NOT EXISTS idx_playlist_reposts_playlist_id ON playlist_reposts(playlist_id);
+
+-- =========================
+--        GRANTS
+-- =========================
+
+CREATE TABLE IF NOT EXISTS grants (
+    user_id INT NOT NULL,
+    address TEXT NOT NULL,
+    approved BOOLEAN,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, address)
+);
+CREATE INDEX IF NOT EXISTS idx_grants_approved ON grants(approved) WHERE approved = true;
+CREATE INDEX IF NOT EXISTS idx_grants_address ON grants(address);
