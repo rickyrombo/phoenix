@@ -3,20 +3,28 @@ package api
 import (
 	"time"
 
+	"github.com/creasty/defaults"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 )
 
 func (s *Server) getFeed(c *fiber.Ctx) error {
 	var queryParams struct {
-		UserID int64   `query:"user_id"`
+		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
-		Limit  int     `query:"limit"`
+		Limit  int     `query:"limit" default:"5"`
 	}
+	defaults.Set(&queryParams)
+
 	if err := c.QueryParser(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid query parameters",
 		})
+	}
+
+	follows_filter := ""
+	if queryParams.UserID != nil {
+		follows_filter = "follows.user_id = @userId AND"
 	}
 
 	sql := `
@@ -42,8 +50,8 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 		FROM manage_entity_txs
 		JOIN follows ON follows.followed_user_id = manage_entity_txs.user_id
 		JOIN blocks ON blocks.number = manage_entity_txs.block_number
-		WHERE follows.user_id = @userId
-			AND (
+		WHERE ` + follows_filter + `
+			(
 				(manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Create')
 				OR (manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Repost')
 			)
