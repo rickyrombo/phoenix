@@ -75,7 +75,7 @@ func NewJob(cfg *Config) (*Job, error) {
 		batchSize:   cfg.BatchSize,
 		buckets:     cfg.Buckets,
 		concurrency: cfg.Concurrency,
-		client:      &http.Client{Timeout: 60 * time.Second},
+		client:      &http.Client{Timeout: 2 * time.Minute},
 		pool:        pool,
 		sdk:         openAudioSdk,
 		logger:      cfg.Logger,
@@ -87,8 +87,9 @@ func NewJob(cfg *Config) (*Job, error) {
 // waveform JSON for each. It processes records in batches to avoid loading the
 // entire table into memory.
 func (j *Job) Run(ctx context.Context) error {
+	offset := 0
 	for {
-		tasks, err := j.fetchPendingWaveformTasks(ctx, j.batchSize)
+		tasks, err := j.fetchPendingWaveformTasks(ctx, j.batchSize, offset)
 		if err != nil {
 			return fmt.Errorf("fetching pending tasks: %w", err)
 		}
@@ -110,9 +111,19 @@ func (j *Job) Run(ctx context.Context) error {
 			go func(t waveformTaskRow) {
 				defer wg.Done()
 				defer func() { <-sem }()
-				j.ProcessCID(ctx, t.TrackCID)
-				if t.PreviewCID != nil {
-					j.ProcessCID(ctx, *t.PreviewCID)
+				err := j.ProcessCID(ctx, t.TrackCID)
+				if err != nil {
+					j.logger.Error("failed to process track cid", "error", err)
+				}
+				if t.PreviewCID != nil && *t.PreviewCID != "" {
+					err = j.ProcessCID(ctx, *t.PreviewCID)
+					if err != nil {
+						j.logger.Error("failed to process preview cid", "error", err)
+					}
+				}
+				if err != nil {
+					j.logger.Error("failed to process waveform task", "error", err)
+					offset += 1 // skip errored record
 				}
 			}(t)
 		}
@@ -195,7 +206,7 @@ type waveformTaskRow struct {
 }
 
 // fetchPendingWaveformTasks returns a slice of tasks (track id + cid) to process.
-func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]waveformTaskRow, error) {
+func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int, offset int) ([]waveformTaskRow, error) {
 	querySQL := `
         SELECT t.track_cid, t.preview_cid
         FROM tracks t
@@ -203,10 +214,10 @@ func (j *Job) fetchPendingWaveformTasks(ctx context.Context, batchSize int) ([]w
         LEFT JOIN waveforms w2 ON w2.cid = t.preview_cid
         WHERE (t.track_cid IS NOT NULL AND w1.cid IS NULL)
           OR (t.track_cid IS NULL AND t.preview_cid IS NOT NULL AND w2.cid IS NULL)
-        LIMIT $1;
+        LIMIT $1 OFFSET $2;
         `
 
-	rows, err := j.pool.Query(ctx, querySQL, batchSize)
+	rows, err := j.pool.Query(ctx, querySQL, batchSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed querying tracks for waveform job: %w", err)
 	}
