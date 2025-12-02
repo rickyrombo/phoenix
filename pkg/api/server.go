@@ -56,12 +56,15 @@ func NewServer(cfg *Config) (*Server, error) {
 			ErrorHandler: server.handleError,
 		},
 	)
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:5173,https://phoenix.rickyrombo.com",
+		AllowCredentials: true,
+	}))
 	app.Get("/feed", server.getFeed)
 	app.Get("/tracks", server.getTracks)
 	app.Get("/tracks/:id/comments", server.getComments)
 	app.Get("/users", server.getUsers)
-	app.Get("/login", server.login)
+	app.Post("/login", server.login)
 
 	server.App = app
 

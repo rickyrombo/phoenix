@@ -36,26 +36,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setIsAuthenticating(true)
     try {
-      const timestamp = Date.now()
       const requestId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : undefined
-      const { signedMessage, signature } = await signIn({
-        domain: `${import.meta.env.VITE_APP_DOMAIN || window.location.hostname}`,
-        issuedAt: new Date(timestamp).toISOString(),
-        expirationTime: new Date(timestamp + 60 * 1000).toISOString(),
-        statement: `Sign this message to authenticate with ${import.meta.env.VITE_APP_NAME}`,
+      const message = {
+        domain: `phoenix.rickyrombo.com`,
+        issuedAt: new Date().toISOString(),
+        statement: `Sign this message to authenticate with Phoenix`,
         address: publicKey.toBase58(),
-        uri: window.location.href,
-        version: "1",
-        chainId: "1",
         nonce: Math.random().toString(36).substring(2, 15),
         requestId,
-      })
+      }
+      const { signedMessage, signature } = await signIn(message)
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/auth/verify`,
+        `${import.meta.env.VITE_API_BASE_URL}/login`,
         {
           method: "POST",
           headers: {
@@ -63,8 +59,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           },
           credentials: "include",
           body: JSON.stringify({
-            walletAddress: publicKey.toBase58(),
-            message: bs58.encode(signedMessage),
+            message,
+            signed_message: bs58.encode(signedMessage),
             signature: bs58.encode(signature),
           }),
         },
@@ -73,21 +69,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json()
 
       if (response.ok) {
-        if (data.status === "success") {
-          // User exists and is authenticated
-          setIsAuthenticated(true)
-          setUser({ walletAddress: publicKey.toBase58() })
-        } else if (data.status === "wallet_not_found") {
+        // User exists and is authenticated
+        setIsAuthenticated(true)
+        setUser({ walletAddress: publicKey.toBase58() })
+      } else {
+        if (data.error === "not_linked") {
           // Redirect to signup page
           window.location.href = "/signup"
-        } else if (data.status === "access_not_granted") {
+        } else if (data.error === "not_granted") {
           // Redirect to grant access page
           window.location.href = "/grant-access"
+        } else {
+          console.error("Authentication failed:", data.error)
+          // Optionally disconnect wallet on auth failure
+          await disconnect()
         }
-      } else {
-        console.error("Authentication failed:", data.error)
-        // Optionally disconnect wallet on auth failure
-        await disconnect()
       }
     } catch (error) {
       console.error("Error during authentication:", error)

@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -28,21 +26,62 @@ type solanaSignInInput struct {
 	Resources      []string `json:"resources"`
 }
 
+func (s *solanaSignInInput) Prepare() string {
+	sb := fmt.Sprintf("%s wants you to sign in with your Solana account:\n%s\n", s.Domain, s.Address)
+	if s.Statement != "" {
+		sb += fmt.Sprintf("\n%s\n", s.Statement)
+	}
+	if s.URI != "" {
+		sb += fmt.Sprintf("\nURI: %s", s.URI)
+	}
+	if s.Version != "" {
+		sb += fmt.Sprintf("\nVersion: %s", s.Version)
+	}
+	if s.ChainId != "" {
+		sb += fmt.Sprintf("\nChain ID: %s", s.ChainId)
+	}
+	if s.Nonce != "" {
+		sb += fmt.Sprintf("\nNonce: %s", s.Nonce)
+	}
+	if s.IssuedAt != "" {
+		sb += fmt.Sprintf("\nIssued At: %s", s.IssuedAt)
+	}
+	if s.ExpirationTime != "" {
+		sb += fmt.Sprintf("\nExpiration Time: %s", s.ExpirationTime)
+	}
+	if s.NotBefore != "" {
+		sb += fmt.Sprintf("\nNot Before: %s", s.NotBefore)
+	}
+	if s.RequestId != "" {
+		sb += fmt.Sprintf("\nRequest ID: %s", s.RequestId)
+	}
+	if len(s.Resources) > 0 {
+		sb += "\nResources:"
+		for _, resource := range s.Resources {
+			sb += fmt.Sprintf("\n- %s", resource)
+		}
+	}
+	return sb
+}
+
 func (s *Server) login(c *fiber.Ctx) error {
 	type loginRequest struct {
-		Message   string `json:"message"`
-		Signature string `json:"signature"`
+		Message       solanaSignInInput `json:"message"`
+		SignedMessage string            `json:"signed_message"`
+		Signature     string            `json:"signature"`
 	}
 
 	var req loginRequest
 	if err := c.BodyParser(&req); err != nil {
+		s.Logger.Error("Failed to parse login request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
 
-	messageBytes, err := base58.Decode(req.Message)
+	messageBytes, err := base58.Decode(req.SignedMessage)
 	if err != nil {
+		s.Logger.Error("Failed to decode message", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid message encoding",
 		})
@@ -50,28 +89,30 @@ func (s *Server) login(c *fiber.Ctx) error {
 
 	signatureBytes, err := base58.Decode(req.Signature)
 	if err != nil {
+		s.Logger.Error("Failed to decode signature", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid signature encoding",
 		})
 	}
 
-	var signInInput solanaSignInInput
-	if err := json.Unmarshal(messageBytes, &signInInput); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid sign-in message format",
-		})
-	}
-
-	if signInInput.Address == "" {
+	if req.Message.Address == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Wallet address is required in sign-in message",
 		})
 	}
 
-	publicKeyBytes, err := base58.Decode(signInInput.Address)
+	publicKeyBytes, err := base58.Decode(req.Message.Address)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid wallet address encoding",
+		})
+	}
+
+	message := req.Message.Prepare()
+	if message != string(messageBytes) {
+		s.Logger.Error("Sign-in message content does not match signed message", "expected", message, "actual", string(messageBytes))
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Sign-in message content does not match signed message",
 		})
 	}
 
@@ -83,13 +124,13 @@ func (s *Server) login(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := validateSolanaSignInInput(signInInput); err != nil {
+	if err := validateSolanaSignInInput(req.Message); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": fmt.Sprintf("Invalid sign-in message content: %v", err),
 		})
 	}
 
-	userId, err := s.verifyWalletLink(c.Context(), signInInput.Address)
+	userId, err := s.verifyWalletLink(c.Context(), req.Message.Address)
 	if err != nil {
 		return err
 	}
@@ -100,13 +141,13 @@ func (s *Server) login(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
-		"wallet":  signInInput.Address,
+		"wallet":  req.Message.Address,
 		"message": "Signature verified successfully",
 	})
 }
 
 func validateSolanaSignInInput(signInInput solanaSignInInput) error {
-	if signInInput.Domain != "localhost:8000" {
+	if signInInput.Domain != "phoenix.rickyrombo.com" {
 		return fmt.Errorf("invalid domain: %s", signInInput.Domain)
 	}
 
@@ -114,14 +155,7 @@ func validateSolanaSignInInput(signInInput solanaSignInInput) error {
 		return fmt.Errorf("invalid statement: %s", signInInput.Statement)
 	}
 
-	if signInInput.Version != "1" {
-		return fmt.Errorf("invalid version: %s", signInInput.Version)
-	}
-
-	if signInInput.ChainId != "1" {
-		return fmt.Errorf("invalid chain ID: %s", signInInput.ChainId)
-	}
-
+	// TODO: Store nonce and verify unused
 	if signInInput.Nonce == "" {
 		return fmt.Errorf("nonce is required")
 	}
@@ -139,23 +173,11 @@ func validateSolanaSignInInput(signInInput solanaSignInInput) error {
 		return fmt.Errorf("sign-in message has expired")
 	}
 
-	if signInInput.ExpirationTime != "" {
-		return fmt.Errorf("expirationTime must be empty")
-	}
-
-	expirationTime, err := time.Parse(time.RFC3339, signInInput.ExpirationTime)
-	if err != nil {
-		return fmt.Errorf("invalid expirationTime format: %v", err)
-	}
-
-	if time.Now().After(expirationTime) {
-		return fmt.Errorf("sign-in message has expired")
-	}
 	return nil
 }
 
-var ErrNotGranted = errors.New("not_granted")
-var ErrNotLinked = errors.New("not_linked")
+var ErrNotGranted = fiber.NewError(fiber.StatusUnauthorized, "not_granted")
+var ErrNotLinked = fiber.NewError(fiber.StatusUnauthorized, "not_linked")
 
 func (s Server) verifyWalletGrant(ctx context.Context, userId int) error {
 	sql := `
@@ -184,7 +206,7 @@ func (s Server) verifyWalletGrant(ctx context.Context, userId int) error {
 
 func (s Server) verifyWalletLink(ctx context.Context, walletAddress string) (int, error) {
 	sql := `
-		SELECT user_id FROM user_wallets WHERE wallet_address = @walletAddress
+		SELECT user_id FROM user_wallets WHERE wallet = @walletAddress
 	`
 	var userID int
 	err := s.pool.QueryRow(ctx, sql, pgx.NamedArgs{
