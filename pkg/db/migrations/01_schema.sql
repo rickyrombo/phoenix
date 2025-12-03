@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS users (
     profile_picture_sizes TEXT,
     cover_photo_sizes TEXT,
     artist_pick_track_id INT,
+    payout_wallet TEXT,
 
     -- Social links
     instagram_handle TEXT,
@@ -370,13 +371,10 @@ CREATE INDEX IF NOT EXISTS idx_grants_address ON grants(address);
 --       SESSIONS
 -- =========================
 
-CREATE TABLE IF NOT EXISTS sessions (
-    session_id TEXT PRIMARY KEY,
-    user_id INT NOT NULL,
-    data BYTEA NOT NULL,
-    expiry TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS fiber_storage (
+    k VARCHAR(64) PRIMARY KEY,
+    v BYTEA NOT NULL,
+    e BIGINT NOT NULL DEFAULT 0
 );
-CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expiry);
+CREATE INDEX IF NOT EXISTS idx_fiber_storage_expiry ON fiber_storage(e);
+COMMENT ON TABLE fiber_storage IS 'Stores user sessions for Fiber middleware. Sessions can be revoked by deleting rows.';
