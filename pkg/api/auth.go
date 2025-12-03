@@ -167,6 +167,11 @@ func (s *Server) login(c *fiber.Ctx) error {
 
 	sess.Set("user_id", userId)
 
+	// Regenerate session ID to prevent session fixation attacks
+	if err := sess.Regenerate(); err != nil {
+		return fmt.Errorf("failed to regenerate session: %w", err)
+	}
+
 	if err := sess.Save(); err != nil {
 		return fmt.Errorf("failed to save session: %w", err)
 	}
@@ -451,5 +456,15 @@ func (s *Server) logout(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"success": true,
+	})
+}
+
+// getCsrfToken returns the CSRF token for the client
+func (s *Server) getCsrfToken(c *fiber.Ctx) error {
+	// The CSRF token is stored in c.Locals by the CSRF middleware
+	token := c.Locals("csrf")
+
+	return c.JSON(fiber.Map{
+		"csrf_token": token,
 	})
 }

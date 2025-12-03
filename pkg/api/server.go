@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/gofiber/fiber/v2/middleware/session"
 	"github.com/gofiber/storage/postgres/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -81,14 +82,33 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     "http://localhost:5173,https://phoenix.rickyrombo.com",
 		AllowCredentials: true,
+		AllowHeaders:     "Origin, Content-Type, Accept, X-CSRF-Token",
 	}))
+
+	// CSRF protection middleware
+	csrfMiddleware := csrf.New(csrf.Config{
+		KeyLookup:      "header:X-CSRF-Token",
+		CookieName:     "__Host-csrf",
+		CookieSameSite: "Lax",
+		CookieSecure:   true,
+		CookieHTTPOnly: true,
+		Expiration:     30 * 24 * time.Hour, // 30 days
+		Storage:        storage,
+		Session:        sessionStore,
+		SessionKey:     "csrf_token",
+	})
+
+	// Routes that don't require CSRF validation (GET requests)
+	app.Get("/auth/status", server.authStatus)
+	app.Get("/auth/csrf", csrfMiddleware, server.getCsrfToken)
 	app.Get("/feed", server.getFeed)
 	app.Get("/tracks", server.getTracks)
 	app.Get("/tracks/:id/comments", server.getComments)
 	app.Get("/users", server.getUsers)
-	app.Post("/login", server.login)
-	app.Get("/auth/status", server.authStatus)
-	app.Post("/auth/logout", server.logout)
+
+	// Routes that require CSRF validation (state-changing POST requests)
+	app.Post("/login", csrfMiddleware, server.login)
+	app.Post("/auth/logout", csrfMiddleware, server.logout)
 
 	server.App = app
 

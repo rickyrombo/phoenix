@@ -16,6 +16,7 @@ import type {
 } from "@solana/wallet-standard-features"
 import dayjs from "dayjs"
 import { AccountNeedsGrant } from "../components/AccountNeedsGrant"
+import { useCsrf } from "../queries/useCsrf"
 
 type AuthState =
   | "unauthenticated"
@@ -48,9 +49,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [siwsPayload, setSiwsPayload] = useState<SiwsPayload | null>(null)
   const [checkedSession, setCheckedSession] = useState(false)
 
+  // Use TanStack Query hook for CSRF token
+  const { data: csrfToken, isSuccess: csrfLoaded } = useCsrf()
+
   const signInWithSolana = useCallback(
     async (token?: string) => {
       if (!publicKey || !signIn) {
+        return
+      }
+
+      // Wait for CSRF token to be loaded
+      if (!csrfToken) {
+        console.error("CSRF token not yet loaded")
         return
       }
 
@@ -95,6 +105,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken,
             },
             credentials: "include",
             body: JSON.stringify({
@@ -124,15 +135,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await disconnect()
       }
     },
-    [publicKey, signIn, siwsPayload, disconnect],
+    [publicKey, signIn, siwsPayload, disconnect, csrfToken],
   )
 
   const logout = useCallback(async () => {
     try {
-      await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      })
+      if (csrfToken) {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {
+          method: "POST",
+          headers: {
+            "X-CSRF-Token": csrfToken,
+          },
+          credentials: "include",
+        })
+      }
     } catch (error) {
       console.error("Error during logout:", error)
     }
@@ -140,10 +156,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await disconnect()
     setUserId(null)
     setAuthState("unauthenticated")
-  }, [disconnect])
+  }, [disconnect, csrfToken])
 
-  // Check for existing session on mount
+  // Check for existing session on mount (after CSRF token is loaded)
   useEffect(() => {
+    if (!csrfLoaded) return
+
     const checkSession = async () => {
       try {
         const response = await fetch(
@@ -166,7 +184,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     checkSession()
-  }, [])
+  }, [csrfLoaded])
 
   if (connected && authState === "unauthenticated" && checkedSession) {
     signInWithSolana()
