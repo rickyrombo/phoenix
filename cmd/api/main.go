@@ -20,6 +20,10 @@ func main() {
 	delegatePrivateKey := os.Getenv("DELEGATE_PRIVATE_KEY")
 	logLevel := os.Getenv("LOG_LEVEL")
 	appKey := os.Getenv("AUDIUS_API_KEY")
+	environment := os.Getenv("ENVIRONMENT")
+	if environment == "" {
+		environment = "development" // Default to development
+	}
 
 	if logLevel == "debug" {
 		level.Set(slog.LevelDebug)
@@ -37,6 +41,7 @@ func main() {
 		AppKey:             appKey,
 		Logger:             logger,
 		DelegatePrivateKey: delegatePrivateKey,
+		Environment:        environment,
 	}
 	server, err := api.NewServer(cfg)
 	if err != nil {

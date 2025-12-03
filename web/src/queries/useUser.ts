@@ -36,7 +36,9 @@ export type User = {
 }
 
 const getUserFn = async (userId: number) => {
-  const response = await fetch(`http://localhost:8000/users?id=${userId}`)
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/users?id=${userId}`,
+  )
   if (!response.ok) throw new Error("failed to fetch user")
   const res = await response.json()
   return (res.data[0] ?? null) as User | null

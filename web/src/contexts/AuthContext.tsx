@@ -50,7 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [checkedSession, setCheckedSession] = useState(false)
 
   // Use TanStack Query hook for CSRF token
-  const { data: csrfToken, isSuccess: csrfLoaded } = useCsrf()
+  const { data: csrfToken } = useCsrf()
 
   const signInWithSolana = useCallback(
     async (token?: string) => {
@@ -160,7 +160,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check for existing session on mount (after CSRF token is loaded)
   useEffect(() => {
-    if (!csrfLoaded) return
+    console.log("checking session", { csrfLoaded: !!csrfToken })
+    if (!csrfToken) return
 
     const checkSession = async () => {
       try {
@@ -179,18 +180,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error("Error checking session:", error)
       } finally {
+        console.log("finished checking session")
         setCheckedSession(true)
       }
     }
 
     checkSession()
-  }, [csrfLoaded])
+  }, [csrfToken])
 
   if (connected && authState === "unauthenticated" && checkedSession) {
     signInWithSolana()
   }
 
-  if (!connected && !connecting && authState !== "unauthenticated") {
+  if (
+    !connected &&
+    !connecting &&
+    authState !== "unauthenticated" &&
+    checkedSession
+  ) {
     logout()
   }
 

@@ -2,9 +2,11 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
@@ -23,15 +25,17 @@ type Config struct {
 	DelegatePrivateKey string
 	AppKey             string
 	Logger             *slog.Logger
+	Environment        string // "development" or "production"
 }
 
 type Server struct {
 	*fiber.App
-	pool     *pgxpool.Pool
-	sdk      *sdk.OpenAudioSDK
-	AppKey   string
-	Logger   *slog.Logger
-	sessions *session.Store
+	pool        *pgxpool.Pool
+	sdk         *sdk.OpenAudioSDK
+	AppKey      string
+	Logger      *slog.Logger
+	sessions    *session.Store
+	environment string
 }
 
 func NewServer(cfg *Config) (*Server, error) {
@@ -67,11 +71,12 @@ func NewServer(cfg *Config) (*Server, error) {
 	})
 
 	server := &Server{
-		pool:     pool,
-		sdk:      sdk,
-		AppKey:   cfg.AppKey,
-		Logger:   cfg.Logger,
-		sessions: sessionStore,
+		pool:        pool,
+		sdk:         sdk,
+		AppKey:      cfg.AppKey,
+		Logger:      cfg.Logger,
+		sessions:    sessionStore,
+		environment: cfg.Environment,
 	}
 
 	app := fiber.New(
@@ -80,7 +85,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		},
 	)
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:5173,https://phoenix.rickyrombo.com",
+		AllowOrigins:     "https://localhost:5173,https://phoenix.rickyrombo.com",
 		AllowCredentials: true,
 		AllowHeaders:     "Origin, Content-Type, Accept, X-CSRF-Token",
 	}))
@@ -137,6 +142,40 @@ func (s *Server) handleError(c *fiber.Ctx, err error) error {
 
 func (s *Server) Start() error {
 	s.Logger.Info("Starting API server...")
+
+	// Use HTTPS in development with self-signed certificates
+	if s.environment == "development" {
+		certFile := "certs/cert.pem"
+		keyFile := "certs/key.pem"
+
+		// Check if certificates exist
+		if _, err := os.Stat(certFile); os.IsNotExist(err) {
+			s.Logger.Error("Certificate files not found. Please run: go run cmd/gencerts/main.go")
+			return fmt.Errorf("certificate files not found in certs/ directory")
+		}
+
+		// Load certificate
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			return fmt.Errorf("failed to load certificates: %w", err)
+		}
+
+		// Create TLS config
+		tlsConfig := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+
+		// Create TLS listener
+		ln, err := tls.Listen("tcp", "127.0.0.1:8000", tlsConfig)
+		if err != nil {
+			return fmt.Errorf("failed to create TLS listener: %w", err)
+		}
+
+		s.Logger.Info("API server running with HTTPS (development mode)", "addr", "https://localhost:8000")
+		return s.Listener(ln)
+	}
+
+	// Production: use regular HTTP (assuming reverse proxy handles TLS)
 	return s.Listen(":8000")
 }
 

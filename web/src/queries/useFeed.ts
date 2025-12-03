@@ -29,7 +29,9 @@ const getFeedPage = async ({
   if (before) {
     qp.append("before", before)
   }
-  const response = await fetch(`http://localhost:8000/feed?${qp.toString()}`)
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/feed?${qp.toString()}`,
+  )
   if (!response.ok) throw new Error("failed to fetch feed")
   const res = await response.json()
   const feed = res.data as FeedItem[]

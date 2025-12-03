@@ -26,7 +26,9 @@ export type Track = {
 }
 
 const getTrackFn = async (trackId: number) => {
-  const response = await fetch(`http://localhost:8000/tracks?id=${trackId}`)
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL}/tracks?id=${trackId}`,
+  )
   if (!response.ok) throw new Error("failed to fetch track")
   const res = await response.json()
   const track = res.data[0]

@@ -11,7 +11,7 @@ export type Comment = {
 }
 const getTrackCommentsQueryFn = async (trackId: number) => {
   const response = await fetch(
-    `http://localhost:8000/tracks/${trackId}/comments`,
+    `${import.meta.env.VITE_API_BASE_URL}/tracks/${trackId}/comments`,
   )
   if (!response.ok) throw new Error("failed to fetch user")
   const res = await response.json()
