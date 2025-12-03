@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -158,6 +159,17 @@ func (s *Server) login(c *fiber.Ctx) error {
 			return err
 		}
 	}
+
+	// Set secure session cookie that lasts for 30 days
+	c.Cookie(&fiber.Cookie{
+		Name:     "session",
+		Value:    fmt.Sprintf("%d", userId),
+		Path:     "/",
+		MaxAge:   30 * 24 * 60 * 60, // 30 days in seconds
+		Secure:   true,
+		HTTPOnly: true,
+		SameSite: "Lax",
+	})
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -402,4 +414,51 @@ func (s *Server) verifyToken(ctx context.Context, token string) error {
 	}
 
 	return fmt.Errorf("wallet %s doesn't match user handle %s", walletLower, payload.Handle)
+}
+
+// getUserIdFromSession extracts and validates the user ID from the session cookie
+func getUserIdFromSession(c *fiber.Ctx) (int, error) {
+	sessionCookie := c.Cookies("session")
+	if sessionCookie == "" {
+		return 0, fiber.NewError(fiber.StatusUnauthorized, "No session cookie")
+	}
+
+	userId, err := strconv.Atoi(sessionCookie)
+	if err != nil {
+		return 0, fiber.NewError(fiber.StatusUnauthorized, "Invalid session cookie")
+	}
+
+	return userId, nil
+}
+
+// authStatus returns the current authentication status based on the session cookie
+func (s *Server) authStatus(c *fiber.Ctx) error {
+	userId, err := getUserIdFromSession(c)
+	if err != nil {
+		return c.JSON(fiber.Map{
+			"authenticated": false,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"authenticated": true,
+		"user_id":       userId,
+	})
+}
+
+// logout clears the session cookie
+func (s *Server) logout(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1, // Delete the cookie
+		Secure:   true,
+		HTTPOnly: true,
+		SameSite: "Lax",
+	})
+
+	return c.JSON(fiber.Map{
+		"success": true,
+	})
 }

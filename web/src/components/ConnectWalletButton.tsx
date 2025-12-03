@@ -76,7 +76,7 @@ const Handle = styled.span`
 `
 
 export default function ConnectWalletButton() {
-  const { authState, logout, userId } = useAuth()
+  const { authState, userId } = useAuth()
 
   const { data: user } = useUser(userId!, {
     enabled: userId !== null && authState === "authenticated",

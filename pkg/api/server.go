@@ -65,6 +65,8 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Get("/tracks/:id/comments", server.getComments)
 	app.Get("/users", server.getUsers)
 	app.Post("/login", server.login)
+	app.Get("/auth/status", server.authStatus)
+	app.Post("/auth/logout", server.logout)
 
 	server.App = app
 

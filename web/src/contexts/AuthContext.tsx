@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
@@ -41,10 +42,11 @@ type SiwsPayload = SolanaSignInOutput & {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { connected, publicKey, signIn, disconnect } = useWallet()
+  const { connected, connecting, publicKey, signIn, disconnect } = useWallet()
   const [authState, setAuthState] = useState<AuthState>("unauthenticated")
   const [userId, setUserId] = useState<number | null>(null)
   const [siwsPayload, setSiwsPayload] = useState<SiwsPayload | null>(null)
+  const [checkedSession, setCheckedSession] = useState(false)
 
   const signInWithSolana = useCallback(
     async (token?: string) => {
@@ -140,11 +142,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthState("unauthenticated")
   }, [disconnect])
 
-  if (connected && authState === "unauthenticated") {
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/auth/status`,
+          {
+            credentials: "include",
+          },
+        )
+        const data = await response.json()
+
+        if (data.authenticated && data.user_id) {
+          setAuthState("authenticated")
+          setUserId(data.user_id)
+        }
+      } catch (error) {
+        console.error("Error checking session:", error)
+      } finally {
+        setCheckedSession(true)
+      }
+    }
+
+    checkSession()
+  }, [])
+
+  if (connected && authState === "unauthenticated" && checkedSession) {
     signInWithSolana()
   }
 
-  if (!connected && authState !== "unauthenticated") {
+  if (!connected && !connecting && authState !== "unauthenticated") {
     logout()
   }
 
