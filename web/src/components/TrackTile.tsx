@@ -23,6 +23,7 @@ import dayjs from "dayjs"
 import useTrackComments from "../queries/useTrackComments"
 import { WithMirrors } from "./WithMirrors"
 import Linkify from "linkify-react"
+import { GhostButton } from "./core/Button"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -163,21 +164,6 @@ const PlayBtn = styled.button`
     background: oklch(71.4% 0.203 305.504);
     color: #000000;
     box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
-  }
-`
-
-const OverflowBtn = styled.button`
-  background: transparent;
-  border: none;
-  color: #888;
-  cursor: pointer;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: #fff;
   }
 `
 
@@ -562,7 +548,7 @@ function TrackTile({
                 expanded={isActive}
               />
               <OverflowContainer>
-                <OverflowBtn
+                <GhostButton
                   onClick={(e) => {
                     e.stopPropagation()
                     setMenuOpen((v) => !v)
@@ -572,7 +558,7 @@ function TrackTile({
                   title="More"
                 >
                   <IconDots size={18} stroke={2} />
-                </OverflowBtn>
+                </GhostButton>
                 {menuOpen && (
                   <OverflowMenu ref={menuRef}>
                     <OverflowMenuItem

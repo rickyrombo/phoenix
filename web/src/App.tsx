@@ -15,10 +15,7 @@ import {
 } from "@solana/wallet-adapter-react"
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base"
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets"
+import { SolflareWalletAdapter } from "@solana/wallet-adapter-wallets"
 import { clusterApiUrl } from "@solana/web3.js"
 import { AuthProvider } from "./contexts/AuthContext"
 
@@ -26,6 +23,13 @@ import { AuthProvider } from "./contexts/AuthContext"
 import "@solana/wallet-adapter-react-ui/styles.css"
 
 const router = createRouter({ routeTree })
+
+// Register the router instance for type safety
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router
+  }
+}
 
 const queryClient = new QueryClient()
 
@@ -39,10 +43,7 @@ function App() {
   const endpoint = useMemo(() => clusterApiUrl(network), [network])
 
   // Initialize wallet adapters
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [],
-  )
+  const wallets = useMemo(() => [new SolflareWalletAdapter()], [])
 
   return (
     <QueryClientProvider client={queryClient}>

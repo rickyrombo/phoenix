@@ -19,6 +19,7 @@ func main() {
 	audiusURL := os.Getenv("AUDIUS_URL")
 	delegatePrivateKey := os.Getenv("DELEGATE_PRIVATE_KEY")
 	logLevel := os.Getenv("LOG_LEVEL")
+	appKey := os.Getenv("AUDIUS_API_KEY")
 
 	if logLevel == "debug" {
 		level.Set(slog.LevelDebug)
@@ -33,6 +34,7 @@ func main() {
 	cfg := &api.Config{
 		DatabaseURL:        databaseURL,
 		AudiusURL:          audiusURL,
+		AppKey:             appKey,
 		Logger:             logger,
 		DelegatePrivateKey: delegatePrivateKey,
 	}

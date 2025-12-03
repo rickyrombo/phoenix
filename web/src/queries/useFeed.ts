@@ -25,7 +25,7 @@ const getFeedPage = async ({
   if (userId) {
     qp.append("user_id", userId.toString())
   }
-  qp.append("limit", "10")
+  qp.append("limit", "20")
   if (before) {
     qp.append("before", before)
   }
@@ -36,21 +36,51 @@ const getFeedPage = async ({
   return feed
 }
 
+const getQueryKey = (userId?: number) => ["feed", userId] as const
+
+const queryFn = async ({
+  pageParam,
+  queryKey,
+}: {
+  pageParam?: string
+  queryKey: ReturnType<typeof getQueryKey>
+}) =>
+  getFeedPage({
+    before: pageParam,
+    userId: queryKey[1],
+  })
+
+const dedupe = (pages: FeedItem[][]) => {
+  const seen = new Set<number>()
+  const dedupedPages: FeedItem[][] = []
+  for (const page of pages) {
+    const dedupedPage: FeedItem[] = []
+    for (const item of page) {
+      if (!seen.has(item.entity_id)) {
+        seen.add(item.entity_id)
+        dedupedPage.push(item)
+      }
+    }
+    dedupedPages.push(dedupedPage)
+  }
+  return dedupedPages
+}
+
 const getFeedQueryOptions = (userId?: number) =>
   infiniteQueryOptions({
-    queryKey: ["feed", userId],
-    queryFn: async ({ pageParam, queryKey }) => {
-      const page = await getFeedPage({
-        before: pageParam,
-        userId: queryKey[1] as number,
-      })
-      return page
-    },
+    queryKey: getQueryKey(userId),
+    queryFn,
     getNextPageParam: (lastPage) => {
       if (lastPage.length === 0) return undefined
       return lastPage[lastPage.length - 1].tx_hash
     },
     initialPageParam: "",
+    select: (data) => {
+      return {
+        ...data,
+        pages: dedupe(data.pages),
+      }
+    },
   })
 
 export const useFeed = (

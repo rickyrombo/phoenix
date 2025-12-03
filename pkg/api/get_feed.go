@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getFeed(c *fiber.Ctx) error {
+func (s *Server) getFeedDistinct(c *fiber.Ctx) error {
 	var queryParams struct {
 		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
@@ -75,6 +75,88 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 		sub.block_number DESC NULLS LAST,
 		sub.tx_hash DESC NULLS LAST
 	LIMIT @limit;
+	`
+	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
+		"userId": queryParams.UserID,
+		"before": queryParams.Before,
+		"limit":  queryParams.Limit,
+	})
+	if err != nil {
+		s.Logger.Error("Failed to fetch feed", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to fetch feed",
+		})
+	}
+
+	type feedItem struct {
+		TxHash     string    `json:"tx_hash"`
+		UserID     int64     `json:"user_id"`
+		EntityType string    `json:"entity_type"`
+		EntityID   int64     `json:"entity_id"`
+		Action     string    `json:"action"`
+		Timestamp  time.Time `json:"timestamp"`
+	}
+	feed, err := pgx.CollectRows(rows, pgx.RowToStructByName[feedItem])
+	if err != nil {
+		s.Logger.Error("Failed to parse feed", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to parse feed",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"data": feed,
+	})
+}
+
+func (s *Server) getFeed(c *fiber.Ctx) error {
+	var queryParams struct {
+		UserID *int64  `query:"user_id"`
+		Before *string `query:"before"`
+		Limit  int     `query:"limit" default:"5"`
+	}
+	defaults.Set(&queryParams)
+
+	if err := c.QueryParser(&queryParams); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid query parameters",
+		})
+	}
+
+	follows_filter := ""
+	if queryParams.UserID != nil {
+		follows_filter = "JOIN follows ON follows.followed_user_id = manage_entity_txs.user_id AND follows.user_id = @userId"
+	}
+
+	sql := `
+		SELECT
+			manage_entity_txs.tx_hash,
+			manage_entity_txs.user_id,
+			manage_entity_txs.entity_type,
+			manage_entity_txs.entity_id,
+			manage_entity_txs.action,
+			blocks.block_time AS timestamp
+		FROM manage_entity_txs
+		JOIN blocks ON blocks.number = manage_entity_txs.block_number
+		` + follows_filter + `
+		WHERE (
+				(manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Create')
+				OR (manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Repost')
+			)
+			AND (
+				@before::TEXT IS NULL 
+				OR (
+					manage_entity_txs.block_number = (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+					AND manage_entity_txs.tx_hash < @before
+				) 
+				OR (
+					manage_entity_txs.block_number < (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
+				)
+			)
+		ORDER BY 
+			manage_entity_txs.block_number DESC NULLS LAST,
+			manage_entity_txs.tx_hash DESC NULLS LAST
+		LIMIT @limit;
 	`
 	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
 		"userId": queryParams.UserID,

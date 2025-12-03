@@ -1,25 +1,6 @@
 import styled from "styled-components"
-
-const Button = styled.button<{ $expanded: boolean }>`
-  background: transparent;
-  border: 1px solid #333333;
-  color: #808080;
-  padding: ${(props) =>
-    props.$expanded ? "0.25rem 0.75rem" : "0.25rem 0.375rem"};
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: "Kode Mono", monospace;
-  font-size: 0.75rem;
-  border-radius: 0;
-  min-height: 0;
-
-  &:hover {
-    border-color: oklch(71.4% 0.203 305.504);
-    color: oklch(71.4% 0.203 305.504);
-  }
-`
+import type { ReactNode } from "react"
+import { Button } from "./core/Button"
 
 const Icon = styled.span`
   display: flex;
@@ -39,8 +20,6 @@ const Count = styled.span`
   line-height: 1;
 `
 
-import type { ReactNode } from "react"
-
 interface SocialButtonProps {
   icon: ReactNode
   label: string
@@ -59,7 +38,12 @@ export default function SocialButton({
   onClick,
 }: SocialButtonProps) {
   return (
-    <Button title={title} $expanded={expanded} onClick={onClick}>
+    <Button
+      size="xs"
+      title={title}
+      spacing={expanded ? "normal" : "compact"}
+      onClick={onClick}
+    >
       <Icon>{icon}</Icon>
       <Label $expanded={expanded}>{label}</Label>
       {count !== undefined && count > 0 && <Count>{count}</Count>}

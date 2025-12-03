@@ -7,96 +7,126 @@ import {
 } from "react"
 import { useWallet } from "@solana/wallet-adapter-react"
 import bs58 from "bs58"
+import { Modal } from "../components/Modal"
+import { AccountNeedsLink } from "../components/AccountNeedsLink"
+import type {
+  SolanaSignInInput,
+  SolanaSignInOutput,
+} from "@solana/wallet-standard-features"
+import dayjs from "dayjs"
+import { AccountNeedsGrant } from "../components/AccountNeedsGrant"
+
+type AuthState =
+  | "unauthenticated"
+  | "siws_in_progress"
+  | "needs_link"
+  | "needs_grant"
+  | "authenticated"
 
 type AuthContextType = {
-  isAuthenticated: boolean
-  isAuthenticating: boolean
-  user: { walletAddress: string } | null
-  login: () => Promise<void>
+  authState: AuthState
+  userId: number | null
+  login: (token?: string) => Promise<void>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-interface AuthProviderProps {
+type AuthProviderProps = {
   children: ReactNode
 }
 
+type SiwsPayload = SolanaSignInOutput & {
+  message: SolanaSignInInput
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { publicKey, signIn, disconnect } = useWallet()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const [user, setUser] = useState<{ walletAddress: string } | null>(null)
+  const { connected, publicKey, signIn, disconnect } = useWallet()
+  const [authState, setAuthState] = useState<AuthState>("unauthenticated")
+  const [userId, setUserId] = useState<number | null>(null)
+  const [siwsPayload, setSiwsPayload] = useState<SiwsPayload | null>(null)
 
-  const login = useCallback(async () => {
-    if (!publicKey || !signIn) {
-      console.error("Wallet not connected")
-      return
-    }
-
-    setIsAuthenticating(true)
-    try {
-      const requestId =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : undefined
-      const message = {
-        domain: `phoenix.rickyrombo.com`,
-        issuedAt: new Date().toISOString(),
-        statement: `Sign this message to authenticate with Phoenix`,
-        address: publicKey.toBase58(),
-        nonce: Math.random().toString(36).substring(2, 15),
-        requestId,
+  const signInWithSolana = useCallback(
+    async (token?: string) => {
+      if (!publicKey || !signIn) {
+        return
       }
-      const { signedMessage, signature } = await signIn(message)
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            message,
-            signed_message: bs58.encode(signedMessage),
-            signature: bs58.encode(signature),
-          }),
-        },
-      )
+      setAuthState("siws_in_progress")
 
-      const data = await response.json()
+      let siwsOutput = siwsPayload
 
-      if (response.ok) {
-        // User exists and is authenticated
-        setIsAuthenticated(true)
-        setUser({ walletAddress: publicKey.toBase58() })
-      } else {
-        if (data.error === "not_linked") {
-          // Redirect to signup page
-          window.location.href = "/signup"
-        } else if (data.error === "not_granted") {
-          // Redirect to grant access page
-          window.location.href = "/grant-access"
-        } else {
-          console.error("Authentication failed:", data.error)
-          // Optionally disconnect wallet on auth failure
+      if (
+        !siwsOutput ||
+        siwsOutput.message.address !== publicKey.toBase58() ||
+        dayjs(siwsOutput.message.issuedAt).isBefore(
+          dayjs().subtract(5, "minutes"),
+        )
+      ) {
+        try {
+          const requestId =
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : undefined
+          const message = {
+            domain: `phoenix.rickyrombo.com`,
+            issuedAt: new Date().toISOString(),
+            statement: `Sign this message to authenticate with Phoenix`,
+            address: publicKey.toBase58(),
+            nonce: Math.random().toString(36).substring(2, 15),
+            requestId,
+          }
+          const p = await signIn(message)
+          siwsOutput = { ...p, message }
+          setSiwsPayload(siwsOutput)
+        } catch (error) {
+          console.error("Error during SIWS:", error)
           await disconnect()
+          return
         }
       }
-    } catch (error) {
-      console.error("Error during authentication:", error)
-      // Optionally disconnect wallet on error
-      await disconnect()
-    } finally {
-      setIsAuthenticating(false)
-    }
-  }, [publicKey, signIn, disconnect])
+
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/login`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              message: siwsOutput.message,
+              signed_message: bs58.encode(siwsOutput.signedMessage),
+              signature: bs58.encode(siwsOutput.signature),
+              token,
+            }),
+          },
+        )
+
+        const body = await response.json()
+
+        if (response.ok) {
+          setAuthState("authenticated")
+          setUserId(body.data.user_id)
+        } else if (body.error == "not_linked") {
+          setAuthState("needs_link")
+        } else if (body.error == "not_granted") {
+          setAuthState("needs_grant")
+        } else {
+          console.error("Authentication failed:", body.error)
+          await disconnect()
+        }
+      } catch (error) {
+        console.error("Error during authentication:", error)
+        await disconnect()
+      }
+    },
+    [publicKey, signIn, siwsPayload, disconnect],
+  )
 
   const logout = useCallback(async () => {
     try {
-      // Call backend to clear session cookie
       await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
@@ -105,22 +135,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error("Error during logout:", error)
     }
 
-    setIsAuthenticated(false)
-    setUser(null)
     await disconnect()
+    setUserId(null)
+    setAuthState("unauthenticated")
   }, [disconnect])
+
+  if (connected && authState === "unauthenticated") {
+    signInWithSolana()
+  }
+
+  if (!connected && authState !== "unauthenticated") {
+    logout()
+  }
 
   return (
     <AuthContext.Provider
       value={{
-        isAuthenticated,
-        isAuthenticating,
-        user,
-        login,
+        authState,
+        userId,
+        login: signInWithSolana,
         logout,
       }}
     >
       {children}
+      <Modal
+        title="Wallet not recognized"
+        isOpen={authState === "needs_link"}
+        onClose={logout}
+      >
+        <AccountNeedsLink />
+      </Modal>
+      <Modal
+        title="Permission required"
+        isOpen={authState === "needs_grant"}
+        onClose={logout}
+      >
+        <AccountNeedsGrant />
+      </Modal>
     </AuthContext.Provider>
   )
 }

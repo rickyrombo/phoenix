@@ -1,8 +1,9 @@
-import { useWallet } from "@solana/wallet-adapter-react"
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 import styled from "styled-components"
 import { useAuth } from "../contexts/AuthContext"
-import { useEffect } from "react"
+import { useUser } from "../queries/useUser"
+import { WithMirrors } from "./WithMirrors"
+import { Flex } from "./core/Flex"
 
 const StyledWalletButton = styled(WalletMultiButton)`
   && {
@@ -64,19 +65,10 @@ const LogoutButton = styled.button`
   }
 `
 
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-`
-
-const WalletAddress = styled.span`
+const Handle = styled.span`
   font-family: "Kode Mono", monospace;
   font-size: 0.875rem;
   color: oklch(71.4% 0.203 305.504);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
 
   @media (max-width: 768px) {
     font-size: 0.75rem;
@@ -84,26 +76,36 @@ const WalletAddress = styled.span`
 `
 
 export default function ConnectWalletButton() {
-  const { connected, publicKey } = useWallet()
-  const { isAuthenticated, isAuthenticating, user, login, logout } = useAuth()
+  const { authState, logout, userId } = useAuth()
 
-  // Automatically trigger login when wallet connects
-  useEffect(() => {
-    if (connected && publicKey && !isAuthenticated && !isAuthenticating) {
-      login()
+  const { data: user } = useUser(userId!, {
+    enabled: userId !== null && authState === "authenticated",
+  })
+
+  if (authState === "authenticated" && user) {
+    if (user.profile_picture) {
+      return (
+        <Flex gap={24} alignItems="center">
+          <Handle>@{user.handle}</Handle>
+          <WithMirrors
+            url={user.profile_picture.small}
+            mirrors={user.profile_picture.mirrors}
+          >
+            {(url, onError) => (
+              <img
+                src={url}
+                alt="User Avatar"
+                width={32}
+                height={32}
+                onError={onError}
+                style={{ borderRadius: "50%" }}
+              />
+            )}
+          </WithMirrors>
+        </Flex>
+      )
     }
-  }, [connected, publicKey, isAuthenticated, isAuthenticating, login])
-
-  if (isAuthenticated && user) {
-    return (
-      <ButtonGroup>
-        <WalletAddress>
-          {user.walletAddress.slice(0, 4)}...{user.walletAddress.slice(-4)}
-        </WalletAddress>
-        <LogoutButton onClick={logout}>Disconnect</LogoutButton>
-      </ButtonGroup>
-    )
   }
 
-  return <StyledWalletButton disabled={isAuthenticating} />
+  return <StyledWalletButton disabled={authState === "siws_in_progress"} />
 }

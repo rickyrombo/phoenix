@@ -61,3 +61,7 @@ a:hover {
 button {
   font-family: inherit;
 }
+
+p {
+  margin-bottom: 1em;
+}
