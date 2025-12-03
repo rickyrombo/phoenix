@@ -365,3 +365,18 @@ CREATE TABLE IF NOT EXISTS grants (
 );
 CREATE INDEX IF NOT EXISTS idx_grants_approved ON grants(approved) WHERE approved = true;
 CREATE INDEX IF NOT EXISTS idx_grants_address ON grants(address);
+
+-- =========================
+--       SESSIONS
+-- =========================
+
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    user_id INT NOT NULL,
+    data BYTEA NOT NULL,
+    expiry TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expiry);

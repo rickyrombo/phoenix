@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/storage/postgres/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,10 +26,11 @@ type Config struct {
 
 type Server struct {
 	*fiber.App
-	pool   *pgxpool.Pool
-	sdk    *sdk.OpenAudioSDK
-	AppKey string
-	Logger *slog.Logger
+	pool     *pgxpool.Pool
+	sdk      *sdk.OpenAudioSDK
+	AppKey   string
+	Logger   *slog.Logger
+	sessions *session.Store
 }
 
 func NewServer(cfg *Config) (*Server, error) {
@@ -44,11 +48,29 @@ func NewServer(cfg *Config) (*Server, error) {
 	}
 	sdk.SetPrivKey(privkey)
 
+	// Configure PostgreSQL session storage
+	storage := postgres.New(postgres.Config{
+		ConnectionURI: cfg.DatabaseURL,
+		Table:         "fiber_storage",
+		Reset:         false,
+	})
+
+	// Configure session store
+	sessionStore := session.New(session.Config{
+		Storage:        storage,
+		Expiration:     30 * 24 * time.Hour, // 30 days
+		KeyLookup:      "cookie:session",
+		CookieSecure:   true,
+		CookieHTTPOnly: true,
+		CookieSameSite: "Lax",
+	})
+
 	server := &Server{
-		pool:   pool,
-		sdk:    sdk,
-		AppKey: cfg.AppKey,
-		Logger: cfg.Logger,
+		pool:     pool,
+		sdk:      sdk,
+		AppKey:   cfg.AppKey,
+		Logger:   cfg.Logger,
+		sessions: sessionStore,
 	}
 
 	app := fiber.New(

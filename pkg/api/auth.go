@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -160,16 +159,17 @@ func (s *Server) login(c *fiber.Ctx) error {
 		}
 	}
 
-	// Set secure session cookie that lasts for 30 days
-	c.Cookie(&fiber.Cookie{
-		Name:     "session",
-		Value:    fmt.Sprintf("%d", userId),
-		Path:     "/",
-		MaxAge:   30 * 24 * 60 * 60, // 30 days in seconds
-		Secure:   true,
-		HTTPOnly: true,
-		SameSite: "Lax",
-	})
+	// Store user ID in session
+	sess, err := s.sessions.Get(c)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	sess.Set("user_id", userId)
+
+	if err := sess.Save(); err != nil {
+		return fmt.Errorf("failed to save session: %w", err)
+	}
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -416,25 +416,17 @@ func (s *Server) verifyToken(ctx context.Context, token string) error {
 	return fmt.Errorf("wallet %s doesn't match user handle %s", walletLower, payload.Handle)
 }
 
-// getUserIdFromSession extracts and validates the user ID from the session cookie
-func getUserIdFromSession(c *fiber.Ctx) (int, error) {
-	sessionCookie := c.Cookies("session")
-	if sessionCookie == "" {
-		return 0, fiber.NewError(fiber.StatusUnauthorized, "No session cookie")
-	}
-
-	userId, err := strconv.Atoi(sessionCookie)
-	if err != nil {
-		return 0, fiber.NewError(fiber.StatusUnauthorized, "Invalid session cookie")
-	}
-
-	return userId, nil
-}
-
-// authStatus returns the current authentication status based on the session cookie
+// authStatus returns the current authentication status based on the session
 func (s *Server) authStatus(c *fiber.Ctx) error {
-	userId, err := getUserIdFromSession(c)
+	sess, err := s.sessions.Get(c)
 	if err != nil {
+		return c.JSON(fiber.Map{
+			"authenticated": false,
+		})
+	}
+
+	userId := sess.Get("user_id")
+	if userId == nil {
 		return c.JSON(fiber.Map{
 			"authenticated": false,
 		})
@@ -446,17 +438,16 @@ func (s *Server) authStatus(c *fiber.Ctx) error {
 	})
 }
 
-// logout clears the session cookie
+// logout destroys the session
 func (s *Server) logout(c *fiber.Ctx) error {
-	c.Cookie(&fiber.Cookie{
-		Name:     "session",
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1, // Delete the cookie
-		Secure:   true,
-		HTTPOnly: true,
-		SameSite: "Lax",
-	})
+	sess, err := s.sessions.Get(c)
+	if err != nil {
+		return fmt.Errorf("failed to get session: %w", err)
+	}
+
+	if err := sess.Destroy(); err != nil {
+		return fmt.Errorf("failed to destroy session: %w", err)
+	}
 
 	return c.JSON(fiber.Map{
 		"success": true,
