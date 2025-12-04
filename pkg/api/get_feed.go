@@ -4,11 +4,11 @@ import (
 	"time"
 
 	"github.com/creasty/defaults"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getFeedDistinct(c *fiber.Ctx) error {
+func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 	var queryParams struct {
 		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
@@ -16,7 +16,7 @@ func (s *Server) getFeedDistinct(c *fiber.Ctx) error {
 	}
 	defaults.Set(&queryParams)
 
-	if err := c.QueryParser(&queryParams); err != nil {
+	if err := c.Bind().Query(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid query parameters",
 		})
@@ -76,7 +76,7 @@ func (s *Server) getFeedDistinct(c *fiber.Ctx) error {
 		sub.tx_hash DESC NULLS LAST
 	LIMIT @limit;
 	`
-	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
+	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
 		"userId": queryParams.UserID,
 		"before": queryParams.Before,
 		"limit":  queryParams.Limit,
@@ -109,7 +109,7 @@ func (s *Server) getFeedDistinct(c *fiber.Ctx) error {
 	})
 }
 
-func (s *Server) getFeed(c *fiber.Ctx) error {
+func (s *Server) getFeed(c fiber.Ctx) error {
 	var queryParams struct {
 		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
@@ -117,7 +117,7 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 	}
 	defaults.Set(&queryParams)
 
-	if err := c.QueryParser(&queryParams); err != nil {
+	if err := c.Bind().Query(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid query parameters",
 		})
@@ -158,7 +158,7 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 			manage_entity_txs.tx_hash DESC NULLS LAST
 		LIMIT @limit;
 	`
-	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
+	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
 		"userId": queryParams.UserID,
 		"before": queryParams.Before,
 		"limit":  queryParams.Limit,
@@ -190,3 +190,5 @@ func (s *Server) getFeed(c *fiber.Ctx) error {
 		"data": feed,
 	})
 }
+
+// fiber:context-methods migrated

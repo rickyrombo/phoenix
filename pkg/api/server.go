@@ -9,12 +9,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/gofiber/fiber/v3/extractors"
+
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/csrf"
-	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/csrf"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/postgres/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -61,10 +63,10 @@ func NewServer(cfg *Config) (*Server, error) {
 	})
 
 	// Configure session store
-	sessionStore := session.New(session.Config{
+	sessionStore := session.NewStore(session.Config{
 		Storage:        storage,
-		Expiration:     30 * 24 * time.Hour, // 30 days
-		KeyLookup:      "cookie:session",
+		IdleTimeout:    30 * 24 * time.Hour, // 30 days
+		Extractor:      extractors.FromCookie("session"),
 		CookieSecure:   true,
 		CookieHTTPOnly: true,
 		CookieSameSite: "Lax",
@@ -80,27 +82,26 @@ func NewServer(cfg *Config) (*Server, error) {
 	}
 
 	app := fiber.New(
-		fiber.Config{
-			ErrorHandler: server.handleError,
-		},
+		fiber.Config{ErrorHandler: server.handleError},
 	)
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "https://localhost:5173,https://phoenix.rickyrombo.com",
+		AllowOrigins:     []string{"https://localhost:5173", "https://phoenix.rickyrombo.com"},
 		AllowCredentials: true,
-		AllowHeaders:     "Origin, Content-Type, Accept, X-CSRF-Token",
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "X-CSRF-Token"},
 	}))
 
 	// CSRF protection middleware
 	csrfMiddleware := csrf.New(csrf.Config{
-		KeyLookup:      "header:X-CSRF-Token",
-		CookieName:     "__Host-csrf",
-		CookieSameSite: "Lax",
-		CookieSecure:   true,
-		CookieHTTPOnly: true,
-		Expiration:     30 * 24 * time.Hour, // 30 days
-		Storage:        storage,
-		Session:        sessionStore,
-		SessionKey:     "csrf_token",
+		Extractor:         extractors.FromHeader("X-CSRF-Token"),
+		CookieName:        "__Host-csrf",
+		CookieSameSite:    "Lax",
+		CookieSecure:      true,
+		CookieHTTPOnly:    true,
+		CookieSessionOnly: true,
+		IdleTimeout:       30 * 24 * time.Hour, // 30 days
+		Storage:           storage,
+		Session:           sessionStore,
+		TrustedOrigins:    []string{"https://localhost:5173", "https://phoenix.rickyrombo.com"},
 	})
 
 	// Routes that don't require CSRF validation (GET requests)
@@ -120,7 +121,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	return server, nil
 }
 
-func (s *Server) handleError(c *fiber.Ctx, err error) error {
+func (s *Server) handleError(c fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
 
 	var e *fiber.Error

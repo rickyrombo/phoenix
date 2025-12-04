@@ -3,15 +3,15 @@ package api
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getTracks(c *fiber.Ctx) error {
+func (s *Server) getTracks(c fiber.Ctx) error {
 	var queryParams struct {
 		Ids []int `query:"id"`
 	}
-	if err := c.QueryParser(&queryParams); err != nil {
+	if err := c.Bind().Query(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid query parameters",
 		})
@@ -46,7 +46,7 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 			AND stem_of IS NULL
 		;
 	`
-	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
+	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
 		"ids": queryParams.Ids,
 	})
 	if err != nil {
@@ -88,14 +88,14 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 	}
 	tracks := make([]trackResponse, 0, len(trackRows))
 	for _, tr := range trackRows {
-		stream, err := s.getStreamMirrors(c.Context(), tr.TrackCID, nil, &tr.TrackID)
+		stream, err := s.getStreamMirrors(c.RequestCtx(), tr.TrackCID, nil, &tr.TrackID)
 		if err != nil {
 			return fmt.Errorf("failed to get stream mirrors for track %d: %w", tr.TrackID, err)
 		}
 
 		var coverArt *ImageMirrors
 		if tr.CoverArtSizes != nil {
-			coverArt, err = s.getImageMirrors(c.Context(), *tr.CoverArtSizes)
+			coverArt, err = s.getImageMirrors(c.RequestCtx(), *tr.CoverArtSizes)
 			if err != nil {
 				return fmt.Errorf("failed to get cover art mirrors for track %d: %w", tr.TrackID, err)
 			}
@@ -113,3 +113,5 @@ func (s *Server) getTracks(c *fiber.Ctx) error {
 		"data": tracks,
 	})
 }
+
+// fiber:context-methods migrated

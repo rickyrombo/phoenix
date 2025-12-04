@@ -3,15 +3,15 @@ package api
 import (
 	"fmt"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getComments(c *fiber.Ctx) error {
+func (s *Server) getComments(c fiber.Ctx) error {
 	var routeParams struct {
 		TrackID int `params:"id"`
 	}
-	if err := c.ParamsParser(&routeParams); err != nil {
+	if err := c.Bind().URI(&routeParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid route parameters"})
 	}
 
@@ -41,7 +41,7 @@ func (s *Server) getComments(c *fiber.Ctx) error {
 		ORDER BY c.track_timestamp_s NULLS FIRST, c.created_at ASC
 	`
 
-	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{"trackId": routeParams.TrackID})
+	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{"trackId": routeParams.TrackID})
 	if err != nil {
 		s.Logger.Error("Failed to fetch comments", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch comments"})
@@ -72,7 +72,7 @@ func (s *Server) getComments(c *fiber.Ctx) error {
 	for _, cr := range commentRows {
 		var avatarURL *string
 		if cr.ProfilePictureSizes != nil {
-			img, err := s.getImageMirrors(c.Context(), *cr.ProfilePictureSizes)
+			img, err := s.getImageMirrors(c.RequestCtx(), *cr.ProfilePictureSizes)
 			if err == nil && img != nil {
 				avatarURL = &img.Small
 			}
@@ -82,7 +82,7 @@ func (s *Server) getComments(c *fiber.Ctx) error {
 		for _, child := range cr.Children {
 			var childAvatarURL *string
 			if child.ProfilePictureSizes != nil {
-				img, err := s.getImageMirrors(c.Context(), *child.ProfilePictureSizes)
+				img, err := s.getImageMirrors(c.RequestCtx(), *child.ProfilePictureSizes)
 				if err == nil && img != nil {
 					childAvatarURL = &img.Small
 				}
@@ -103,3 +103,5 @@ func (s *Server) getComments(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{"data": out})
 }
+
+// fiber:context-methods migrated

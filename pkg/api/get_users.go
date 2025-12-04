@@ -1,15 +1,15 @@
 package api
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getUsers(c *fiber.Ctx) error {
+func (s *Server) getUsers(c fiber.Ctx) error {
 	var queryParams struct {
 		Ids []int `query:"id"`
 	}
-	if err := c.QueryParser(&queryParams); err != nil {
+	if err := c.Bind().Query(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid query parameters",
 		})
@@ -41,7 +41,7 @@ func (s *Server) getUsers(c *fiber.Ctx) error {
 		WHERE user_id = ANY(@ids)
 		;
 	`
-	rows, err := s.pool.Query(c.Context(), sql, pgx.NamedArgs{
+	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
 		"ids": queryParams.Ids,
 	})
 	if err != nil {
@@ -84,7 +84,7 @@ func (s *Server) getUsers(c *fiber.Ctx) error {
 	for _, u := range userRows {
 		var profilePicture *ImageMirrors
 		if u.ProfilePictureSizes != nil {
-			profilePicture, err = s.getImageMirrors(c.Context(), *u.ProfilePictureSizes)
+			profilePicture, err = s.getImageMirrors(c.RequestCtx(), *u.ProfilePictureSizes)
 			if err != nil {
 				return err
 			}
@@ -92,7 +92,7 @@ func (s *Server) getUsers(c *fiber.Ctx) error {
 
 		var coverPhoto *WideImageMirrors
 		if u.CoverPhotoSizes != nil {
-			coverPhoto, err = s.getWideImageMirrors(c.Context(), *u.CoverPhotoSizes)
+			coverPhoto, err = s.getWideImageMirrors(c.RequestCtx(), *u.CoverPhotoSizes)
 			if err != nil {
 				return err
 			}
@@ -109,3 +109,5 @@ func (s *Server) getUsers(c *fiber.Ctx) error {
 		"data": users,
 	})
 }
+
+// fiber:context-methods migrated

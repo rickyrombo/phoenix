@@ -11,7 +11,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/csrf"
 	"github.com/jackc/pgx/v5"
 	"github.com/mr-tron/base58/base58"
 )
@@ -69,7 +70,7 @@ func (s *solanaSignInInput) Prepare() string {
 	return sb
 }
 
-func (s *Server) login(c *fiber.Ctx) error {
+func (s *Server) login(c fiber.Ctx) error {
 	type loginRequest struct {
 		Message       solanaSignInInput `json:"message"`
 		SignedMessage string            `json:"signed_message"`
@@ -78,7 +79,7 @@ func (s *Server) login(c *fiber.Ctx) error {
 	}
 
 	var req loginRequest
-	if err := c.BodyParser(&req); err != nil {
+	if err := c.Bind().Body(&req); err != nil {
 		s.Logger.Error("Failed to parse login request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
@@ -136,10 +137,10 @@ func (s *Server) login(c *fiber.Ctx) error {
 		})
 	}
 
-	userId, err := s.verifyWalletLink(c.Context(), req.Message.Address)
+	userId, err := s.verifyWalletLink(c.RequestCtx(), req.Message.Address)
 	if err != nil {
 		if err == ErrNotLinked && req.Token != "" {
-			userId, err = s.linkWalletToUser(c.Context(), req.Message.Address, req.Token)
+			userId, err = s.linkWalletToUser(c.RequestCtx(), req.Message.Address, req.Token)
 			if err != nil {
 				return err
 			}
@@ -148,9 +149,9 @@ func (s *Server) login(c *fiber.Ctx) error {
 		}
 	}
 
-	if err := s.verifyWalletGrant(c.Context(), userId); err != nil {
+	if err := s.verifyWalletGrant(c.RequestCtx(), userId); err != nil {
 		if err == ErrNotGranted && req.Token != "" {
-			err = s.verifyToken(c.Context(), req.Token)
+			err = s.verifyToken(c.RequestCtx(), req.Token)
 			if err != nil {
 				return fmt.Errorf("failed to verify token: %w", err)
 			}
@@ -422,7 +423,7 @@ func (s *Server) verifyToken(ctx context.Context, token string) error {
 }
 
 // authStatus returns the current authentication status based on the session
-func (s *Server) authStatus(c *fiber.Ctx) error {
+func (s *Server) authStatus(c fiber.Ctx) error {
 	sess, err := s.sessions.Get(c)
 	if err != nil {
 		return c.JSON(fiber.Map{
@@ -444,7 +445,7 @@ func (s *Server) authStatus(c *fiber.Ctx) error {
 }
 
 // logout destroys the session
-func (s *Server) logout(c *fiber.Ctx) error {
+func (s *Server) logout(c fiber.Ctx) error {
 	sess, err := s.sessions.Get(c)
 	if err != nil {
 		return fmt.Errorf("failed to get session: %w", err)
@@ -460,11 +461,13 @@ func (s *Server) logout(c *fiber.Ctx) error {
 }
 
 // getCsrfToken returns the CSRF token for the client
-func (s *Server) getCsrfToken(c *fiber.Ctx) error {
+func (s *Server) getCsrfToken(c fiber.Ctx) error {
 	// The CSRF token is stored in c.Locals by the CSRF middleware
-	token := c.Locals("csrf")
+	token := csrf.TokenFromContext(c)
 
 	return c.JSON(fiber.Map{
 		"csrf_token": token,
 	})
 }
+
+// fiber:context-methods migrated
