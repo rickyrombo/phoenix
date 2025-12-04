@@ -71,6 +71,8 @@ const Item = styled.div<{ $active?: boolean; $isOver?: boolean }>`
     width: 28px;
     height: 28px;
     margin-right: 0.25rem;
+    flex: 0;
+    cursor: grab;
   }
 
   .remove-btn {
