@@ -90,6 +90,27 @@ func NewServer(cfg *Config) (*Server, error) {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "X-CSRF-Token"},
 	}))
 
+	// Ensure every request has a session (even unauthed users) for CSRF token storage
+	app.Use(func(c fiber.Ctx) error {
+		sess, err := sessionStore.Get(c)
+		if err != nil {
+			server.Logger.Error("Failed to get/create session", "error", err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Session initialization failed",
+			})
+		}
+
+		// Initialize session with default values if it's new
+		if sess.Fresh() {
+			sess.Set("authenticated", false)
+			if err := sess.Save(); err != nil {
+				server.Logger.Error("Failed to save new session", "error", err)
+			}
+		}
+
+		return c.Next()
+	})
+
 	// CSRF protection middleware
 	csrfMiddleware := csrf.New(csrf.Config{
 		Extractor:         extractors.FromHeader("X-CSRF-Token"),

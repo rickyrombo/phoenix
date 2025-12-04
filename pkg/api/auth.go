@@ -167,6 +167,7 @@ func (s *Server) login(c fiber.Ctx) error {
 	}
 
 	sess.Set("user_id", userId)
+	sess.Set("authenticated", true)
 
 	// Regenerate session ID to prevent session fixation attacks
 	if err := sess.Regenerate(); err != nil {
@@ -431,6 +432,13 @@ func (s *Server) authStatus(c fiber.Ctx) error {
 		})
 	}
 
+	authenticated := sess.Get("authenticated")
+	if authenticated == nil {
+		return c.JSON(fiber.Map{
+			"authenticated": false,
+		})
+	}
+
 	userId := sess.Get("user_id")
 	if userId == nil {
 		return c.JSON(fiber.Map{
@@ -439,7 +447,7 @@ func (s *Server) authStatus(c fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"authenticated": true,
+		"authenticated": authenticated,
 		"user_id":       userId,
 	})
 }
