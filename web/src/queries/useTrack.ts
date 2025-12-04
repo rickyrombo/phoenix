@@ -27,6 +27,9 @@ export type Track = {
   is_reposted: boolean
 }
 
+export const getTrackQueryKey = (trackId: number) =>
+  getTrackQueryOptions(trackId).queryKey
+
 const getTrackFn = async (trackId: number) => {
   const response = await fetch(
     `${import.meta.env.VITE_API_BASE_URL}/tracks?id=${trackId}`,

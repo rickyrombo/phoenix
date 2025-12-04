@@ -1,5 +1,6 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCsrf } from "./useCsrf"
+import { getTrackQueryKey } from "./useTrack"
 
 const saveTrackFn = async ({
   trackId,
@@ -34,8 +35,31 @@ const saveTrackFn = async ({
 
 export const useSaveTrack = () => {
   const { data: csrfToken } = useCsrf()
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (trackId: number) =>
       saveTrackFn({ trackId, csrfToken: csrfToken }),
+    onMutate: async (trackId: number) => {
+      await queryClient.cancelQueries({ queryKey: getTrackQueryKey(trackId) })
+      const previousTrack = queryClient.getQueryData(getTrackQueryKey(trackId))
+      queryClient.setQueryData(getTrackQueryKey(trackId), (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          is_saved: true,
+          save_count: oldData.save_count + 1,
+        }
+      })
+      return { previousTrack }
+    },
+    onError: (_data, trackId, context) => {
+      if (context?.previousTrack) {
+        queryClient.setQueryData(
+          getTrackQueryKey(trackId),
+          context.previousTrack,
+        )
+      }
+    },
   })
 }

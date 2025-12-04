@@ -20,33 +20,46 @@ const Count = styled.span`
   line-height: 1;
 `
 
+const ToggleButton = styled(Button)<{ $isOn: boolean }>`
+  ${(props) => {
+    if (props.$isOn) {
+      return `
+        color: oklch(71.4% 0.203 305.504)
+      `
+    }
+  }}
+`
+
 interface SocialButtonProps {
   icon: ReactNode
   label: string
   title: string
   expanded: boolean
   count?: number
+  isOn?: boolean
   onClick?: () => void
 }
 
-export default function SocialButton({
+export default function SocialActionButton({
   icon,
   label,
   title,
   expanded,
   count,
+  isOn,
   onClick,
 }: SocialButtonProps) {
   return (
-    <Button
+    <ToggleButton
       size="xs"
       title={title}
       spacing={expanded ? "normal" : "compact"}
       onClick={onClick}
+      $isOn={!!isOn}
     >
       <Icon>{icon}</Icon>
       <Label $expanded={expanded}>{label}</Label>
       {count !== undefined && count > 0 && <Count>{count}</Count>}
-    </Button>
+    </ToggleButton>
   )
 }

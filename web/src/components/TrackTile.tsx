@@ -1,5 +1,5 @@
 import styled from "styled-components"
-import SocialButton from "./SocialButton"
+import SocialActionButton from "./SocialButton"
 import WaveformPlayer from "./WaveformPlayer"
 import ActiveComments from "./ActiveComments"
 import TimestampedComments from "./TimestampedComments"
@@ -430,7 +430,7 @@ function TrackTile({
   const { mutate: saveTrack } = useSaveTrack()
   const { mutate: unsaveTrack } = useUnsaveTrack()
 
-  const handleFavoriteClick = () => {
+  const handleSaveClicked = () => {
     if (track.is_saved) {
       unsaveTrack(track.track_id)
     } else {
@@ -533,7 +533,7 @@ function TrackTile({
         <TrackFooter>
           <FooterLeft>
             <ButtonGroup>
-              <SocialButton
+              <SocialActionButton
                 icon={
                   <IconHeart
                     size={16}
@@ -547,22 +547,23 @@ function TrackTile({
                 }
                 expanded={isActive}
                 count={track.save_count}
-                onClick={handleFavoriteClick}
+                isOn={track.is_saved}
+                onClick={handleSaveClicked}
               />
-              <SocialButton
+              <SocialActionButton
                 icon={<IconRepeat size={16} stroke={2} />}
                 label="Repost"
                 title="Repost"
                 expanded={isActive}
                 count={track.repost_count}
               />
-              <SocialButton
+              <SocialActionButton
                 icon={<IconShare3 size={16} stroke={2} />}
                 label="Share"
                 title="Share"
                 expanded={isActive}
               />
-              <SocialButton
+              <SocialActionButton
                 icon={<IconDownload size={16} stroke={2} />}
                 label="Download"
                 title="Download"
