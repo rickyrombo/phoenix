@@ -23,6 +23,8 @@ export type Track = {
   waveform: number[]
   stream: StreamMirrors
   cover_art?: ImageMirrors
+  is_saved: boolean
+  is_reposted: boolean
 }
 
 const getTrackFn = async (trackId: number) => {

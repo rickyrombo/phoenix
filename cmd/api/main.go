@@ -18,6 +18,7 @@ func main() {
 	databaseURL := os.Getenv("DATABASE_URL")
 	audiusURL := os.Getenv("AUDIUS_URL")
 	delegatePrivateKey := os.Getenv("DELEGATE_PRIVATE_KEY")
+	apiSecret := os.Getenv("AUDIUS_API_SECRET")
 	logLevel := os.Getenv("LOG_LEVEL")
 	appKey := os.Getenv("AUDIUS_API_KEY")
 	environment := os.Getenv("ENVIRONMENT")
@@ -39,6 +40,7 @@ func main() {
 		DatabaseURL:        databaseURL,
 		AudiusURL:          audiusURL,
 		AppKey:             appKey,
+		AppSecret:          apiSecret,
 		Logger:             logger,
 		DelegatePrivateKey: delegatePrivateKey,
 		Environment:        environment,

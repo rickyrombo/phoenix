@@ -24,6 +24,8 @@ import useTrackComments from "../queries/useTrackComments"
 import { WithMirrors } from "./WithMirrors"
 import Linkify from "linkify-react"
 import { GhostButton } from "./core/Button"
+import { useSaveTrack } from "../queries/useSaveTrack"
+import { useUnsaveTrack } from "../queries/useUnsaveTrack"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -425,6 +427,16 @@ function TrackTile({
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const { data: comments } = useTrackComments(track.track_id)
+  const { mutate: saveTrack } = useSaveTrack()
+  const { mutate: unsaveTrack } = useUnsaveTrack()
+
+  const handleFavoriteClick = () => {
+    if (track.is_saved) {
+      unsaveTrack(track.track_id)
+    } else {
+      saveTrack(track.track_id)
+    }
+  }
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -522,11 +534,20 @@ function TrackTile({
           <FooterLeft>
             <ButtonGroup>
               <SocialButton
-                icon={<IconHeart size={16} stroke={2} />}
+                icon={
+                  <IconHeart
+                    size={16}
+                    stroke={2}
+                    fill={track.is_saved ? "currentColor" : "none"}
+                  />
+                }
                 label="Favorite"
-                title="Favorite"
+                title={
+                  track.is_saved ? "Remove from favorites" : "Add to favorites"
+                }
                 expanded={isActive}
                 count={track.save_count}
+                onClick={handleFavoriteClick}
               />
               <SocialButton
                 icon={<IconRepeat size={16} stroke={2} />}

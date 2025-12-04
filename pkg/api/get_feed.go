@@ -82,7 +82,7 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 		"limit":  queryParams.Limit,
 	})
 	if err != nil {
-		s.Logger.Error("Failed to fetch feed", "error", err)
+		s.logger.Error("Failed to fetch feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch feed",
 		})
@@ -98,7 +98,7 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 	}
 	feed, err := pgx.CollectRows(rows, pgx.RowToStructByName[feedItem])
 	if err != nil {
-		s.Logger.Error("Failed to parse feed", "error", err)
+		s.logger.Error("Failed to parse feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse feed",
 		})
@@ -164,7 +164,7 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 		"limit":  queryParams.Limit,
 	})
 	if err != nil {
-		s.Logger.Error("Failed to fetch feed", "error", err)
+		s.logger.Error("Failed to fetch feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch feed",
 		})
@@ -180,7 +180,7 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 	}
 	feed, err := pgx.CollectRows(rows, pgx.RowToStructByName[feedItem])
 	if err != nil {
-		s.Logger.Error("Failed to parse feed", "error", err)
+		s.logger.Error("Failed to parse feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse feed",
 		})

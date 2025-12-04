@@ -19,7 +19,7 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 
 	sql := `
 		SELECT
-			track_id,
+			tracks.track_id,
 			title,
 			description,
 			cover_art_sizes,
@@ -36,21 +36,26 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 			track_waveforms.peaks AS track_waveform,
 			preview_waveforms.peaks AS preview_waveform,
 			track_cid,
-			preview_cid
+			preview_cid,
+			track_saves.user_id IS NOT NULL AS is_saved,
+			track_reposts.user_id IS NOT NULL AS is_reposted
 		FROM tracks
-		JOIN track_aggregates USING (track_id)
+		JOIN track_aggregates ON track_aggregates.track_id = tracks.track_id
 		LEFT JOIN waveforms track_waveforms ON track_waveforms.cid = tracks.track_cid
 		LEFT JOIN waveforms preview_waveforms ON preview_waveforms.cid = tracks.preview_cid
-		WHERE track_id = ANY(@ids)
+		LEFT JOIN track_saves ON track_saves.track_id = tracks.track_id AND track_saves.user_id = NULLIF(@currentUserId, 0)
+		LEFT JOIN track_reposts ON track_reposts.track_id = tracks.track_id AND track_reposts.user_id = NULLIF(@currentUserId, 0)
+		WHERE tracks.track_id = ANY(@ids)
 			AND is_unlisted = FALSE
 			AND stem_of IS NULL
 		;
 	`
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
-		"ids": queryParams.Ids,
+		"ids":           queryParams.Ids,
+		"currentUserId": s.getCurrentUserID(c),
 	})
 	if err != nil {
-		s.Logger.Error("Failed to fetch tracks", "error", err)
+		s.logger.Error("Failed to fetch tracks", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch tracks",
 		})
@@ -74,6 +79,8 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 		PreviewWaveform []float32 `json:"-"`
 		TrackCID        string    `json:"-"`
 		PreviewCID      *string   `json:"-"`
+		IsSaved         bool      `json:"is_saved"`
+		IsReposted      bool      `json:"is_reposted"`
 	}
 	trackRows, err := pgx.CollectRows(rows, pgx.RowToStructByName[trackRow])
 	if err != nil {

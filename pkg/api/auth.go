@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/csrf"
+	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/jackc/pgx/v5"
 	"github.com/mr-tron/base58/base58"
 )
@@ -80,7 +81,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	var req loginRequest
 	if err := c.Bind().Body(&req); err != nil {
-		s.Logger.Error("Failed to parse login request body", "error", err)
+		s.logger.Error("Failed to parse login request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
@@ -88,7 +89,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	messageBytes, err := base58.Decode(req.SignedMessage)
 	if err != nil {
-		s.Logger.Error("Failed to decode message", "error", err)
+		s.logger.Error("Failed to decode message", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid message encoding",
 		})
@@ -96,7 +97,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	signatureBytes, err := base58.Decode(req.Signature)
 	if err != nil {
-		s.Logger.Error("Failed to decode signature", "error", err)
+		s.logger.Error("Failed to decode signature", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid signature encoding",
 		})
@@ -117,7 +118,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	message := req.Message.Prepare()
 	if message != string(messageBytes) {
-		s.Logger.Error("Sign-in message content does not match signed message", "expected", message, "actual", string(messageBytes))
+		s.logger.Error("Sign-in message content does not match signed message", "expected", message, "actual", string(messageBytes))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Sign-in message content does not match signed message",
 		})
@@ -161,10 +162,7 @@ func (s *Server) login(c fiber.Ctx) error {
 	}
 
 	// Store user ID in session
-	sess, err := s.sessions.Get(c)
-	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
+	sess := session.FromContext(c).Session
 
 	sess.Set("user_id", userId)
 	sess.Set("authenticated", true)
@@ -228,7 +226,7 @@ func (s Server) verifyWalletGrant(ctx context.Context, userId int) error {
 	var granted bool
 	err := s.pool.QueryRow(ctx, sql, pgx.NamedArgs{
 		"userID":     userId,
-		"appAddress": s.AppKey,
+		"appAddress": s.appKey,
 	}).Scan(&granted)
 
 	if err != nil {
@@ -390,7 +388,7 @@ func (s *Server) verifyToken(ctx context.Context, token string) error {
 		return fmt.Errorf("failed to parse payload: %w", err)
 	}
 
-	if s.AppKey != payload.ApiKey {
+	if s.appKey != payload.ApiKey {
 		return fmt.Errorf("api key mismatch")
 	}
 
@@ -425,12 +423,7 @@ func (s *Server) verifyToken(ctx context.Context, token string) error {
 
 // authStatus returns the current authentication status based on the session
 func (s *Server) authStatus(c fiber.Ctx) error {
-	sess, err := s.sessions.Get(c)
-	if err != nil {
-		return c.JSON(fiber.Map{
-			"authenticated": false,
-		})
-	}
+	sess := session.FromContext(c).Session
 
 	authenticated := sess.Get("authenticated")
 	if authenticated == nil {
@@ -454,10 +447,7 @@ func (s *Server) authStatus(c fiber.Ctx) error {
 
 // logout destroys the session
 func (s *Server) logout(c fiber.Ctx) error {
-	sess, err := s.sessions.Get(c)
-	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
+	sess := session.FromContext(c).Session
 
 	if err := sess.Destroy(); err != nil {
 		return fmt.Errorf("failed to destroy session: %w", err)
@@ -478,4 +468,32 @@ func (s *Server) getCsrfToken(c fiber.Ctx) error {
 	})
 }
 
-// fiber:context-methods migrated
+func (s *Server) getCurrentUserID(c fiber.Ctx) int {
+	sess := session.FromContext(c).Session
+
+	authenticated := sess.Get("authenticated")
+	if authenticated != true {
+		return 0
+	}
+
+	userID := sess.Get("user_id")
+	if userID == nil {
+		return 0
+	}
+
+	userIDInt, ok := userID.(int)
+	if !ok {
+		return 0
+	}
+
+	return userIDInt
+}
+
+func requireAuth(c fiber.Ctx) error {
+	sess := session.FromContext(c).Session
+	authenticated := sess.Get("authenticated")
+	if authenticated != true {
+		return fiber.ErrUnauthorized
+	}
+	return c.Next()
+}

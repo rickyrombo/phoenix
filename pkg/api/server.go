@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -25,6 +26,7 @@ type Config struct {
 	DatabaseURL        string
 	AudiusURL          string
 	DelegatePrivateKey string
+	AppSecret          string
 	AppKey             string
 	Logger             *slog.Logger
 	Environment        string // "development" or "production"
@@ -34,9 +36,9 @@ type Server struct {
 	*fiber.App
 	pool        *pgxpool.Pool
 	sdk         *sdk.OpenAudioSDK
-	AppKey      string
-	Logger      *slog.Logger
-	sessions    *session.Store
+	appKey      string
+	appSecret   *ecdsa.PrivateKey
+	logger      *slog.Logger
 	environment string
 }
 
@@ -54,6 +56,11 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to parse delegate private key: %w", err)
 	}
 	sdk.SetPrivKey(privkey)
+
+	apiKey, err := crypto.HexToECDSA(cfg.AppSecret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse API secret: %w", err)
+	}
 
 	// Configure PostgreSQL session storage
 	storage := postgres.New(postgres.Config{
@@ -75,9 +82,9 @@ func NewServer(cfg *Config) (*Server, error) {
 	server := &Server{
 		pool:        pool,
 		sdk:         sdk,
-		AppKey:      cfg.AppKey,
-		Logger:      cfg.Logger,
-		sessions:    sessionStore,
+		appKey:      cfg.AppKey,
+		appSecret:   apiKey,
+		logger:      cfg.Logger,
 		environment: cfg.Environment,
 	}
 
@@ -90,26 +97,15 @@ func NewServer(cfg *Config) (*Server, error) {
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "X-CSRF-Token"},
 	}))
 
-	// Ensure every request has a session (even unauthed users) for CSRF token storage
-	app.Use(func(c fiber.Ctx) error {
-		sess, err := sessionStore.Get(c)
-		if err != nil {
-			server.Logger.Error("Failed to get/create session", "error", err)
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Session initialization failed",
-			})
-		}
-
-		// Initialize session with default values if it's new
-		if sess.Fresh() {
-			sess.Set("authenticated", false)
-			if err := sess.Save(); err != nil {
-				server.Logger.Error("Failed to save new session", "error", err)
-			}
-		}
-
-		return c.Next()
-	})
+	// Session middleware - ensures all requests get a session (including unauthed)
+	app.Use(session.New(session.Config{
+		Storage:        storage,
+		IdleTimeout:    30 * 24 * time.Hour, // 30 days
+		Extractor:      extractors.FromCookie("session"),
+		CookieSecure:   true,
+		CookieHTTPOnly: true,
+		CookieSameSite: "Lax",
+	}))
 
 	// CSRF protection middleware
 	csrfMiddleware := csrf.New(csrf.Config{
@@ -137,6 +133,10 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Post("/login", csrfMiddleware, server.login)
 	app.Post("/auth/logout", csrfMiddleware, server.logout)
 
+	// Track save/unsave routes (require authentication and CSRF)
+	app.Post("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.saveTrack)
+	app.Delete("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.unsaveTrack)
+
 	server.App = app
 
 	return server, nil
@@ -150,7 +150,7 @@ func (s *Server) handleError(c fiber.Ctx, err error) error {
 		code = e.Code
 	}
 
-	s.Logger.Error("Request error",
+	s.logger.Error("Request error",
 		"error", err,
 		"path", c.Path(),
 		"method", c.Method(),
@@ -163,7 +163,7 @@ func (s *Server) handleError(c fiber.Ctx, err error) error {
 }
 
 func (s *Server) Start() error {
-	s.Logger.Info("Starting API server...")
+	s.logger.Info("Starting API server...")
 
 	// Use HTTPS in development with self-signed certificates
 	if s.environment == "development" {
@@ -172,7 +172,7 @@ func (s *Server) Start() error {
 
 		// Check if certificates exist
 		if _, err := os.Stat(certFile); os.IsNotExist(err) {
-			s.Logger.Error("Certificate files not found. Please run: go run cmd/gencerts/main.go")
+			s.logger.Error("Certificate files not found. Please run: go run cmd/gencerts/main.go")
 			return fmt.Errorf("certificate files not found in certs/ directory")
 		}
 
@@ -193,7 +193,7 @@ func (s *Server) Start() error {
 			return fmt.Errorf("failed to create TLS listener: %w", err)
 		}
 
-		s.Logger.Info("API server running with HTTPS (development mode)", "addr", "https://localhost:8000")
+		s.logger.Info("API server running with HTTPS (development mode)", "addr", "https://localhost:8000")
 		return s.Listener(ln)
 	}
 
@@ -202,7 +202,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown() error {
-	s.Logger.Info("Shutting down API server...")
+	s.logger.Info("Shutting down API server...")
 	s.pool.Close()
 	return s.App.Shutdown()
 }
