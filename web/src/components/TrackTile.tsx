@@ -24,8 +24,8 @@ import useTrackComments from "../queries/useTrackComments"
 import { WithMirrors } from "./WithMirrors"
 import Linkify from "linkify-react"
 import { GhostButton } from "./core/Button"
-import { useSaveTrack } from "../queries/useSaveTrack"
-import { useUnsaveTrack } from "../queries/useUnsaveTrack"
+import { useSaveTrack, useUnsaveTrack } from "../queries/useTrackSave"
+import { useRepostTrack, useUnrepostTrack } from "../queries/useTrackRepost"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -429,12 +429,22 @@ function TrackTile({
   const { data: comments } = useTrackComments(track.track_id)
   const { mutate: saveTrack } = useSaveTrack()
   const { mutate: unsaveTrack } = useUnsaveTrack()
+  const { mutate: repostTrack } = useRepostTrack()
+  const { mutate: unrepostTrack } = useUnrepostTrack()
 
   const handleSaveClicked = () => {
     if (track.is_saved) {
       unsaveTrack(track.track_id)
     } else {
       saveTrack(track.track_id)
+    }
+  }
+
+  const handleRepostClicked = () => {
+    if (track.is_reposted) {
+      unrepostTrack(track.track_id)
+    } else {
+      repostTrack(track.track_id)
     }
   }
 
@@ -556,6 +566,8 @@ function TrackTile({
                 title="Repost"
                 expanded={isActive}
                 count={track.repost_count}
+                isOn={track.is_reposted}
+                onClick={handleRepostClicked}
               />
               <SocialActionButton
                 icon={<IconShare3 size={16} stroke={2} />}

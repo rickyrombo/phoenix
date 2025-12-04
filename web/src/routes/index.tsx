@@ -28,7 +28,6 @@ const PageTitle = styled.h1`
 const TracksGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
 `
 
 type FeedItemProps = FeedItem & {

@@ -133,9 +133,11 @@ func NewServer(cfg *Config) (*Server, error) {
 	app.Post("/login", csrfMiddleware, server.login)
 	app.Post("/auth/logout", csrfMiddleware, server.logout)
 
-	// Track save/unsave routes (require authentication and CSRF)
-	app.Post("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.saveTrack)
-	app.Delete("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.unsaveTrack)
+	app.Post("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.postTrackSave)
+	app.Delete("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.deleteTrackSave)
+
+	app.Post("/tracks/:trackId/repost", requireAuth, csrfMiddleware, server.postTrackRepost)
+	app.Delete("/tracks/:trackId/repost", requireAuth, csrfMiddleware, server.deleteTrackRepost)
 
 	server.App = app
 

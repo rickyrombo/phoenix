@@ -29,5 +29,3 @@ export const useCsrf = (
     ...getCsrfTokenQueryOptions(),
   })
 }
-
-export default useCsrf
