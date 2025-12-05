@@ -48,7 +48,7 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 		WHERE tracks.track_id = ANY(@ids)
 			AND is_unlisted = FALSE
 			AND stem_of IS NULL
-			AND stream_conditions IS NULL
+			AND COALESCE(stream_conditions, 'null'::jsonb) = 'null'::jsonb
 		;
 	`
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
