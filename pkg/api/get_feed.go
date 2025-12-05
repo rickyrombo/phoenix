@@ -147,17 +147,16 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 			)
 			AND (
 				@before::TEXT IS NULL 
-				OR (
-					manage_entity_txs.block_number = (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
-					AND manage_entity_txs.tx_hash < @before
-				) 
-				OR (
-					manage_entity_txs.block_number < (SELECT block_number FROM manage_entity_txs WHERE tx_hash = @before)
-				)
+                OR (manage_entity_txs.block_number, manage_entity_txs.tx_hash) < (
+                    SELECT block_number, @before::TEXT 
+                    FROM manage_entity_txs 
+                    WHERE tx_hash = @before
+                    LIMIT 1
+                )
 			)
 		ORDER BY 
-			manage_entity_txs.block_number DESC NULLS LAST,
-			manage_entity_txs.tx_hash DESC NULLS LAST
+			manage_entity_txs.block_number DESC,
+			manage_entity_txs.tx_hash DESC
 		LIMIT @limit;
 	`
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{

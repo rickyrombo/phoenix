@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS manage_entity_txs (
 CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_user_id ON manage_entity_txs(user_id);
 CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_entity_type_action ON manage_entity_txs(entity_type, action);
 CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_entity_id ON manage_entity_txs(entity_id);
-CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_block_number ON manage_entity_txs(block_number);
+CREATE INDEX IF NOT EXISTS idx_manage_entity_txs_block_number ON manage_entity_txs(block_number DESC, tx_hash DESC);
 
 
 -- =========================
