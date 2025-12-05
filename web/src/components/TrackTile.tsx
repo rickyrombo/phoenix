@@ -264,7 +264,7 @@ const CommentSubmit = styled.button`
   right: 0.75rem;
   background: transparent;
   border: none;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   font-size: 1.125rem;
   cursor: pointer;
   padding: 0.5rem;
@@ -283,7 +283,7 @@ const DetailsHeading = styled.h4`
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 2px;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   margin: 0 0 0.75rem 0;
 `
 

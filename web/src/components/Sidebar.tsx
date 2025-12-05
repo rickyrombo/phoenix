@@ -40,7 +40,7 @@ const Logo = styled.div<{ $isCollapsed: boolean }>`
   font-family: "Fugaz One", sans-serif;
   font-size: ${(props) => (props.$isCollapsed ? "1.25rem" : "1.5rem")};
   letter-spacing: 2px;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   padding: ${(props) => (props.$isCollapsed ? "1.5rem" : "1rem 2rem")};
   text-align: ${(props) => (props.$isCollapsed ? "center" : "left")};
   border-bottom: 1px solid #1a1a1a;

@@ -100,8 +100,7 @@ const ControlBtn = styled.button<{ $isActive?: boolean }>`
   border-radius: 0;
   background: transparent;
   border: none;
-  color: ${(props) =>
-    props.$isActive ? "oklch(71.4% 0.203 305.504)" : "#808080"};
+  color: ${(props) => (props.$isActive ? "var(--accent-color)" : "#808080")};
   font-size: 1.125rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -110,7 +109,7 @@ const ControlBtn = styled.button<{ $isActive?: boolean }>`
   justify-content: center;
 
   &:hover {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
   }
 `
 
@@ -119,8 +118,8 @@ const ControlBtnMain = styled.button`
   height: 48px;
   border-radius: 50%;
   background: transparent;
-  border: 2px solid oklch(71.4% 0.203 305.504);
-  color: oklch(71.4% 0.203 305.504);
+  border: 2px solid var(--accent-color);
+  color: var(--accent-color);
   font-size: 1.3rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -130,9 +129,9 @@ const ControlBtnMain = styled.button`
   line-height: 1;
 
   &:hover {
-    background: oklch(71.4% 0.203 305.504);
+    background: var(--accent-color);
     color: #000000;
-    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
+    box-shadow: 0 0 15px var(--accent-color / 0.5);
   }
 `
 
@@ -211,7 +210,7 @@ const VolumeSlider = styled.input`
     appearance: none;
     width: 12px;
     height: 12px;
-    background: oklch(71.4% 0.203 305.504);
+    background: var(--accent-color);
     cursor: pointer;
     border-radius: 0;
   }
@@ -219,7 +218,7 @@ const VolumeSlider = styled.input`
   &::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: oklch(71.4% 0.203 305.504);
+    background: var(--accent-color);
     cursor: pointer;
     border: none;
     border-radius: 0;
@@ -244,10 +243,10 @@ const FavoriteBtn = styled.button`
   justify-content: center;
   transition: color 0.15s;
   &:hover {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
   }
   &.active {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
   }
 `
 
