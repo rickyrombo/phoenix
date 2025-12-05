@@ -8,6 +8,7 @@ import (
 )
 
 func (s *Server) getTracks(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
 	var queryParams struct {
 		Ids []int `query:"id"`
 	}
@@ -43,8 +44,8 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 		JOIN track_aggregates ON track_aggregates.track_id = tracks.track_id
 		LEFT JOIN waveforms track_waveforms ON track_waveforms.cid = tracks.track_cid
 		LEFT JOIN waveforms preview_waveforms ON preview_waveforms.cid = tracks.preview_cid
-		LEFT JOIN track_saves ON track_saves.track_id = tracks.track_id AND track_saves.user_id = NULLIF(@currentUserId, 0)
-		LEFT JOIN track_reposts ON track_reposts.track_id = tracks.track_id AND track_reposts.user_id = NULLIF(@currentUserId, 0)
+		LEFT JOIN track_saves ON track_saves.track_id = tracks.track_id AND track_saves.user_id = @currentUserId
+		LEFT JOIN track_reposts ON track_reposts.track_id = tracks.track_id AND track_reposts.user_id = @currentUserId
 		WHERE tracks.track_id = ANY(@ids)
 			AND is_unlisted = FALSE
 			AND stem_of IS NULL
@@ -56,7 +57,7 @@ func (s *Server) getTracks(c fiber.Ctx) error {
 		"currentUserId": s.getCurrentUserID(c),
 	})
 	if err != nil {
-		s.logger.Error("Failed to fetch tracks", "error", err)
+		reqLogger.Error("Failed to fetch tracks", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch tracks",
 		})

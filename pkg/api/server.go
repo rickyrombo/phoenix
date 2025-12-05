@@ -11,12 +11,14 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3/extractors"
+	"github.com/gofiber/fiber/v3/middleware/requestid"
 
 	"github.com/OpenAudio/go-openaudio/pkg/sdk"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/csrf"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/postgres/v3"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,7 +30,6 @@ type Config struct {
 	DelegatePrivateKey string
 	AppSecret          string
 	AppKey             string
-	Logger             *slog.Logger
 	Environment        string // "development" or "production"
 }
 
@@ -38,7 +39,6 @@ type Server struct {
 	sdk         *sdk.OpenAudioSDK
 	appKey      string
 	appSecret   *ecdsa.PrivateKey
-	logger      *slog.Logger
 	environment string
 }
 
@@ -84,13 +84,14 @@ func NewServer(cfg *Config) (*Server, error) {
 		sdk:         sdk,
 		appKey:      cfg.AppKey,
 		appSecret:   apiKey,
-		logger:      cfg.Logger,
 		environment: cfg.Environment,
 	}
 
 	app := fiber.New(
 		fiber.Config{ErrorHandler: server.handleError},
 	)
+
+	app.Use(requestid.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"https://localhost:5173", "https://phoenix.rickyrombo.com"},
 		AllowCredentials: true,
@@ -121,6 +122,43 @@ func NewServer(cfg *Config) (*Server, error) {
 		TrustedOrigins:    []string{"https://localhost:5173", "https://phoenix.rickyrombo.com"},
 	})
 
+	app.Use(logger.New(logger.Config{
+		LoggerFunc: func(c fiber.Ctx, data *logger.Data, cfg *logger.Config) error {
+			rl := getRequestLogger(c)
+
+			userId := 0
+			sess := session.FromContext(c).Session
+			if sess != nil && sess.Get("authenticated") == true {
+				userId = sess.Get("user_id").(int)
+			}
+
+			if data.ChainErr == nil {
+				// Structured logging of request metadata
+				rl.Info("http_request",
+					"ip", c.IP(),
+					"user_id", userId,
+					"method", c.Method(),
+					"path", c.Path(),
+					"status", c.Response().StatusCode(),
+					"latency", fmt.Sprintf("%v", data.Stop.Sub(data.Start)),
+				)
+				return nil
+			}
+
+			// Structured logging of request metadata
+			rl.Error("http_request",
+				"ip", c.IP(),
+				"user_id", userId,
+				"method", c.Method(),
+				"path", c.Path(),
+				"status", c.Response().StatusCode(),
+				"latency", fmt.Sprintf("%v", data.Stop.Sub(data.Start)),
+				"error", data.ChainErr.Error(),
+			)
+			return nil
+		},
+	}))
+
 	// Routes that don't require CSRF validation (GET requests)
 	app.Get("/auth/status", server.authStatus)
 	app.Get("/auth/csrf", csrfMiddleware, server.getCsrfToken)
@@ -144,6 +182,10 @@ func NewServer(cfg *Config) (*Server, error) {
 	return server, nil
 }
 
+func getRequestLogger(c fiber.Ctx) *slog.Logger {
+	return slog.Default().With("request_id", requestid.FromContext(c))
+}
+
 func (s *Server) handleError(c fiber.Ctx, err error) error {
 	code := fiber.StatusInternalServerError
 
@@ -152,21 +194,12 @@ func (s *Server) handleError(c fiber.Ctx, err error) error {
 		code = e.Code
 	}
 
-	s.logger.Error("Request error",
-		"error", err,
-		"path", c.Path(),
-		"method", c.Method(),
-		"code", code,
-	)
-
 	return c.Status(code).JSON(fiber.Map{
 		"error": err.Error(),
 	})
 }
 
 func (s *Server) Start() error {
-	s.logger.Info("Starting API server...")
-
 	// Use HTTPS in development with self-signed certificates
 	if s.environment == "development" {
 		certFile := "certs/cert.pem"
@@ -174,7 +207,7 @@ func (s *Server) Start() error {
 
 		// Check if certificates exist
 		if _, err := os.Stat(certFile); os.IsNotExist(err) {
-			s.logger.Error("Certificate files not found. Please run: go run cmd/gencerts/main.go")
+			slog.Error("Certificate files not found. Please run: go run cmd/gencerts/main.go")
 			return fmt.Errorf("certificate files not found in certs/ directory")
 		}
 
@@ -195,7 +228,6 @@ func (s *Server) Start() error {
 			return fmt.Errorf("failed to create TLS listener: %w", err)
 		}
 
-		s.logger.Info("API server running with HTTPS (development mode)", "addr", "https://localhost:8000")
 		return s.Listener(ln)
 	}
 
@@ -204,7 +236,7 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Shutdown() error {
-	s.logger.Info("Shutting down API server...")
+	slog.Info("Shutting down API server...")
 	s.pool.Close()
 	return s.App.Shutdown()
 }

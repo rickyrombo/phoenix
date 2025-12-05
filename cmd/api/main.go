@@ -9,11 +9,6 @@ import (
 )
 
 func main() {
-	level := &slog.LevelVar{}
-	level.Set(slog.LevelInfo)
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	}))
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	audiusURL := os.Getenv("AUDIUS_URL")
@@ -26,6 +21,7 @@ func main() {
 		environment = "development" // Default to development
 	}
 
+	level := &slog.LevelVar{}
 	if logLevel == "debug" {
 		level.Set(slog.LevelDebug)
 	}
@@ -35,23 +31,25 @@ func main() {
 	if logLevel == "error" {
 		level.Set(slog.LevelError)
 	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: level,
+	})))
 
 	cfg := &api.Config{
 		DatabaseURL:        databaseURL,
 		AudiusURL:          audiusURL,
 		AppKey:             appKey,
 		AppSecret:          apiSecret,
-		Logger:             logger,
 		DelegatePrivateKey: delegatePrivateKey,
 		Environment:        environment,
 	}
 	server, err := api.NewServer(cfg)
 	if err != nil {
-		logger.Error("Failed to create API server", "error", err)
+		slog.Error("Failed to create API server", "error", err)
 		return
 	}
 	if err := server.Start(); err != nil {
-		logger.Error("Failed to start API server", "error", err)
+		slog.Error("Failed to start API server", "error", err)
 	}
 	defer server.Shutdown()
 }

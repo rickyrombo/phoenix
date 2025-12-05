@@ -8,6 +8,7 @@ import (
 )
 
 func (s *Server) getComments(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
 	var routeParams struct {
 		TrackID int `params:"id"`
 	}
@@ -43,7 +44,7 @@ func (s *Server) getComments(c fiber.Ctx) error {
 
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{"trackId": routeParams.TrackID})
 	if err != nil {
-		s.logger.Error("Failed to fetch comments", "error", err)
+		reqLogger.Error("Failed to fetch comments", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch comments"})
 	}
 

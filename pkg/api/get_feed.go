@@ -9,6 +9,7 @@ import (
 )
 
 func (s *Server) getFeedDistinct(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
 	var queryParams struct {
 		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
@@ -82,7 +83,7 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 		"limit":  queryParams.Limit,
 	})
 	if err != nil {
-		s.logger.Error("Failed to fetch feed", "error", err)
+		reqLogger.Error("Failed to fetch feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch feed",
 		})
@@ -98,7 +99,7 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 	}
 	feed, err := pgx.CollectRows(rows, pgx.RowToStructByName[feedItem])
 	if err != nil {
-		s.logger.Error("Failed to parse feed", "error", err)
+		reqLogger.Error("Failed to parse feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse feed",
 		})
@@ -110,6 +111,7 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 }
 
 func (s *Server) getFeed(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
 	var queryParams struct {
 		UserID *int64  `query:"user_id"`
 		Before *string `query:"before"`
@@ -164,7 +166,7 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 		"limit":  queryParams.Limit,
 	})
 	if err != nil {
-		s.logger.Error("Failed to fetch feed", "error", err)
+		reqLogger.Error("Failed to fetch feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to fetch feed",
 		})
@@ -180,7 +182,7 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 	}
 	feed, err := pgx.CollectRows(rows, pgx.RowToStructByName[feedItem])
 	if err != nil {
-		s.logger.Error("Failed to parse feed", "error", err)
+		reqLogger.Error("Failed to parse feed", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse feed",
 		})

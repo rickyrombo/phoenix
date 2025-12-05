@@ -7,7 +7,6 @@ import (
 	corev1 "github.com/OpenAudio/go-openaudio/pkg/api/core/v1"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/session"
 
 	"audius/pkg/indexer"
 )
@@ -15,16 +14,10 @@ import (
 // postTrackSave handles POST /tracks/:trackId/save
 // Saves (favorites) a track to the authenticated user's library
 func (s *Server) postTrackSave(c fiber.Ctx) error {
-	sess := session.FromContext(c).Session
-
-	authenticated := sess.Get("authenticated")
-	if authenticated != true {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Authentication required",
-		})
-	}
+	reqLogger := getRequestLogger(c)
 
 	userID := s.getCurrentUserID(c)
+
 	trackID := fiber.Params(c, "trackId", 0)
 	if trackID == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -48,7 +41,7 @@ func (s *Server) postTrackSave(c fiber.Ctx) error {
 
 	response, err := s.sendTransaction(manageEntityTx)
 	if err != nil {
-		s.logger.Error("Failed to send track save transaction", "error", err)
+		reqLogger.Error("Failed to send track save transaction", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to save track",
 		})
@@ -63,16 +56,10 @@ func (s *Server) postTrackSave(c fiber.Ctx) error {
 // deleteTrackSave handles DELETE /tracks/:trackId/save
 // Removes a track from the authenticated user's library
 func (s *Server) deleteTrackSave(c fiber.Ctx) error {
-	sess := session.FromContext(c).Session
-
-	authenticated := sess.Get("authenticated")
-	if authenticated != true {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Authentication required",
-		})
-	}
+	reqLogger := getRequestLogger(c)
 
 	userID := s.getCurrentUserID(c)
+
 	trackID := fiber.Params(c, "trackId", 0)
 	if trackID == 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -96,7 +83,7 @@ func (s *Server) deleteTrackSave(c fiber.Ctx) error {
 
 	response, err := s.sendTransaction(manageEntityTx)
 	if err != nil {
-		s.logger.Error("Failed to send track unsave transaction", "error", err)
+		reqLogger.Error("Failed to send track unsave transaction", "error", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to unsave track",
 		})

@@ -72,6 +72,8 @@ func (s *solanaSignInInput) Prepare() string {
 }
 
 func (s *Server) login(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
+
 	type loginRequest struct {
 		Message       solanaSignInInput `json:"message"`
 		SignedMessage string            `json:"signed_message"`
@@ -81,7 +83,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	var req loginRequest
 	if err := c.Bind().Body(&req); err != nil {
-		s.logger.Error("Failed to parse login request body", "error", err)
+		reqLogger.Error("Failed to parse login request body", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
@@ -89,7 +91,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	messageBytes, err := base58.Decode(req.SignedMessage)
 	if err != nil {
-		s.logger.Error("Failed to decode message", "error", err)
+		reqLogger.Error("Failed to decode message", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid message encoding",
 		})
@@ -97,7 +99,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	signatureBytes, err := base58.Decode(req.Signature)
 	if err != nil {
-		s.logger.Error("Failed to decode signature", "error", err)
+		reqLogger.Error("Failed to decode signature", "error", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid signature encoding",
 		})
@@ -118,7 +120,7 @@ func (s *Server) login(c fiber.Ctx) error {
 
 	message := req.Message.Prepare()
 	if message != string(messageBytes) {
-		s.logger.Error("Sign-in message content does not match signed message", "expected", message, "actual", string(messageBytes))
+		reqLogger.Error("Sign-in message content does not match signed message", "expected", message, "actual", string(messageBytes))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Sign-in message content does not match signed message",
 		})
@@ -470,6 +472,9 @@ func (s *Server) getCsrfToken(c fiber.Ctx) error {
 
 func (s *Server) getCurrentUserID(c fiber.Ctx) int {
 	sess := session.FromContext(c).Session
+	if sess == nil {
+		return 0
+	}
 
 	authenticated := sess.Get("authenticated")
 	if authenticated != true {
