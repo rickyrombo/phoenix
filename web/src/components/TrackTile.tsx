@@ -15,7 +15,7 @@ import {
   IconSend2,
   IconDots,
 } from "@tabler/icons-react"
-import { useState, useRef, useEffect, type ReactNode } from "react"
+import { useState, useRef, type ReactNode } from "react"
 import type { Track } from "../queries/useTrack"
 import useUser from "../queries/useUser"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
@@ -26,6 +26,8 @@ import Linkify from "linkify-react"
 import { GhostButton } from "./core/Button"
 import { useSaveTrack, useUnsaveTrack } from "../queries/useTrackSave"
 import { useRepostTrack, useUnrepostTrack } from "../queries/useTrackRepost"
+import Popup from "./core/Popup"
+import { PopupMenu, PopupMenuItem } from "./core/PopupMenu"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -169,37 +171,8 @@ const PlayBtn = styled.button`
   }
 `
 
-const OverflowMenu = styled.div`
-  position: absolute;
-  right: 0.5rem;
-  top: 2.5rem;
-  background: #0f0f0f;
-  border: 1px solid #222;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  z-index: 1300;
-  min-width: 160px;
-  border-radius: 6px;
-  overflow: hidden;
-`
-
-const OverflowMenuItem = styled.button`
-  display: block;
-  width: 100%;
-  padding: 0.6rem 0.75rem;
-  background: transparent;
-  border: none;
-  color: #ddd;
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.03);
-    color: #fff;
-  }
-`
-
-const OverflowContainer = styled.div`
-  position: relative;
+const PopupContainer = styled(Popup)`
+  padding-top: 4px;
 `
 
 const WaveformWrapper = styled.div`
@@ -424,7 +397,7 @@ function TrackTile({
   const { data: user } = useUser(track.owner_id)
   const queue = usePlayQueue()
   const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { data: comments } = useTrackComments(track.track_id)
   const { mutate: saveTrack } = useSaveTrack()
@@ -447,17 +420,6 @@ function TrackTile({
       repostTrack(track.track_id)
     }
   }
-
-  useEffect(() => {
-    const onDocClick = (e: MouseEvent) => {
-      if (!menuRef.current) return
-      if (!menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    if (menuOpen) document.addEventListener("click", onDocClick)
-    return () => document.removeEventListener("click", onDocClick)
-  }, [menuOpen])
 
   const isActive = currentTrack?.track_id === track.track_id
   const [draftCommentPosition, setDraftCommentPosition] = useState<
@@ -581,36 +543,41 @@ function TrackTile({
                 title="Download"
                 expanded={isActive}
               />
-              <OverflowContainer>
-                <GhostButton
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpen((v) => !v)
-                  }}
-                  aria-haspopup="true"
-                  aria-expanded={menuOpen}
-                  title="More"
-                >
-                  <IconDots size={18} stroke={2} />
-                </GhostButton>
-                {menuOpen && (
-                  <OverflowMenu ref={menuRef}>
-                    <OverflowMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        queue.add({
-                          cursor: `track:${track.track_id}:${Date.now()}`,
-                          trackId: track.track_id,
-                          manuallyAdded: true,
-                        })
-                        setMenuOpen(false)
-                      }}
-                    >
-                      Add to Queue
-                    </OverflowMenuItem>
-                  </OverflowMenu>
-                )}
-              </OverflowContainer>
+              <GhostButton
+                ref={menuButtonRef}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setMenuOpen((v) => !v)
+                }}
+                aria-haspopup="true"
+                aria-expanded={menuOpen}
+                title="More"
+              >
+                <IconDots size={18} stroke={2} />
+              </GhostButton>
+              <PopupContainer
+                isVisible={menuOpen}
+                anchorRef={menuButtonRef}
+                anchorOrigin="bottomRight"
+                popupOrigin="topRight"
+                onClickOutside={() => setMenuOpen(false)}
+              >
+                <PopupMenu>
+                  <PopupMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      queue.add({
+                        cursor: `track:${track.track_id}:${Date.now()}`,
+                        trackId: track.track_id,
+                        manuallyAdded: true,
+                      })
+                      setMenuOpen(false)
+                    }}
+                  >
+                    Add to Queue
+                  </PopupMenuItem>
+                </PopupMenu>
+              </PopupContainer>
             </ButtonGroup>
             <FooterStats>
               <StatItem>
