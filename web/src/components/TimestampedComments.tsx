@@ -51,7 +51,7 @@ const CommentIndicator = styled.img`
   border-radius: 50%;
   border: none;
   object-fit: cover;
-  box-shadow: 0 0 8px oklch(71.4% 0.203 305.504 / 0.6);
+  box-shadow: 0 0 4px var(--accent-color-dark);
 `
 
 const CommentTooltip = styled.div`

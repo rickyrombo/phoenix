@@ -158,7 +158,7 @@ const ProgressTrack = styled.div`
 
 const ProgressFill = styled.div`
   height: 100%;
-  background: oklch(71.4% 0.203 305.504);
+  background: var(--accent-color);
   transition: width 0.1s linear;
 `
 
