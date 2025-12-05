@@ -91,10 +91,7 @@ func savePlaylist(ctx context.Context, sqlTx pgx.Tx, userID int, playlistID int,
         WITH ins AS (
             INSERT INTO playlist_saves (user_id, playlist_id, block_number, created_at, updated_at)
             VALUES (@userID, @playlistID, @blockNumber, NOW(), NOW())
-            ON CONFLICT (user_id, playlist_id) DO UPDATE SET
-                block_number = EXCLUDED.block_number,
-                updated_at = EXCLUDED.updated_at
-            WHERE playlist_saves.block_number <= EXCLUDED.block_number
+            ON CONFLICT (user_id, playlist_id) DO NOTHING
             RETURNING playlist_id
         )
         INSERT INTO playlist_aggregates (playlist_id, save_count, created_at, updated_at)
@@ -133,10 +130,7 @@ func repostPlaylist(ctx context.Context, sqlTx pgx.Tx, userID int, playlistID in
 		WITH ins AS (
 			INSERT INTO playlist_reposts (user_id, playlist_id, block_number, created_at, updated_at)
 			VALUES (@userID, @playlistID, @blockNumber, NOW(), NOW())	
-			ON CONFLICT (user_id, playlist_id) DO UPDATE SET
-				block_number = EXCLUDED.block_number,
-				updated_at = NOW()
-			WHERE playlist_reposts.block_number <= EXCLUDED.block_number
+			ON CONFLICT (user_id, playlist_id) DO NOTHING
 			RETURNING playlist_id
 		)
 		INSERT INTO playlist_aggregates (playlist_id, repost_count, created_at, updated_at)
@@ -180,10 +174,7 @@ func sharePlaylist(ctx context.Context, sqlTx pgx.Tx, userID int, playlistID int
 		WITH ins AS (
 			INSERT INTO playlist_shares (user_id, playlist_id, block_number, created_at, updated_at)
 			VALUES (@userID, @playlistID, @blockNumber, NOW(), NOW())
-			ON CONFLICT (user_id, playlist_id) DO UPDATE SET
-				block_number = EXCLUDED.block_number,
-				updated_at = EXCLUDED.updated_at
-			WHERE playlist_shares.block_number <= EXCLUDED.block_number
+			ON CONFLICT (user_id, playlist_id) DO NOTHING
 			RETURNING playlist_id
 		)
 		INSERT INTO playlist_aggregates (playlist_id, share_count, created_at, updated_at)
