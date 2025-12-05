@@ -20,7 +20,10 @@ import type { Track } from "../queries/useTrack"
 import useUser from "../queries/useUser"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import dayjs from "dayjs"
-import useTrackComments from "../queries/useTrackComments"
+import {
+  usePostTrackComment,
+  useTrackComments,
+} from "../queries/useTrackComments"
 import { WithMirrors } from "./WithMirrors"
 import Linkify from "linkify-react"
 import { GhostButton } from "./core/Button"
@@ -168,7 +171,7 @@ const PlayBtn = styled.button`
   &:hover {
     background: var(--accent-color);
     color: #000000;
-    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
+    box-shadow: 0 0 8px var(--accent-color-dark);
   }
 `
 
@@ -184,7 +187,7 @@ const WaveformWrapper = styled.div`
   margin-bottom: 12px;
 `
 
-const CommentInputSection = styled.div`
+const CommentInputSection = styled.form`
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
@@ -348,20 +351,43 @@ interface TrackTileProps {
 
 // Separate component to isolate time subscription
 function CommentInputBox({
+  trackId,
   onDraftPositionChange,
 }: {
+  trackId: number
   onDraftPositionChange: (position: number | null) => void
 }) {
   const { duration, getAudio } = usePlayer()
   const { userId } = useAuth()
   const { data: user } = useUser(userId!, { enabled: !!userId })
+  const { mutate: postComment } = usePostTrackComment()
+
+  const [position, setPosition] = useState<number | null>(null)
 
   const handleFocus = () => {
     const audio = getAudio()
     if (audio && duration > 0) {
-      const position = (audio.currentTime / duration) * 100
-      onDraftPositionChange(position)
+      const p = (audio.currentTime / duration) * 100
+      setPosition(Math.round(audio.currentTime))
+      onDraftPositionChange(p)
+      console.log("focus", p, audio.currentTime)
     }
+  }
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const form = e.target as HTMLFormElement
+    const input = form.elements.namedItem("comment") as HTMLInputElement
+    const content = input.value.trim()
+    if (content.length === 0) return
+    postComment({
+      trackId,
+      content,
+      trackTimestampS: position ?? undefined,
+    })
+    input.value = ""
+    setPosition(null)
+    onDraftPositionChange(null)
   }
 
   const handleBlur = () => {
@@ -371,7 +397,7 @@ function CommentInputBox({
   if (!user) return null
 
   return (
-    <CommentInputSection>
+    <CommentInputSection onSubmit={handleFormSubmit}>
       <WithMirrors
         url={
           user.profile_picture?.medium ||
@@ -385,11 +411,12 @@ function CommentInputBox({
       </WithMirrors>
       <CommentInput
         type="text"
+        name="comment"
         placeholder="Add a comment..."
         onFocus={handleFocus}
         onBlur={handleBlur}
       />
-      <CommentSubmit title="Send comment">
+      <CommentSubmit title="Send comment" type="submit">
         <IconSend2 size={16} stroke={2} />
       </CommentSubmit>
     </CommentInputSection>
@@ -506,10 +533,13 @@ function TrackTile({
           />
         </WaveformWrapper>
         {comments && isActive ? (
-          <ActiveComments comments={comments} trackId={track.track_id} />
+          <ActiveComments trackId={track.track_id} comments={comments} />
         ) : null}
         {isActive ? (
-          <CommentInputBox onDraftPositionChange={setDraftCommentPosition} />
+          <CommentInputBox
+            trackId={track.track_id}
+            onDraftPositionChange={setDraftCommentPosition}
+          />
         ) : null}
         <TrackFooter>
           <FooterLeft>

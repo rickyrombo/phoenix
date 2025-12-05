@@ -54,7 +54,7 @@ func upsertComment(ctx context.Context, sqlTx pgx.Tx, tx *corev1.ManageEntityLeg
 				(@metadata::jsonb->'data'->>'parent_comment_id')::int,
 				@metadata::jsonb->'data'->>'body',
 				(@metadata::jsonb->'data'->>'track_timestamp_s')::int,
-					@block_number,
+				@block_number,
 				NOW(),
 				NOW()
 			)

@@ -1,13 +1,19 @@
 package api
 
 import (
+	"audius/pkg/indexer"
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
+	corev1 "github.com/OpenAudio/go-openaudio/pkg/api/core/v1"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) getComments(c fiber.Ctx) error {
+func (s *Server) getTrackComments(c fiber.Ctx) error {
 	reqLogger := getRequestLogger(c)
 	var routeParams struct {
 		TrackID int `uri:"id"`
@@ -105,4 +111,80 @@ func (s *Server) getComments(c fiber.Ctx) error {
 	return c.JSON(fiber.Map{"data": out})
 }
 
-// fiber:context-methods migrated
+func (s *Server) postTrackComment(c fiber.Ctx) error {
+	reqLogger := getRequestLogger(c)
+	var routeParams struct {
+		TrackID int `uri:"id"`
+	}
+	if err := c.Bind().URI(&routeParams); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid route parameters"})
+	}
+
+	var body struct {
+		Content         string `json:"content"`
+		TrackTimestampS *int   `json:"track_timestamp_s"`
+		ParentCommentID *int   `json:"parent_comment_id"`
+	}
+	if err := c.Bind().Body(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body"})
+	}
+
+	userID := s.getCurrentUserID(c)
+
+	nonce := time.Now().UnixNano()
+	nonceBytes := make([]byte, 32)
+	copy(nonceBytes, []byte(strconv.FormatInt(nonce, 10)))
+
+	type Metadata struct {
+		TrackID         int    `json:"entity_id"`
+		ParentCommentID *int   `json:"parent_comment_id,omitempty"`
+		Body            string `json:"body"`
+		TrackTimestampS *int   `json:"track_timestamp_s,omitempty"`
+	}
+	metadata := Metadata{
+		TrackID:         routeParams.TrackID,
+		ParentCommentID: body.ParentCommentID,
+		Body:            body.Content,
+		TrackTimestampS: body.TrackTimestampS,
+	}
+
+	metadataBytes, err := json.Marshal(struct {
+		Data Metadata `json:"data"`
+	}{
+		Data: metadata,
+	})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to marshal metadata"})
+	}
+
+	id, err := s.getUnclaimedCommentId(c)
+	if err != nil {
+		reqLogger.Error("Failed to get unclaimed comment ID", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to comment on track",
+		})
+	}
+
+	createCommentTx := &corev1.ManageEntityLegacy{
+		Signer:     common.HexToAddress(s.appKey).String(),
+		UserId:     int64(userID),
+		EntityId:   int64(id),
+		Action:     indexer.Action_Create,
+		EntityType: indexer.Entity_Comment,
+		Nonce:      strconv.FormatInt(nonce, 10),
+		Metadata:   string(metadataBytes), // You may want to include comment metadata here
+	}
+
+	response, err := s.sendTransaction(createCommentTx)
+	if err != nil {
+		reqLogger.Error("Failed to send track unsave transaction", "error", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to comment on track",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success":          true,
+		"transaction_hash": response.Msg.GetTransaction().GetHash(),
+	})
+}

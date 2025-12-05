@@ -159,23 +159,24 @@ func NewServer(cfg *Config) (*Server, error) {
 		},
 	}))
 
-	// Routes that don't require CSRF validation (GET requests)
 	app.Get("/auth/status", server.authStatus)
 	app.Get("/auth/csrf", csrfMiddleware, server.getCsrfToken)
 	app.Get("/feed", server.getFeed)
 	app.Get("/tracks", server.getTracks)
-	app.Get("/tracks/:id/comments", server.getComments)
-	app.Get("/users", server.getUsers)
 
-	// Routes that require CSRF validation (state-changing POST requests)
-	app.Post("/login", csrfMiddleware, server.login)
-	app.Post("/auth/logout", csrfMiddleware, server.logout)
+	app.Get("/tracks/:id/comments", server.getTrackComments)
+	app.Post("/tracks/:id/comments", requireAuth, csrfMiddleware, server.postTrackComment)
 
 	app.Post("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.postTrackSave)
 	app.Delete("/tracks/:trackId/save", requireAuth, csrfMiddleware, server.deleteTrackSave)
 
 	app.Post("/tracks/:trackId/repost", requireAuth, csrfMiddleware, server.postTrackRepost)
 	app.Delete("/tracks/:trackId/repost", requireAuth, csrfMiddleware, server.deleteTrackRepost)
+
+	app.Get("/users", server.getUsers)
+
+	app.Post("/login", csrfMiddleware, server.login)
+	app.Post("/auth/logout", csrfMiddleware, server.logout)
 
 	server.App = app
 

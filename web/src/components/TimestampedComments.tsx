@@ -56,7 +56,7 @@ const CommentIndicator = styled.img`
 
 const CommentTooltip = styled.div`
   background: #0a0a0a;
-  border: 1px solid oklch(71.4% 0.203 305.504);
+  border: 1px solid var(--accent-color);
   padding: 0.5rem 0.75rem;
   border-radius: 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -65,7 +65,7 @@ const CommentTooltip = styled.div`
 
 const CommentUser = styled.span`
   display: block;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   font-weight: 600;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -110,7 +110,7 @@ export default function TimestampedComments({
             <CommentMarker
               key={comment.comment_id}
               style={{
-                left: `${Math.min(Math.max(comment.timestamp ?? 0, i) / trackDuration, 1) * 100}%`,
+                left: `${Math.min(Math.max(comment.track_timestamp_s ?? 0, i) / trackDuration, 1) * 100}%`,
               }}
               onMouseEnter={(e) =>
                 setHoveredComment({
@@ -158,11 +158,14 @@ export default function TimestampedComments({
           <CommentTooltip>
             <CommentUser>
               {comments[hoveredComment.index].user_name}{" "}
-              {comments[hoveredComment.index].timestamp !== undefined ? (
+              {comments[hoveredComment.index].track_timestamp_s ? (
                 <CommentTimestamp>
                   {"@ " +
                     dayjs
-                      .duration(comments[hoveredComment.index].timestamp)
+                      .duration(
+                        comments[hoveredComment.index].track_timestamp_s!,
+                        "seconds",
+                      )
                       .format("m:ss")}
                 </CommentTimestamp>
               ) : null}
