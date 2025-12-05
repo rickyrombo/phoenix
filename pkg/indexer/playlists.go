@@ -22,6 +22,8 @@ func (d *Indexer) indexPlaylist(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Ma
 		return repostPlaylist(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	case Action_Unrepost:
 		return unrepostPlaylist(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
+	case Action_Share:
+		return sharePlaylist(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	default:
 		return fmt.Errorf("unrecognized playlist action %s", tx.Action)
 	}
@@ -169,6 +171,30 @@ func unrepostPlaylist(ctx context.Context, sqlTx pgx.Tx, userID int, playlistID 
     `, pgx.NamedArgs{
 		"userID":     userID,
 		"playlistID": playlistID,
+	})
+	return err
+}
+
+func sharePlaylist(ctx context.Context, sqlTx pgx.Tx, userID int, playlistID int, blockNumber int64) error {
+	_, err := sqlTx.Exec(ctx, `
+		WITH ins AS (
+			INSERT INTO playlist_shares (user_id, playlist_id, block_number, created_at, updated_at)
+			VALUES (@userID, @playlistID, @blockNumber, NOW(), NOW())
+			ON CONFLICT (user_id, playlist_id) DO UPDATE SET
+				block_number = EXCLUDED.block_number,
+				updated_at = EXCLUDED.updated_at
+			WHERE playlist_shares.block_number <= EXCLUDED.block_number
+			RETURNING playlist_id
+		)
+		INSERT INTO playlist_aggregates (playlist_id, share_count, created_at, updated_at)
+		SELECT playlist_id, 1, NOW(), NOW() FROM ins
+		ON CONFLICT (playlist_id) DO UPDATE SET
+			share_count = playlist_aggregates.share_count + 1,
+			updated_at = NOW()
+	`, pgx.NamedArgs{
+		"userID":      userID,
+		"playlistID":  playlistID,
+		"blockNumber": blockNumber,
 	})
 	return err
 }

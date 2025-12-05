@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS track_aggregates (
     repost_count BIGINT DEFAULT 0,
     comment_count BIGINT DEFAULT 0,
     download_count BIGINT DEFAULT 0,
+    share_count BIGINT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -159,6 +160,16 @@ CREATE TABLE IF NOT EXISTS track_downloads (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     PRIMARY KEY (user_id, track_id)
 );
+
+CREATE TABLE IF NOT EXISTS track_shares (
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, track_id)
+);
+CREATE INDEX IF NOT EXISTS idx_track_shares_track_id ON track_shares(track_id);
 
 -- =========================
 --        USERS
@@ -327,6 +338,7 @@ CREATE TABLE IF NOT EXISTS playlist_aggregates (
     play_count BIGINT DEFAULT 0,
     save_count BIGINT DEFAULT 0,
     repost_count BIGINT DEFAULT 0,
+    share_count BIGINT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -350,6 +362,16 @@ CREATE TABLE IF NOT EXISTS playlist_reposts (
     PRIMARY KEY (user_id, playlist_id)
 );
 CREATE INDEX IF NOT EXISTS idx_playlist_reposts_playlist_id ON playlist_reposts(playlist_id);
+
+CREATE TABLE IF NOT EXISTS playlist_shares (
+    user_id INT NOT NULL,
+    playlist_id INT NOT NULL,
+    block_number BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (user_id, playlist_id)
+);
+CREATE INDEX IF NOT EXISTS idx_playlist_shares_playlist_id ON playlist_shares(playlist_id);
 
 -- =========================
 --        GRANTS

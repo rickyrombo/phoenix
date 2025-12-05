@@ -25,6 +25,8 @@ func (d *Indexer) indexTrack(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Manag
 		return unrepostTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId))
 	case Action_Download:
 		return downloadTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
+	case Action_Share:
+		return shareTrack(ctx, sqlTx, int(tx.UserId), int(tx.EntityId), blockNumber)
 	default:
 		return fmt.Errorf("unrecognized track action %s", tx.Action)
 	}
@@ -356,6 +358,30 @@ func downloadTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, b
             download_count = track_aggregates.download_count + 1,
             updated_at = NOW()
     `, pgx.NamedArgs{
+		"userID":      userID,
+		"trackID":     trackID,
+		"blockNumber": blockNumber,
+	})
+	return err
+}
+
+func shareTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, blockNumber int64) error {
+	_, err := sqlTx.Exec(ctx, `
+		WITH ins AS (
+			INSERT INTO track_shares (user_id, track_id, block_number, created_at, updated_at)
+			VALUES (@userID, @trackID, @blockNumber, NOW(), NOW())
+			ON CONFLICT (user_id, track_id) DO UPDATE SET
+				block_number = EXCLUDED.block_number,
+				updated_at = EXCLUDED.updated_at
+			WHERE track_shares.block_number <= EXCLUDED.block_number
+			RETURNING track_id
+		)
+		INSERT INTO track_aggregates (track_id, share_count, created_at, updated_at)
+		SELECT track_id, 1, NOW(), NOW() FROM ins
+		ON CONFLICT (track_id) DO UPDATE SET
+			share_count = track_aggregates.share_count + 1,
+			updated_at = NOW()
+	`, pgx.NamedArgs{
 		"userID":      userID,
 		"trackID":     trackID,
 		"blockNumber": blockNumber,
