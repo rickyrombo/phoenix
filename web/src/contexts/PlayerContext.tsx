@@ -196,6 +196,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Sometimes, when tracks are invalidated, they come back with a new signature.
+    // Don't restart the track if the path is the same
+    const currentUrl = audio.src
+    if (new URL(currentUrl).pathname === new URL(url).pathname) {
+      return
+    }
+
     // Pause before changing src to reduce AbortError races
     try {
       audio.pause()

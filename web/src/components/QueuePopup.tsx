@@ -5,6 +5,7 @@ import { usePlayQueue } from "../contexts/PlayQueueContext"
 import { usePlayer } from "../contexts/PlayerContext"
 import { IconGripVertical, IconX } from "@tabler/icons-react"
 import useUser from "../queries/useUser"
+import { WithMirrors } from "./WithMirrors"
 
 const Popup = styled.div`
   width: 360px;
@@ -171,7 +172,16 @@ const QueueItem = ({
       >
         <IconGripVertical size={16} stroke={1.5} />
       </div>
-      <Thumb src={track.cover_art?.medium} alt={track.title} />
+      {track.cover_art ? (
+        <WithMirrors
+          url={track.cover_art?.small}
+          mirrors={track.cover_art?.mirrors}
+        >
+          {(url, onError) => (
+            <Thumb src={url} alt={track.title} onError={onError} />
+          )}
+        </WithMirrors>
+      ) : null}
       <Meta>
         <Title>{track.title}</Title>
         <Artist>{user?.name}</Artist>

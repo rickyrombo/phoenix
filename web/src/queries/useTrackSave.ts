@@ -61,6 +61,9 @@ export const useSaveTrack = () => {
         )
       }
     },
+    onSettled: (_data, _err, trackId) => {
+      queryClient.invalidateQueries({ queryKey: getTrackQueryKey(trackId) })
+    },
   })
 }
 
@@ -122,6 +125,9 @@ export const useUnsaveTrack = () => {
           context.previousTrack,
         )
       }
+    },
+    onSettled: (_data, _err, trackId) => {
+      queryClient.invalidateQueries({ queryKey: getTrackQueryKey(trackId) })
     },
   })
 }

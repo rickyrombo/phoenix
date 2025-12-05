@@ -34,6 +34,9 @@ const batcher = create({
     const params = ids.map((id) => `id=${id}`).join("&")
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL}/tracks?${params}`,
+      {
+        credentials: "include",
+      },
     )
     if (!response.ok) throw new Error("failed to fetch track")
     const res = await response.json()
