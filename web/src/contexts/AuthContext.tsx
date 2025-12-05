@@ -17,6 +17,7 @@ import type {
 import dayjs from "dayjs"
 import { AccountNeedsGrant } from "../components/AccountNeedsGrant"
 import { useCsrf } from "../queries/useCsrf"
+import { useQueryClient } from "@tanstack/react-query"
 
 type AuthState =
   | "unauthenticated"
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [siwsPayload, setSiwsPayload] = useState<SiwsPayload | null>(null)
   const [checkedSession, setCheckedSession] = useState(false)
 
-  // Use TanStack Query hook for CSRF token
+  const queryClient = useQueryClient()
   const { data: csrfToken, refetch: refetchCsrf } = useCsrf()
 
   const signInWithSolana = useCallback(
@@ -122,6 +123,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (response.ok) {
           setAuthState("authenticated")
           setUserId(body.data.user_id)
+          await queryClient.invalidateQueries({
+            predicate(query) {
+              return query.queryKey[0] !== "playQueue"
+            },
+          })
         } else if (body.error == "not_linked") {
           setAuthState("needs_link")
         } else if (body.error == "not_granted") {
@@ -135,7 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await disconnect()
       }
     },
-    [publicKey, signIn, siwsPayload, disconnect, csrfToken],
+    [publicKey, signIn, siwsPayload, disconnect, csrfToken, queryClient],
   )
 
   const logout = useCallback(async () => {
@@ -156,8 +162,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     await disconnect()
     setUserId(null)
     setAuthState("unauthenticated")
-    refetchCsrf()
-  }, [disconnect, csrfToken, refetchCsrf])
+    await queryClient.invalidateQueries({
+      predicate(query) {
+        return query.queryKey[0] !== "playQueue"
+      },
+    })
+    await refetchCsrf()
+  }, [disconnect, csrfToken, refetchCsrf, queryClient])
 
   // Check for existing session on mount (after CSRF token is loaded)
   useEffect(() => {
