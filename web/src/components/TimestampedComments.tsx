@@ -3,6 +3,8 @@ import styled from "styled-components"
 import Popup from "./core/Popup"
 import type { Comment } from "../queries/useTrackComments"
 import dayjs from "dayjs"
+import { useUser } from "../queries/useUser"
+import { useAuth } from "../contexts/AuthContext"
 
 interface TimestampedCommentsProps {
   comments?: Comment[]
@@ -96,6 +98,9 @@ export default function TimestampedComments({
     element: HTMLElement
   } | null>(null)
 
+  const { userId } = useAuth()
+  const { data: user } = useUser(userId!, { enabled: !!userId })
+
   return (
     <>
       <TimestampedCommentsContainer>
@@ -121,10 +126,11 @@ export default function TimestampedComments({
             </CommentMarker>
           ))}
           {draftCommentPosition !== null &&
-          draftCommentPosition !== undefined ? (
+          draftCommentPosition !== undefined &&
+          user ? (
             <CommentMarker style={{ left: `${draftCommentPosition}%` }}>
               <CommentIndicator
-                src="https://picsum.photos/seed/currentuser/100"
+                src={user?.profile_picture?.small}
                 alt="Your comment"
               />
             </CommentMarker>

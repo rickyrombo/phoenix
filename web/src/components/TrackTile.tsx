@@ -28,6 +28,7 @@ import { useSaveTrack, useUnsaveTrack } from "../queries/useTrackSave"
 import { useRepostTrack, useUnrepostTrack } from "../queries/useTrackRepost"
 import Popup from "./core/Popup"
 import { PopupMenu, PopupMenuItem } from "./core/PopupMenu"
+import { useAuth } from "../contexts/AuthContext"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -347,13 +348,13 @@ interface TrackTileProps {
 
 // Separate component to isolate time subscription
 function CommentInputBox({
-  isActive,
   onDraftPositionChange,
 }: {
-  isActive: boolean
   onDraftPositionChange: (position: number | null) => void
 }) {
   const { duration, getAudio } = usePlayer()
+  const { userId } = useAuth()
+  const { data: user } = useUser(userId!, { enabled: !!userId })
 
   const handleFocus = () => {
     const audio = getAudio()
@@ -367,14 +368,21 @@ function CommentInputBox({
     onDraftPositionChange(null)
   }
 
-  if (!isActive) return null
+  if (!user) return null
 
   return (
     <CommentInputSection>
-      <CommentUserAvatar
-        src="https://picsum.photos/seed/currentuser/100"
-        alt="You"
-      />
+      <WithMirrors
+        url={
+          user.profile_picture?.medium ||
+          "https://picsum.photos/seed/currentuser/100"
+        }
+        mirrors={user.profile_picture?.mirrors || []}
+      >
+        {(url, onError) => (
+          <CommentUserAvatar src={url} alt={user.name} onError={onError} />
+        )}
+      </WithMirrors>
       <CommentInput
         type="text"
         placeholder="Add a comment..."
@@ -399,7 +407,9 @@ function TrackTile({
   const [menuOpen, setMenuOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement | null>(null)
 
-  const { data: comments } = useTrackComments(track.track_id)
+  const { data: comments } = useTrackComments(track.track_id, {
+    enabled: track.comment_count > 0,
+  })
   const { mutate: saveTrack } = useSaveTrack()
   const { mutate: unsaveTrack } = useUnsaveTrack()
   const { mutate: repostTrack } = useRepostTrack()
@@ -498,10 +508,9 @@ function TrackTile({
         {comments && isActive ? (
           <ActiveComments comments={comments} trackId={track.track_id} />
         ) : null}
-        <CommentInputBox
-          isActive={isActive}
-          onDraftPositionChange={setDraftCommentPosition}
-        />
+        {isActive ? (
+          <CommentInputBox onDraftPositionChange={setDraftCommentPosition} />
+        ) : null}
         <TrackFooter>
           <FooterLeft>
             <ButtonGroup>
