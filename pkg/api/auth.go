@@ -228,7 +228,7 @@ func (s Server) verifyWalletGrant(ctx context.Context, userId int) error {
 	var granted bool
 	err := s.pool.QueryRow(ctx, sql, pgx.NamedArgs{
 		"userID":     userId,
-		"appAddress": s.appKey,
+		"appAddress": "0x" + s.appKey,
 	}).Scan(&granted)
 
 	if err != nil {
