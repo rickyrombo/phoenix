@@ -69,6 +69,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   const lastDir = useRef<"next" | "prev">("next")
 
+  // Helper function to handle playback errors by skipping to next track
+  const handlePlaybackError = useCallback(
+    (err: unknown) => {
+      const e = err as { name?: string }
+      if (e?.name === "AbortError") return
+      console.error("Playback error, skipping to next track:", err)
+
+      const q = queueRef.current
+      const hasNext = q && q.items && q.index < q.items.length - 1
+
+      if (hasNext) {
+        if (typeof nextRef.current === "function") {
+          nextRef.current()
+          lastDir.current = "next"
+        }
+      } else if (repeatMode === "all" && q && q.items && q.items.length > 0) {
+        if (typeof setIndexRef.current === "function") {
+          setIndexRef.current(0)
+        }
+      } else {
+        setIsPlaying(false)
+      }
+    },
+    [repeatMode],
+  )
+
   const {
     data: track,
     isSuccess,
@@ -192,22 +218,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playPromiseRef.current =
           p instanceof Promise ? (p as Promise<void>) : null
         if (p && typeof (p as Promise<void>).catch === "function") {
-          ;(p as Promise<void>)
-            .catch((err: unknown) => {
-              const e = err as { name?: string }
-              if (e?.name === "AbortError") return
-              console.error("Playback error:", err)
-              setIsPlaying(false)
-            })
-            .finally(() => {
-              playPromiseRef.current = null
-            })
+          ;(p as Promise<void>).catch(handlePlaybackError).finally(() => {
+            playPromiseRef.current = null
+          })
         }
       } catch (err: unknown) {
-        const e = err as { name?: string }
-        if (e?.name === "AbortError") return
-        console.error("Playback error:", err)
-        setIsPlaying(false)
+        handlePlaybackError(err)
       }
     }
 
@@ -222,22 +238,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         playPromiseRef.current =
           p instanceof Promise ? (p as Promise<void>) : null
         if (p && typeof (p as Promise<void>).catch === "function") {
-          ;(p as Promise<void>)
-            .catch((err: unknown) => {
-              const e = err as { name?: string }
-              if (e?.name === "AbortError") return
-              console.error("Playback error:", err)
-              setIsPlaying(false)
-            })
-            .finally(() => {
-              playPromiseRef.current = null
-            })
+          ;(p as Promise<void>).catch(handlePlaybackError).finally(() => {
+            playPromiseRef.current = null
+          })
         }
       } catch (err: unknown) {
-        const e = err as { name?: string }
-        if (e?.name === "AbortError") return
-        console.error("Playback error:", err)
-        setIsPlaying(false)
+        handlePlaybackError(err)
       }
     }, 500)
 
@@ -246,7 +252,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       clearTimeout(fallback)
     }
     // only re-run when track url changes
-  }, [track?.stream?.url])
+  }, [track?.stream?.url, handlePlaybackError])
 
   // Handle play/pause safely and avoid racing play() calls
   useEffect(() => {
@@ -261,22 +267,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           playPromiseRef.current =
             p instanceof Promise ? (p as Promise<void>) : null
           if (p && typeof (p as Promise<void>).catch === "function") {
-            ;(p as Promise<void>)
-              .catch((err: unknown) => {
-                const e = err as { name?: string }
-                if (e?.name === "AbortError") return
-                console.error("Playback error:", err)
-                setIsPlaying(false)
-              })
-              .finally(() => {
-                playPromiseRef.current = null
-              })
+            ;(p as Promise<void>).catch(handlePlaybackError).finally(() => {
+              playPromiseRef.current = null
+            })
           }
         } catch (err: unknown) {
-          const e = err as { name?: string }
-          if (e?.name === "AbortError") return
-          console.error("Playback error:", err)
-          setIsPlaying(false)
+          handlePlaybackError(err)
         }
       }
     } else {
@@ -287,7 +283,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       playPromiseRef.current = null
     }
-  }, [isPlaying])
+  }, [isPlaying, handlePlaybackError])
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
