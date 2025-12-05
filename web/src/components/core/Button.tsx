@@ -88,8 +88,8 @@ export const Button = styled.button<ButtonProps>`
         }
 
         &:active:not(:disabled) {
-          background: oklch(51.4% 0.203 305.504);
-          border-color: oklch(51.4% 0.203 305.504);
+          background: var(--accent-color-dark);
+          border-color: var(--accent-color-dark);
           color: #000000;
           transform: scale(0.95);
           transition: transform 50ms ease-in-out;
