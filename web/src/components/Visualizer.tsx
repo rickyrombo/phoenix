@@ -165,6 +165,7 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
   const audioContextRef = useRef<AudioContext | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const animationRef = useRef<number>(0)
+  const presetHideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
   const [showPresetInfo, setShowPresetInfo] = useState(false)
@@ -283,7 +284,13 @@ export default function Visualizer({ isVisible, onClose }: VisualizerProps) {
 
       // Show preset info
       setShowPresetInfo(true)
-      setTimeout(() => setShowPresetInfo(false), 2000)
+      if (presetHideTimeoutRef.current) {
+        clearTimeout(presetHideTimeoutRef.current)
+      }
+      presetHideTimeoutRef.current = setTimeout(
+        () => setShowPresetInfo(false),
+        5000,
+      )
     },
     [currentPresetIndex, presetNames],
   )
