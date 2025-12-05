@@ -27,7 +27,7 @@ const Title = styled.h1`
   font-family: "Kode Mono", monospace;
   font-size: 2rem;
   font-weight: 700;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -87,19 +87,17 @@ const Button = styled.button<{ $secondary?: boolean }>`
   transition: all 0.2s;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border: 2px solid oklch(71.4% 0.203 305.504);
+  border: 2px solid var(--accent-color);
   background: ${(props) =>
-    props.$secondary ? "transparent" : "oklch(71.4% 0.203 305.504)"};
-  color: ${(props) =>
-    props.$secondary ? "oklch(71.4% 0.203 305.504)" : "#000000"};
+    props.$secondary ? "transparent" : "var(--accent-color)"};
+  color: ${(props) => (props.$secondary ? "var(--accent-color)" : "#000000")};
   margin-bottom: ${(props) => (props.$secondary ? "0" : "1rem")};
 
   &:hover:not(:disabled) {
     background: ${(props) =>
-      props.$secondary ? "oklch(71.4% 0.203 305.504)" : "transparent"};
-    color: ${(props) =>
-      props.$secondary ? "#000000" : "oklch(71.4% 0.203 305.504)"};
-    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
+      props.$secondary ? "var(--accent-color)" : "transparent"};
+    color: ${(props) => (props.$secondary ? "#000000" : "var(--accent-color)")};
+    box-shadow: 0 0 15px var(--accent-color / 0.3);
   }
 
   &:disabled {
@@ -145,7 +143,7 @@ function GrantAccessPage() {
           body: JSON.stringify({
             walletAddress: publicKey.toBase58(),
           }),
-        }
+        },
       )
 
       const data = await response.json()

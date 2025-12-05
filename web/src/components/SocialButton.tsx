@@ -24,7 +24,7 @@ const ToggleButton = styled(Button)<{ $isOn: boolean }>`
   ${(props) => {
     if (props.$isOn) {
       return `
-        color: oklch(71.4% 0.203 305.504)
+        color: var(--accent-color)
       `
     }
   }}

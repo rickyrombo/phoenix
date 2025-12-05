@@ -22,7 +22,7 @@ const PageTitle = styled.h1`
   margin: 0 0 2rem 0;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
 `
 
 const TracksGrid = styled.div`

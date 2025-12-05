@@ -36,9 +36,9 @@ const SearchInput = styled.input`
 
   &:focus {
     outline: none;
-    border: 1px solid oklch(71.4% 0.203 305.504);
+    border: 1px solid var(--accent-color);
     background: #0a0a0a;
-    box-shadow: 0 0 0 1px oklch(71.4% 0.203 305.504);
+    box-shadow: 0 0 0 1px var(--accent-color);
   }
 
   &::placeholder {

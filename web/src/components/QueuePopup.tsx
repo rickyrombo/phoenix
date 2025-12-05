@@ -55,8 +55,7 @@ const Item = styled.div<{ $active?: boolean; $isOver?: boolean }>`
   color: ${(p) => (p.$active ? "#ffffff" : "inherit")};
   box-shadow: ${(p) =>
     p.$active ? "inset 0 0 0 1px rgba(111,111,255,0.03)" : "none"};
-  border-top: ${(p) =>
-    p.$isOver ? "2px solid oklch(71.4% 0.203 305.504)" : "none"};
+  border-top: ${(p) => (p.$isOver ? "2px solid var(--accent-color)" : "none")};
 
   &:hover {
     background: rgb(30 30 36);

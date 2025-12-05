@@ -7,7 +7,7 @@
 
 :root {
   /* Hackerman Color Palette */
-  --primary-accent: oklch(71.4% 0.203 305.504);
+  --accent-color: oklch(71.4% 0.203 305.504);
   --accent-hover: oklch(75% 0.22 305.504);
   --dark-bg: #000000;
   --darker-bg: #0a0a0a;

@@ -146,7 +146,7 @@ const ControlButton = styled.button`
     box-shadow 0.12s ease;
 
   &:hover {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
   }
   &:active {
     transform: scale(0.9);

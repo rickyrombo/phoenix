@@ -58,8 +58,8 @@ export const Button = styled.button<ButtonProps>`
   }}
 
   &:hover:not(:disabled) {
-    border-color: oklch(71.4% 0.203 305.504);
-    color: oklch(71.4% 0.203 305.504);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
   }
 
   &:active:not(:disabled) {
@@ -78,13 +78,13 @@ export const Button = styled.button<ButtonProps>`
   ${(props) => {
     if (props.variant === "primary") {
       return css`
-        border-color: oklch(71.4% 0.203 305.504);
-        color: oklch(71.4% 0.203 305.504);
+        border-color: var(--accent-color);
+        color: var(--accent-color);
 
         &:hover:not(:disabled) {
-          background: oklch(71.4% 0.203 305.504);
+          background: var(--accent-color);
           color: #000000;
-          border-color: oklch(71.4% 0.203 305.504);
+          border-color: var(--accent-color);
         }
 
         &:active:not(:disabled) {

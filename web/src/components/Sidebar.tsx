@@ -32,7 +32,7 @@ const CollapseButton = styled.button`
   margin-left: auto;
 
   &:hover {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
   }
 `
 
@@ -74,12 +74,12 @@ const NavItem = styled(Link)<{ $isCollapsed: boolean }>`
 
   &:hover {
     background: #1a1a1a;
-    border-left: 2px solid oklch(71.4% 0.203 305.504);
+    border-left: 2px solid var(--accent-color);
   }
 
   &.active {
     background: #1a1a1a;
-    border-left: 2px solid oklch(71.4% 0.203 305.504);
+    border-left: 2px solid var(--accent-color);
   }
 `
 

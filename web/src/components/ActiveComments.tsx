@@ -51,7 +51,7 @@ const ActiveCommentAvatar = styled.img`
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
-  border: 2px solid oklch(71.4% 0.203 305.504);
+  border: 2px solid var(--accent-color);
 `
 
 const ActiveCommentContent = styled.div`
@@ -74,7 +74,7 @@ const CommentUser = styled.span`
 
 const CommentTimestamp = styled.a`
   font-size: 0.75rem;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
   text-decoration: none;
   cursor: pointer;
 

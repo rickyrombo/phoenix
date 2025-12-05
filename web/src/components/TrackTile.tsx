@@ -43,7 +43,7 @@ const Tile = styled.div<{ $isActive: boolean }>`
   ${(props) =>
     props.$isActive &&
     `
-    border-bottom-color: oklch(71.4% 0.203 305.504);
+    border-bottom-color: var(--accent-color);
     background: transparent;
     box-shadow: none;
   `}
@@ -52,7 +52,7 @@ const Tile = styled.div<{ $isActive: boolean }>`
     props.$isActive &&
     `
     .waveform-bar {
-      background: oklch(71.4% 0.203 305.504);
+      background: var(--accent-color);
     }
   `}
 `
@@ -151,8 +151,8 @@ const PlayBtn = styled.button`
   height: 40px;
   border-radius: 50%;
   background: transparent;
-  border: 2px solid oklch(71.4% 0.203 305.504);
-  color: oklch(71.4% 0.203 305.504);
+  border: 2px solid var(--accent-color);
+  color: var(--accent-color);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -163,7 +163,7 @@ const PlayBtn = styled.button`
   line-height: 1;
 
   &:hover {
-    background: oklch(71.4% 0.203 305.504);
+    background: var(--accent-color);
     color: #000000;
     box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.5);
   }
@@ -251,7 +251,7 @@ const CommentInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: oklch(71.4% 0.203 305.504);
+    border-color: var(--accent-color);
   }
 
   &::placeholder {
@@ -297,7 +297,7 @@ const TrackDescription = styled.div`
   }
 
   a {
-    color: oklch(71.4% 0.203 305.504);
+    color: var(--accent-color);
     text-decoration: none;
 
     &:hover {

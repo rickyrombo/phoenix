@@ -16,14 +16,14 @@ const StyledWalletButton = styled(WalletMultiButton)`
     transition: all 0.2s;
     text-transform: uppercase;
     letter-spacing: 1px;
-    border: 2px solid oklch(71.4% 0.203 305.504);
-    background: oklch(71.4% 0.203 305.504);
+    border: 2px solid var(--accent-color);
+    background: var(--accent-color);
     color: #000000;
     height: auto;
 
     &:hover:not(:disabled) {
       background: transparent;
-      color: oklch(71.4% 0.203 305.504);
+      color: var(--accent-color);
       box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
     }
 
@@ -42,7 +42,7 @@ const StyledWalletButton = styled(WalletMultiButton)`
 const Handle = styled.span`
   font-family: "Kode Mono", monospace;
   font-size: 0.875rem;
-  color: oklch(71.4% 0.203 305.504);
+  color: var(--accent-color);
 
   @media (max-width: 768px) {
     font-size: 0.75rem;
