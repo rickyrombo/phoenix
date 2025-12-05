@@ -5,6 +5,7 @@ import type { Comment } from "../queries/useTrackComments"
 import dayjs from "dayjs"
 import { useUser } from "../queries/useUser"
 import { useAuth } from "../contexts/AuthContext"
+import { WithMirrors } from "./WithMirrors"
 
 interface TimestampedCommentsProps {
   comments?: Comment[]
@@ -119,10 +120,20 @@ export default function TimestampedComments({
               }
               onMouseLeave={() => setHoveredComment(null)}
             >
-              <CommentIndicator
-                src={comment.user_profile_picture}
-                alt={comment.user_name}
-              />
+              {comment.user_profile_picture ? (
+                <WithMirrors
+                  url={comment.user_profile_picture.small}
+                  mirrors={comment.user_profile_picture.mirrors}
+                >
+                  {(url, onError) => (
+                    <CommentIndicator
+                      src={url}
+                      onError={onError}
+                      alt={comment.user_name}
+                    />
+                  )}
+                </WithMirrors>
+              ) : null}
             </CommentMarker>
           ))}
           {draftCommentPosition !== null &&

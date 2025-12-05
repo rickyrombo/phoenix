@@ -1,4 +1,5 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
+import type { ImageMirrors } from "./useUser"
 
 export type Comment = {
   comment_id: number
@@ -6,7 +7,7 @@ export type Comment = {
   content: string
   timestamp: number
   user_name: string
-  user_profile_picture?: string
+  user_profile_picture?: ImageMirrors
   thread: Comment[]
 }
 const getTrackCommentsQueryFn = async (trackId: number) => {

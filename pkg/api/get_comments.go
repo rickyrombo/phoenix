@@ -10,7 +10,7 @@ import (
 func (s *Server) getComments(c fiber.Ctx) error {
 	reqLogger := getRequestLogger(c)
 	var routeParams struct {
-		TrackID int `params:"id"`
+		TrackID int `uri:"id"`
 	}
 	if err := c.Bind().URI(&routeParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid route parameters"})
@@ -65,27 +65,27 @@ func (s *Server) getComments(c fiber.Ctx) error {
 
 	type commentResp struct {
 		commentRow
-		ProfilePicture *string       `json:"user_profile_picture,omitempty"`
+		ProfilePicture *ImageMirrors `json:"user_profile_picture,omitempty"`
 		Thread         []commentResp `json:"thread,omitempty"`
 	}
 
 	out := make([]commentResp, 0, len(commentRows))
 	for _, cr := range commentRows {
-		var avatarURL *string
+		var avatarURL *ImageMirrors
 		if cr.ProfilePictureSizes != nil {
-			img, err := s.getImageMirrors(c.RequestCtx(), *cr.ProfilePictureSizes)
-			if err == nil && img != nil {
-				avatarURL = &img.Small
+			avatarURL, err = s.getImageMirrors(c.RequestCtx(), *cr.ProfilePictureSizes)
+			if err != nil {
+				reqLogger.Error("Failed to get image mirrors", "error", err)
 			}
 		}
 
 		var children []commentResp
 		for _, child := range cr.Children {
-			var childAvatarURL *string
+			var childAvatarURL *ImageMirrors
 			if child.ProfilePictureSizes != nil {
-				img, err := s.getImageMirrors(c.RequestCtx(), *child.ProfilePictureSizes)
-				if err == nil && img != nil {
-					childAvatarURL = &img.Small
+				childAvatarURL, err = s.getImageMirrors(c.RequestCtx(), *child.ProfilePictureSizes)
+				if err != nil {
+					reqLogger.Error("Failed to get image mirrors", "error", err)
 				}
 			}
 			children = append(children, commentResp{
