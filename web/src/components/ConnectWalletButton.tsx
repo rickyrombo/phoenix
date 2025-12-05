@@ -39,32 +39,6 @@ const StyledWalletButton = styled(WalletMultiButton)`
   }
 `
 
-const LogoutButton = styled.button`
-  padding: 0.625rem 1.25rem;
-  border-radius: 4px;
-  font-family: "Kode Mono", monospace;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border: 2px solid oklch(71.4% 0.203 305.504);
-  background: transparent;
-  color: oklch(71.4% 0.203 305.504);
-
-  &:hover {
-    background: oklch(71.4% 0.203 305.504);
-    color: #000000;
-    box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
-  }
-
-  @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-  }
-`
-
 const Handle = styled.span`
   font-family: "Kode Mono", monospace;
   font-size: 0.875rem;

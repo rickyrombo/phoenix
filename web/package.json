@@ -22,6 +22,7 @@
     "@tanstack/react-virtual": "^3.13.12",
     "@tanstack/router-devtools": "^1.136.18",
     "@types/styled-components": "^5.1.36",
+    "@yornaath/batshit": "^0.12.0",
     "bs58": "^6.0.0",
     "butterchurn": "^2.6.7",
     "butterchurn-presets": "^2.4.7",

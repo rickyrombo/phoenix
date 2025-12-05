@@ -1,4 +1,5 @@
 import { queryOptions, useQuery } from "@tanstack/react-query"
+import { create, keyResolver, windowScheduler } from "@yornaath/batshit"
 import type { ImageMirrors } from "./useUser"
 
 export type StreamMirrors = {
@@ -27,25 +28,29 @@ export type Track = {
   is_reposted: boolean
 }
 
+const batcher = create({
+  fetcher: async (ids: number[]) => {
+    if (ids.length === 0) return []
+    const params = ids.map((id) => `id=${id}`).join("&")
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/tracks?${params}`,
+    )
+    if (!response.ok) throw new Error("failed to fetch track")
+    const res = await response.json()
+    return res.data as Track[]
+  },
+  resolver: keyResolver("track_id"),
+  scheduler: windowScheduler(10),
+})
+
 export const getTrackQueryKey = (trackId: number) =>
   getTrackQueryOptions(trackId).queryKey
 
-const getTrackFn = async (trackId: number) => {
-  const response = await fetch(
-    `${import.meta.env.VITE_API_BASE_URL}/tracks?id=${trackId}`,
-  )
-  if (!response.ok) throw new Error("failed to fetch track")
-  const res = await response.json()
-  const track = res.data[0]
-  if (!track) return null
-  return track as Track
-}
-
 const getTrackQueryOptions = (trackId: number) =>
   queryOptions({
-    queryKey: ["track", trackId],
+    queryKey: ["track", trackId] as const,
+    queryFn: ({ queryKey }) => batcher.fetch(queryKey[1]),
     enabled: typeof trackId === "number" && trackId > 0,
-    queryFn: () => getTrackFn(trackId),
     staleTime: 5 * 60 * 1000,
   })
 
