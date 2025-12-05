@@ -297,7 +297,6 @@ func repostTrack(ctx context.Context, sqlTx pgx.Tx, userID int, trackID int, blo
 			INSERT INTO track_reposts (user_id, track_id, block_number, created_at, updated_at)
 			VALUES (@userID, @trackID, @blockNumber, NOW(), NOW())	
 			ON CONFLICT (user_id, track_id) DO NOTHING
-			WHERE track_reposts.block_number <= EXCLUDED.block_number
 			RETURNING track_id
 		)
 		INSERT INTO track_aggregates (track_id, repost_count, created_at, updated_at)
