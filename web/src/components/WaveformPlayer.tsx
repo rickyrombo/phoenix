@@ -38,7 +38,7 @@ function WaveformPlayer({ onPlayPause, trackId }: WaveformPlayerProps) {
     const wavesurfer = WaveSurfer.create({
       container: containerRef.current,
       waveColor: "#606060",
-      progressColor: "var(--accent-color)",
+      progressColor: "#ff8b4e",
       cursorColor: "transparent",
       cursorWidth: 0,
       barWidth: 2,
