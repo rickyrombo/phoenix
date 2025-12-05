@@ -1,43 +1,12 @@
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
+import { useWalletModal } from "@solana/wallet-adapter-react-ui"
 import styled from "styled-components"
 import { useAuth } from "../contexts/AuthContext"
 import { useUser } from "../queries/useUser"
 import { WithMirrors } from "./WithMirrors"
 import { Flex } from "./core/Flex"
-
-const StyledWalletButton = styled(WalletMultiButton)`
-  && {
-    padding: 0.625rem 1.25rem;
-    border-radius: 4px;
-    font-family: "Kode Mono", monospace;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 2px solid var(--accent-color);
-    background: var(--accent-color);
-    color: #000000;
-    height: auto;
-
-    &:hover:not(:disabled) {
-      background: transparent;
-      color: var(--accent-color);
-      box-shadow: 0 0 15px oklch(71.4% 0.203 305.504 / 0.3);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      padding: 0.5rem 1rem;
-      font-size: 0.75rem;
-    }
-  }
-`
+import { useRef, useState } from "react"
+import Popup from "./core/Popup"
+import { Button } from "./core/Button"
 
 const Handle = styled.span`
   font-family: "Kode Mono", monospace;
@@ -49,12 +18,59 @@ const Handle = styled.span`
   }
 `
 
+const Avatar = styled.img`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+`
+
+const PopupContainer = styled(Popup)`
+  padding-top: 8px;
+`
+
+const PopupMenu = styled.ul`
+  display: flex;
+  flex-direction: column;
+  background: #0f0f0f;
+  border: 1px solid #222;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 1200;
+  min-width: 150px;
+  border-radius: 6px;
+`
+const PopupMenuItem = styled.button`
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.6rem 0.75rem;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: #fff;
+  }
+`
+
 export default function ConnectWalletButton() {
-  const { authState, userId } = useAuth()
+  const { authState, userId, logout } = useAuth()
 
   const { data: user } = useUser(userId!, {
     enabled: userId !== null && authState === "authenticated",
   })
+
+  const walletModal = useWalletModal()
+
+  const [isPopupVisible, setIsPopupVisible] = useState(false)
+
+  const avatarRef = useRef<HTMLImageElement>(null)
+
+  const togglePopup = () => {
+    setIsPopupVisible((prev) => !prev)
+  }
 
   if (authState === "authenticated" && user) {
     if (user.profile_picture) {
@@ -66,20 +82,49 @@ export default function ConnectWalletButton() {
             mirrors={user.profile_picture.mirrors}
           >
             {(url, onError) => (
-              <img
+              <Avatar
+                ref={avatarRef}
                 src={url}
                 alt="User Avatar"
-                width={32}
-                height={32}
+                onClick={togglePopup}
                 onError={onError}
-                style={{ borderRadius: "50%" }}
               />
             )}
           </WithMirrors>
+          <PopupContainer
+            isVisible={isPopupVisible}
+            anchorRef={avatarRef}
+            anchorOrigin="bottomRight"
+            popupOrigin="topRight"
+            onClickOutside={() => {
+              setIsPopupVisible(false)
+            }}
+          >
+            <PopupMenu>
+              <PopupMenuItem>Profile</PopupMenuItem>
+              <PopupMenuItem>Settings</PopupMenuItem>
+              <PopupMenuItem
+                onClick={() => {
+                  setIsPopupVisible(false)
+                  logout()
+                }}
+              >
+                Logout
+              </PopupMenuItem>
+            </PopupMenu>
+          </PopupContainer>
         </Flex>
       )
     }
   }
 
-  return <StyledWalletButton disabled={authState === "siws_in_progress"} />
+  return (
+    <Button
+      variant="primary"
+      disabled={authState === "siws_in_progress"}
+      onClick={() => walletModal.setVisible(true)}
+    >
+      Login
+    </Button>
+  )
 }

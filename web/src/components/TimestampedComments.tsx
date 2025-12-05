@@ -1,6 +1,6 @@
 import { useState } from "react"
 import styled from "styled-components"
-import AnchoredPopup from "./AnchoredPopup"
+import Popup from "./core/Popup"
 import type { Comment } from "../queries/useTrackComments"
 import dayjs from "dayjs"
 
@@ -132,10 +132,11 @@ export default function TimestampedComments({
         </TimestampedCommentsAvatars>
       </TimestampedCommentsContainer>
       {hoveredComment !== null && comments ? (
-        <AnchoredPopup
+        <Popup
           isVisible={true}
-          anchorElement={hoveredComment.element}
-          placement="top"
+          anchorRef={{ current: hoveredComment.element }}
+          anchorOrigin="topCenter"
+          popupOrigin="bottomCenter"
         >
           <CommentTooltip>
             <CommentUser>
@@ -151,7 +152,7 @@ export default function TimestampedComments({
             </CommentUser>
             <CommentText>{comments[hoveredComment.index].content}</CommentText>
           </CommentTooltip>
-        </AnchoredPopup>
+        </Popup>
       ) : null}
     </>
   )
