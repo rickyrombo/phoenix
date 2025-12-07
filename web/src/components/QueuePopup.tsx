@@ -171,16 +171,14 @@ const QueueItem = ({
       >
         <IconGripVertical size={16} stroke={1.5} />
       </div>
-      {track.cover_art ? (
-        <WithMirrors
-          url={track.cover_art?.small}
-          mirrors={track.cover_art?.mirrors}
-        >
-          {(url, onError) => (
-            <Thumb src={url} alt={track.title} onError={onError} />
-          )}
-        </WithMirrors>
-      ) : null}
+      <WithMirrors
+        url={track.cover_art?.small}
+        mirrors={track.cover_art?.mirrors}
+      >
+        {(url, onError) => (
+          <Thumb src={url} alt={track.title} onError={onError} />
+        )}
+      </WithMirrors>
       <Meta>
         <Title>{track.title}</Title>
         <Artist>{user?.name}</Artist>

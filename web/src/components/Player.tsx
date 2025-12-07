@@ -326,16 +326,14 @@ export default function Player() {
     <PlayerFooter>
       <PlayerTrackInfo>
         <PlayerArtwork>
-          {track?.cover_art ? (
-            <WithMirrors
-              url={track.cover_art.medium}
-              mirrors={track.cover_art.mirrors}
-            >
-              {(url, onError) => (
-                <img src={url} alt={track.title} onError={onError} />
-              )}
-            </WithMirrors>
-          ) : null}
+          <WithMirrors
+            url={track?.cover_art?.medium}
+            mirrors={track?.cover_art?.mirrors}
+          >
+            {(url, onError) => (
+              <img src={url} alt={track?.title} onError={onError} />
+            )}
+          </WithMirrors>
         </PlayerArtwork>
         <PlayerDetails>
           <Marquee>

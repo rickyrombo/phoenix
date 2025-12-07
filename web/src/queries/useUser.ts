@@ -32,7 +32,7 @@ export type User = {
   following_count: number
   repost_count: number
   track_save_count: number
-  cover_art?: ImageMirrors
+  cover_photo?: WideImageMirrors
   profile_picture?: ImageMirrors
 }
 
@@ -115,9 +115,7 @@ export const useUserByHandle = (
   return useQuery({
     ...options,
     ...getUserByHandleQueryOptions(handle),
-    select: (id) =>
-      options?.select?.(id) ??
-      queryClient.getQueryData(getUserQueryOptions(id).queryKey),
+    select: (id) => queryClient.getQueryData(getUserQueryOptions(id).queryKey),
   })
 }
 

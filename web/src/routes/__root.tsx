@@ -5,7 +5,6 @@ import Sidebar from "../components/Sidebar"
 import Player from "../components/Player"
 import Visualizer from "../components/Visualizer"
 import { useState, useEffect } from "react"
-import { useAuth } from "../contexts/AuthContext"
 
 const navItems = [
   { label: "Home", icon: "home" },

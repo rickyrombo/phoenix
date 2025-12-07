@@ -2,6 +2,7 @@ import styled from "styled-components"
 import { IconRepeat, IconUpload } from "@tabler/icons-react"
 import useUser from "../queries/useUser"
 import dayjs from "dayjs"
+import { WithMirrors } from "./WithMirrors"
 
 const ContextLine = styled.div`
   grid-column: 1 / 3;
@@ -55,13 +56,14 @@ export function FeedTrackContext({
         )}
         {user ? (
           <>
-            <ContextAvatar
-              src={
-                user.cover_art?.medium ??
-                `https://picsum.photos/seed/${user.handle}/100`
-              }
-              alt={user.name}
-            />
+            <WithMirrors
+              url={user.profile_picture?.medium}
+              mirrors={user.profile_picture?.mirrors}
+            >
+              {(url, onError) => (
+                <ContextAvatar src={url} alt={user.name} onError={onError} />
+              )}
+            </WithMirrors>
             <span>{user.name}</span>
           </>
         ) : (

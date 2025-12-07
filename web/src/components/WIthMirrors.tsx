@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 
 type WithMirrorsProps = {
-  url: string
-  mirrors: string[]
-  children: (url: string, onError: () => void) => ReactNode
+  url?: string
+  mirrors?: string[]
+  children: (url: string | undefined, onError: () => void) => ReactNode | null
 }
 
 export const WithMirrors = ({ url, mirrors, children }: WithMirrorsProps) => {
   const [currentUrl, setCurrentUrl] = useState(url)
   const [currentMirrorIndex, setCurrentMirrorIndex] = useState(0)
   const onError = useCallback(() => {
+    if (!url || !mirrors || mirrors.length === 0) return
     if (currentMirrorIndex < mirrors.length) {
       const newMirror = new URL(mirrors[currentMirrorIndex])
       const u = new URL(url)

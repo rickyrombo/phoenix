@@ -189,20 +189,18 @@ export default function ActiveComments({
             key={activeComment.id}
             $fadingOut={activeComment.fadingOut}
           >
-            {comment.user_profile_picture ? (
-              <WithMirrors
-                url={comment.user_profile_picture.small}
-                mirrors={comment.user_profile_picture.mirrors}
-              >
-                {(url, onError) => (
-                  <ActiveCommentAvatar
-                    src={url}
-                    onError={onError}
-                    alt={comment.user_name}
-                  />
-                )}
-              </WithMirrors>
-            ) : null}
+            <WithMirrors
+              url={comment.user_profile_picture?.small}
+              mirrors={comment.user_profile_picture?.mirrors}
+            >
+              {(url, onError) => (
+                <ActiveCommentAvatar
+                  src={url}
+                  onError={onError}
+                  alt={comment.user_name}
+                />
+              )}
+            </WithMirrors>
             <ActiveCommentContent>
               <CommentHeader>
                 <CommentUser>{comment.user_name}</CommentUser>
