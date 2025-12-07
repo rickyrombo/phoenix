@@ -14,13 +14,28 @@ export type FeedItem = {
   timestamp: string
 }
 
+type EntityTypes = "Track"
+type Actions = "Create" | "Repost"
+
+type UseFeedParams = {
+  userId?: number
+  entityTypes?: EntityTypes[]
+  actions?: Actions[]
+}
+
+type GetFeedParams = {
+  before?: string
+  userId?: number
+  entityTypes?: EntityTypes[]
+  actions?: Actions[]
+}
+
 const getFeedPage = async ({
   before,
   userId,
-}: {
-  before?: string
-  userId?: number
-}) => {
+  entityTypes,
+  actions,
+}: GetFeedParams) => {
   const qp = new URLSearchParams()
   if (userId) {
     qp.append("user_id", userId.toString())
@@ -28,6 +43,16 @@ const getFeedPage = async ({
   qp.append("limit", "20")
   if (before) {
     qp.append("before", before)
+  }
+  if (entityTypes && entityTypes.length > 0) {
+    for (const et of entityTypes) {
+      qp.append("entity_type", et)
+    }
+  }
+  if (actions && actions.length > 0) {
+    for (const action of actions) {
+      qp.append("action", action)
+    }
   }
   const response = await fetch(
     `${import.meta.env.VITE_API_BASE_URL}/feed?${qp.toString()}`,
@@ -37,20 +62,6 @@ const getFeedPage = async ({
   const feed = res.data as FeedItem[]
   return feed
 }
-
-const getQueryKey = (userId?: number) => ["feed", userId] as const
-
-const queryFn = async ({
-  pageParam,
-  queryKey,
-}: {
-  pageParam?: string
-  queryKey: ReturnType<typeof getQueryKey>
-}) =>
-  getFeedPage({
-    before: pageParam,
-    userId: queryKey[1],
-  })
 
 const dedupe = (pages: FeedItem[][]) => {
   const seen = new Set<number>()
@@ -68,10 +79,14 @@ const dedupe = (pages: FeedItem[][]) => {
   return dedupedPages
 }
 
-const getFeedQueryOptions = (userId?: number) =>
+const getFeedQueryOptions = (params?: UseFeedParams) =>
   infiniteQueryOptions({
-    queryKey: getQueryKey(userId),
-    queryFn,
+    queryKey: ["feed", params] as const,
+    queryFn: ({ pageParam, queryKey }) =>
+      getFeedPage({
+        ...queryKey[1],
+        before: pageParam,
+      }),
     getNextPageParam: (lastPage) => {
       if (lastPage.length === 0) return undefined
       return lastPage[lastPage.length - 1].tx_hash
@@ -86,12 +101,12 @@ const getFeedQueryOptions = (userId?: number) =>
   })
 
 export const useFeed = (
-  userId?: number,
+  params?: UseFeedParams,
   options?: Partial<ReturnType<typeof getFeedQueryOptions>>,
 ) => {
   return useInfiniteQuery({
     ...options,
-    ...getFeedQueryOptions(userId),
+    ...getFeedQueryOptions(params),
   })
 }
 

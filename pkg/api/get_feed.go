@@ -113,9 +113,11 @@ func (s *Server) getFeedDistinct(c fiber.Ctx) error {
 func (s *Server) getFeed(c fiber.Ctx) error {
 	reqLogger := getRequestLogger(c)
 	var queryParams struct {
-		UserID *int64  `query:"user_id"`
-		Before *string `query:"before"`
-		Limit  int     `query:"limit" default:"5"`
+		UserID      *int64   `query:"user_id"`
+		EntityTypes []string `query:"entity_type" default:"[\"Track\"]"`
+		Actions     []string `query:"action" default:"[\"Create\",\"Repost\"]"`
+		Before      *string  `query:"before"`
+		Limit       int      `query:"limit" default:"5"`
 	}
 	defaults.Set(&queryParams)
 
@@ -142,8 +144,8 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 		JOIN blocks ON blocks.number = manage_entity_txs.block_number
 		` + follows_filter + `
 		WHERE (
-				(manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Create')
-				OR (manage_entity_txs.entity_type = 'Track' AND manage_entity_txs.action = 'Repost')
+				manage_entity_txs.entity_type = ANY(@entityTypes)
+				AND manage_entity_txs.action = ANY(@actions)
 			)
 			AND (
 				@before::TEXT IS NULL 
@@ -160,9 +162,11 @@ func (s *Server) getFeed(c fiber.Ctx) error {
 		LIMIT @limit;
 	`
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
-		"userId": queryParams.UserID,
-		"before": queryParams.Before,
-		"limit":  queryParams.Limit,
+		"userId":      queryParams.UserID,
+		"entityTypes": queryParams.EntityTypes,
+		"actions":     queryParams.Actions,
+		"before":      queryParams.Before,
+		"limit":       queryParams.Limit,
 	})
 	if err != nil {
 		reqLogger.Error("Failed to fetch feed", "error", err)

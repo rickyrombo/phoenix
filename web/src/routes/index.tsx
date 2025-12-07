@@ -10,6 +10,7 @@ import { usePlayer } from "../contexts/PlayerContext"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import type { InfiniteData } from "@tanstack/react-query"
 import { Sentinel } from "../components/Sentinel"
+import { useAuth } from "../contexts/AuthContext"
 
 const PageContainer = styled.main`
   padding: 2rem;
@@ -70,12 +71,14 @@ const TrackFeedItem = ({
 }
 
 function FeedPage() {
+  const { userId } = useAuth()
+
   const {
     data: feed,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useFeed()
+  } = useFeed({ userId: userId ?? undefined, actions: ["Create"] })
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
