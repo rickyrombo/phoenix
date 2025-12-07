@@ -18,27 +18,35 @@ export type EntityTypes = "Track"
 export type Actions = "Create" | "Repost"
 
 type UseFeedParams = {
-  userId?: number
+  userIds?: number[]
+  followedByUserId?: number
   entityTypes?: EntityTypes[]
   actions?: Actions[]
 }
 
 type GetFeedParams = {
   before?: string
-  userId?: number
+  userIds?: number[]
+  followedByUserId?: number
   entityTypes?: EntityTypes[]
   actions?: Actions[]
 }
 
 const getFeedPage = async ({
   before,
-  userId,
+  userIds,
+  followedByUserId,
   entityTypes,
   actions,
 }: GetFeedParams) => {
   const qp = new URLSearchParams()
-  if (userId) {
-    qp.append("user_id", userId.toString())
+  if (userIds && userIds.length > 0) {
+    for (const userId of userIds) {
+      qp.append("user_id", userId.toString())
+    }
+  }
+  if (followedByUserId) {
+    qp.append("followed_by_user_id", followedByUserId.toString())
   }
   qp.append("limit", "20")
   if (before) {
@@ -110,11 +118,14 @@ export const useFeed = (
   })
 }
 
-export const getFeedPlayQueue = (feed?: InfiniteData<FeedItem[], string>) =>
+export const getFeedPlayQueue = (
+  feedParams?: UseFeedParams,
+  feed?: InfiniteData<FeedItem[], string>,
+) =>
   infiniteQueryOptions({
     queryKey: ["playQueue", "feed"],
     queryFn: async ({ pageParam }) => {
-      const data = await getFeedPage({ before: pageParam, userId: 1 })
+      const data = await getFeedPage({ ...feedParams, before: pageParam })
       const playQueue = data.map(
         (t): PlayQueueItem => ({
           trackId: t.entity_id,
