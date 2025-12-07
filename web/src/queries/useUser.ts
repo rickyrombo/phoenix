@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query"
 import { create, keyResolver, windowScheduler } from "@yornaath/batshit"
 
 export type ImageMirrors = {
@@ -61,7 +61,7 @@ const getUserQueryOptions = (userId: number) =>
       const user = await idBatcher.fetch(queryKey[1])
       client.setQueryData(
         getUserByHandleQueryOptions(user.handle).queryKey,
-        user,
+        user.user_id,
       )
       return user
     },
@@ -102,7 +102,7 @@ const getUserByHandleQueryOptions = (handle: string) =>
     queryFn: async ({ queryKey, client }) => {
       const user = await handleBatcher.fetch(queryKey[2])
       client.setQueryData(getUserQueryOptions(user.user_id).queryKey, user)
-      return user
+      return user.user_id
     },
     enabled: typeof handle === "string" && handle.length > 0,
   })
@@ -111,9 +111,13 @@ export const useUserByHandle = (
   handle: string,
   options?: Partial<ReturnType<typeof getUserByHandleQueryOptions>>,
 ) => {
+  const queryClient = useQueryClient()
   return useQuery({
     ...options,
     ...getUserByHandleQueryOptions(handle),
+    select: (id) =>
+      options?.select?.(id) ??
+      queryClient.getQueryData(getUserQueryOptions(id).queryKey),
   })
 }
 
