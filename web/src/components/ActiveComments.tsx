@@ -113,8 +113,8 @@ export default function ActiveComments({
     // Find if we just passed a comment timestamp
     comments.forEach((comment, index) => {
       const isAtPosition =
-        currentTime >= Math.max(comment.timestamp ?? 0, index + 1) &&
-        currentTime < Math.max(comment.timestamp ?? 0, index + 1) + 0.5
+        currentTime >= Math.max(comment.track_timestamp_s ?? 0, index + 1) &&
+        currentTime < Math.max(comment.track_timestamp_s ?? 0, index + 1) + 0.5
 
       // Check if this comment is already being shown
       const alreadyActive = activeComments.some(
@@ -206,18 +206,18 @@ export default function ActiveComments({
             <ActiveCommentContent>
               <CommentHeader>
                 <CommentUser>{comment.user_name}</CommentUser>
-                {comment.timestamp ? (
+                {comment.track_timestamp_s ? (
                   <CommentTimestamp
                     onClick={(e) => {
                       e.preventDefault()
-                      if (duration > 0) {
-                        seek(comment.timestamp)
+                      if (duration > 0 && comment.track_timestamp_s) {
+                        seek(comment.track_timestamp_s)
                       }
                     }}
                   >
                     {(() => {
-                      const mins = Math.floor(comment.timestamp / 60)
-                      const secs = Math.floor(comment.timestamp % 60)
+                      const mins = Math.floor(comment.track_timestamp_s / 60)
+                      const secs = Math.floor(comment.track_timestamp_s % 60)
                       return `${mins}:${secs.toString().padStart(2, "0")}`
                     })()}
                   </CommentTimestamp>
