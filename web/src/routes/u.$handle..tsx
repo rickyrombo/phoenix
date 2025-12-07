@@ -14,6 +14,7 @@ const ProfileHeader = styled.div<{ $coverPhotoUrl?: string }>`
   align-items: flex-end;
   gap: 1rem;
   padding: 2rem;
+  background-color: #101010;
   background-image: ${({ $coverPhotoUrl }) =>
     $coverPhotoUrl ? `url(${$coverPhotoUrl})` : "none"};
   background-size: cover;
