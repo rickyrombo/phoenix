@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { Page, PageHeader, PageTitle } from "../components/Page"
+import { Page, PageTitle } from "../components/Page"
 import { useUserByHandle } from "../queries/useUser"
 import { ActivityFeed } from "../components/ActivitiyFeed"
 import { WithMirrors } from "../components/WithMirrors"
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/u/$handle/")({
   component: ProfilePage,
 })
 
-const ProfileHeader = styled(PageHeader)<{ $coverPhotoUrl?: string }>`
+const ProfileHeader = styled.div<{ $coverPhotoUrl?: string }>`
   display: flex;
   align-items: flex-end;
   gap: 1rem;
@@ -21,6 +21,13 @@ const ProfileHeader = styled(PageHeader)<{ $coverPhotoUrl?: string }>`
   background-repeat: no-repeat;
   position: relative;
   min-height: 360px;
+  margin-bottom: 2rem;
+  position: sticky;
+  top: -100px;
+  z-index: 49;
+  box-shadow:
+    inset 0 -60px 60px -20px rgba(0, 0, 0, 0.7),
+    0 0 8px rgba(0, 0, 0, 0.5);
 
   ${({ $coverPhotoUrl }) =>
     $coverPhotoUrl &&

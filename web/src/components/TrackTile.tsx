@@ -39,7 +39,7 @@ const Tile = styled.div<{ $isActive: boolean }>`
   border: none;
   border-bottom: 1px solid #333333;
   border-radius: 0;
-  padding: 1rem 0 1.5rem 0;
+  padding: 2rem 12px 2rem 12px;
   display: grid;
   grid-template-columns: 180px 1fr;
   grid-template-rows: auto auto auto;
