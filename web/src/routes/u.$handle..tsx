@@ -26,9 +26,6 @@ const ProfileHeader = styled.div<{ $coverPhotoUrl?: string }>`
   position: sticky;
   top: -100px;
   z-index: 49;
-  box-shadow:
-    inset 0 -60px 60px -20px rgba(0, 0, 0, 0.7),
-    0 0 8px rgba(0, 0, 0, 0.5);
 
   ${({ $coverPhotoUrl }) =>
     $coverPhotoUrl &&
@@ -42,6 +39,8 @@ const ProfileHeader = styled.div<{ $coverPhotoUrl?: string }>`
       bottom: 0;
       background: rgba(0, 0, 0, 0.4);
       z-index: 1;
+      box-shadow:
+        inset 0 -60px 60px -20px rgba(0, 0, 0, 0.7)
     }
     
     > * {
