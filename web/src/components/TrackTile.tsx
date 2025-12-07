@@ -32,6 +32,7 @@ import { useRepostTrack, useUnrepostTrack } from "../queries/useTrackRepost"
 import Popup from "./core/Popup"
 import { PopupMenu, PopupMenuItem } from "./core/PopupMenu"
 import { useAuth } from "../contexts/AuthContext"
+import { Link } from "@tanstack/react-router"
 
 const Tile = styled.div<{ $isActive: boolean }>`
   background: transparent;
@@ -505,7 +506,18 @@ function TrackTile({
             </PlayBtn>
             <TrackInfo>
               <TrackTitle>{track.title}</TrackTitle>
-              <TrackArtist>{user?.name}</TrackArtist>
+              <TrackArtist>
+                {user?.handle && (
+                  <Link
+                    to="/u/$handle"
+                    params={{
+                      handle: user.handle,
+                    }}
+                  >
+                    {user.name}
+                  </Link>
+                )}
+              </TrackArtist>
             </TrackInfo>
           </TrackMainInfo>
           <StatsColumn>

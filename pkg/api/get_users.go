@@ -7,7 +7,8 @@ import (
 
 func (s *Server) getUsers(c fiber.Ctx) error {
 	var queryParams struct {
-		Ids []int `query:"id"`
+		Ids     []int    `query:"id"`
+		Handles []string `query:"handle"`
 	}
 	if err := c.Bind().Query(&queryParams); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -39,10 +40,12 @@ func (s *Server) getUsers(c fiber.Ctx) error {
 		FROM users
 		JOIN user_aggregates USING (user_id)
 		WHERE user_id = ANY(@ids)
+			OR handle = ANY(@handles)
 		;
 	`
 	rows, err := s.pool.Query(c.RequestCtx(), sql, pgx.NamedArgs{
-		"ids": queryParams.Ids,
+		"ids":     queryParams.Ids,
+		"handles": queryParams.Handles,
 	})
 	if err != nil {
 		return err
