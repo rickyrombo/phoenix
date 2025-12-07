@@ -421,7 +421,7 @@ CREATE INDEX IF NOT EXISTS idx_track_plays_user_id ON track_plays(user_id, times
 
 CREATE TABLE IF NOT EXISTS track_plays_daily (
     track_id INT NOT NULL,
-    day DATE,
+    day DATE NOT NULL,
     play_count BIGINT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -440,7 +440,7 @@ CREATE TABLE IF NOT EXISTS track_plays_users_aggregate (
 CREATE TABLE IF NOT EXISTS track_plays_users_daily (
     track_id INT NOT NULL,
     user_id INT NOT NULL,
-    day DATE,
+    day DATE NOT NULL,
     play_count BIGINT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
