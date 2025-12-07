@@ -62,15 +62,15 @@ func New(cfg *Config) (*Indexer, error) {
 func (d *Indexer) Run(ctx context.Context) error {
 	d.logger.Info("Starting indexer...")
 
-	err := d.Retry(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to process retry queue: %w", err)
-	}
+	// err := d.Retry(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to process retry queue: %w", err)
+	// }
 
 	var blockNumber int64
 
 	var dbBlockNumber *int64
-	err = d.pool.QueryRow(ctx, `
+	err := d.pool.QueryRow(ctx, `
 		SELECT MAX(number) FROM blocks LIMIT 1;
 	`).Scan(&dbBlockNumber)
 	if err != nil && err != pgx.ErrNoRows {
@@ -256,6 +256,11 @@ func (d *Indexer) indexTransaction(ctx context.Context, tx *corev1.Transaction, 
 		if err != nil {
 			return fmt.Errorf("failed to index ManageEntity tx: %w", err)
 		}
+	case *corev1.SignedTransaction_Plays:
+		err := d.indexPlaysTransaction(ctx, dbTx, tx, blockNumber)
+		if err != nil {
+			return fmt.Errorf("failed to index Plays tx: %w", err)
+		}
 	}
 
 	err = dbTx.Commit(ctx)
@@ -349,6 +354,20 @@ func (d *Indexer) indexManageEntityTransaction(ctx context.Context, sqlTx pgx.Tx
 	})
 	if err != nil {
 		return fmt.Errorf("failed to insert manage_entity_tx: %w", err)
+	}
+
+	return nil
+}
+
+func (d *Indexer) indexPlaysTransaction(ctx context.Context, sqlTx pgx.Tx, tx *corev1.Transaction, blockNumber int64) error {
+	play := tx.Transaction.GetPlays()
+
+	for _, trackPlay := range play.Plays {
+		err := d.indexTrackPlay(ctx, sqlTx, trackPlay, blockNumber)
+		if err != nil {
+			d.addToRetryQueue(ctx, tx, err.Error(), blockNumber)
+			return fmt.Errorf("failed to index play: %w", err)
+		}
 	}
 
 	return nil

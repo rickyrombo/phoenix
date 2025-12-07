@@ -400,3 +400,50 @@ CREATE TABLE IF NOT EXISTS fiber_storage (
 );
 CREATE INDEX IF NOT EXISTS idx_fiber_storage_expiry ON fiber_storage(e);
 COMMENT ON TABLE fiber_storage IS 'Stores user sessions for Fiber middleware. Sessions can be revoked by deleting rows.';
+
+--- =========================
+--       PLAYS
+-- =========================
+CREATE TABLE IF NOT EXISTS track_plays (
+    track_id INT NOT NULL,
+    listener_id TEXT NOT NULL,
+    user_id INT,
+    city TEXT,
+    region TEXT,
+    country TEXT,
+    block_number BIGINT NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (track_id, listener_id, block_number)
+);
+CREATE INDEX IF NOT EXISTS idx_track_plays_user_id ON track_plays(user_id, timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS track_plays_daily (
+    track_id INT NOT NULL,
+    day DATE,
+    play_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (track_id, day)
+);
+
+CREATE TABLE IF NOT EXISTS track_plays_users_aggregate (
+    track_id INT NOT NULL,
+    user_id INT NOT NULL,
+    play_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (track_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS track_plays_users_daily (
+    track_id INT NOT NULL,
+    user_id INT NOT NULL,
+    day DATE,
+    play_count BIGINT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (track_id, user_id, day)
+);
+CREATE INDEX IF NOT EXISTS idx_track_plays_users_daily_user_id ON track_plays_users_daily(user_id, day DESC);
