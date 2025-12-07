@@ -20,7 +20,7 @@ const navItems = [
 const AppContainer = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: 60px auto 90px;
   min-height: 100vh;
   background: #111;
   color: #ffffff;
@@ -40,8 +40,8 @@ const SidebarWrapper = styled.div`
   grid-column: 1;
   position: sticky;
   top: 0;
-  height: 100vh;
   z-index: 100;
+  max-height: 100vh;
 `
 
 const HeaderWrapper = styled.div`
@@ -55,7 +55,6 @@ const HeaderWrapper = styled.div`
 const MainContent = styled.main`
   grid-row: 2;
   grid-column: 2;
-  min-height: calc(100vh - 120px - 80px);
 `
 
 const PlayerWrapper = styled.div`
