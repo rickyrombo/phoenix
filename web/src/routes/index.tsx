@@ -2,28 +2,58 @@ import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 import TrackTile from "../components/TrackTile"
 import SkeletonTrackTile from "../components/SkeletonTrackTile"
-import { getFeedPlayQueue, useFeed, type FeedItem } from "../queries/useFeed"
+import {
+  getFeedPlayQueue,
+  useFeed,
+  type Actions,
+  type FeedItem,
+} from "../queries/useFeed"
 import { useTrack } from "../queries/useTrack"
 import { FeedTrackContext } from "../components/TrackTileContext"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { usePlayer } from "../contexts/PlayerContext"
 import { usePlayQueue } from "../contexts/PlayQueueContext"
 import type { InfiniteData } from "@tanstack/react-query"
 import { Sentinel } from "../components/Sentinel"
 import { useAuth } from "../contexts/AuthContext"
+import { Toggle } from "../components/core/Toggle"
 
 const PageContainer = styled.main`
   padding: 2rem;
   padding-bottom: 2rem;
 `
 
+const PageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+`
+
 const PageTitle = styled.h1`
   font-family: "Fugaz One", sans-serif;
   font-size: 2rem;
-  margin: 0 0 2rem 0;
+  margin: 0;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--accent-color);
+`
+
+const FilterControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`
+
+const FilterLabel = styled.label`
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
 `
 
 const TracksGrid = styled.div`
@@ -72,13 +102,16 @@ const TrackFeedItem = ({
 
 function FeedPage() {
   const { userId } = useAuth()
+  const [originalsOnly, setOriginalsOnly] = useState(false)
+
+  const actions: Actions[] = originalsOnly ? ["Create"] : ["Create", "Repost"]
 
   const {
     data: feed,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useFeed({ userId: userId ?? undefined, actions: ["Create"] })
+  } = useFeed({ userId: userId ?? undefined, actions })
 
   const { isPlaying, play, togglePlay } = usePlayer()
   const queue = usePlayQueue()
@@ -119,7 +152,15 @@ function FeedPage() {
 
   return (
     <PageContainer>
-      <PageTitle>Feed</PageTitle>
+      <PageHeader>
+        <PageTitle>Feed</PageTitle>
+        <FilterControls>
+          <FilterLabel>
+            Originals only
+            <Toggle checked={originalsOnly} onChange={setOriginalsOnly} />
+          </FilterLabel>
+        </FilterControls>
+      </PageHeader>
       <TracksGrid>
         {feedItems.map((feedItem, i) => (
           <TrackFeedItem

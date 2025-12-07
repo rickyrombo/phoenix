@@ -14,8 +14,8 @@ export type FeedItem = {
   timestamp: string
 }
 
-type EntityTypes = "Track"
-type Actions = "Create" | "Repost"
+export type EntityTypes = "Track"
+export type Actions = "Create" | "Repost"
 
 type UseFeedParams = {
   userId?: number
