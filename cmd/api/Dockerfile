@@ -7,7 +7,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+# Only copy Go source files, not web directory
+COPY pkg/ pkg/
+COPY cmd/ cmd/
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o api ./cmd/api
 
 # Runner
