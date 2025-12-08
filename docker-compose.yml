@@ -34,7 +34,7 @@ services:
       AUDIUS_API_KEY: ${AUDIUS_API_KEY}
       ENVIRONMENT: ${ENVIRONMENT:-production}
     ports:
-      - "${API_PORT:-8080}:8080"
+      - "${API_PORT:-8080}:8000"
     restart: unless-stopped
 
   indexer:
