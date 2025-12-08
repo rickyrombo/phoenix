@@ -8,6 +8,8 @@ COPY package*.json ./
 
 RUN npm ci
 COPY . .
+
+RUN npx tsr generate
 RUN npm run build
 
 # Runner
