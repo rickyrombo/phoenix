@@ -70,6 +70,17 @@ function RootComponent() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger visualizer if user is typing in an input field
+      if (e.target instanceof HTMLElement) {
+        const tagName = e.target.tagName.toLowerCase()
+        const isFormElement = ["input", "textarea", "select"].includes(tagName)
+        const isContentEditable = e.target.contentEditable === "true"
+
+        if (isFormElement || isContentEditable) {
+          return
+        }
+      }
+
       if (e.code === "KeyV" && !e.repeat) {
         setIsVisualizerVisible((prev) => !prev)
       }
