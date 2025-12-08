@@ -71,14 +71,14 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+        VITE_AUDIUS_APP_KEY: ${AUDIUS_API_KEY}
+        VITE_AUDIUS_APP_NAME: ${AUDIUS_APP_NAME:-Phoenix}
     ports:
-      - "3000:80"
+      - "${WEB_PORT:-3000}:80"
     depends_on:
       - api
-    environment:
-      - VITE_API_BASE_URL=${API_BASE_URL:-http://localhost:8000}
-      - VITE_AUDIUS_APP_KEY=${AUDIUS_API_KEY}
-      - VITE_AUDIUS_APP_NAME=${AUDIUS_APP_NAME:-Phoenix}
 
 volumes:
   postgres_data:
