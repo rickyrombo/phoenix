@@ -67,6 +67,7 @@ services:
     restart: unless-stopped
 
   web:
+    container_name: web
     build:
       context: ./web
       dockerfile: Dockerfile
