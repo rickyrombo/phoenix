@@ -1,10 +1,10 @@
 package main
 
 import (
-	"audius/pkg/workers/waveforms"
 	"context"
 	"log/slog"
 	"os"
+	"phoenix/pkg/workers/waveforms"
 
 	_ "github.com/joho/godotenv/autoload"
 )

@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import styled from "styled-components"
 
 import { useAuth } from "../contexts/AuthContext"
@@ -28,10 +28,6 @@ function FeedPage() {
   const { userId } = useAuth()
   const [originalsOnly, setOriginalsOnly] = useState(false)
 
-  if (!userId) {
-    return <Navigate to="/trending" />
-  }
-
   return (
     <Page>
       <PageHeader>
@@ -43,7 +39,10 @@ function FeedPage() {
           </FilterLabel>
         </FilterControls>
       </PageHeader>
-      <ActivityFeed originalsOnly={originalsOnly} followedByUserId={userId} />
+      <ActivityFeed
+        originalsOnly={originalsOnly}
+        followedByUserId={userId ?? undefined}
+      />
     </Page>
   )
 }

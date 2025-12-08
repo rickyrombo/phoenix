@@ -1,4 +1,4 @@
-module audius
+module phoenix
 
 go 1.25.0
 

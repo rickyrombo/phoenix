@@ -17,43 +17,54 @@ services:
       timeout: 5s
       retries: 5
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    ports:
-      - "5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+  api:
+    build:
+      context: .
+      dockerfile: cmd/api/Dockerfile
+    container_name: api
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audius}
+      AUDIUS_URL: ${AUDIUS_URL}
+      DELEGATE_PRIVATE_KEY: ${DELEGATE_PRIVATE_KEY}
+      AUDIUS_API_SECRET: ${AUDIUS_API_SECRET}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUDIUS_API_KEY: ${AUDIUS_API_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    restart: unless-stopped
 
-  # indexer:
-  #   build:
-  #     context: .
-  #     dockerfile: ./indexer/Dockerfile
-  #   container_name: audius_indexer
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audius}
-  #   restart: unless-stopped
+  indexer:
+    build:
+      context: .
+      dockerfile: cmd/indexer/Dockerfile
+    container_name: indexer
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audius}
+      AUDIUS_URL: ${AUDIUS_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
 
-  # api:
-  #   build:
-  #     context: .
-  #     dockerfile: ./api/Dockerfile
-  #   container_name: api
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #   environment:
-  #     DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audius}
-  #     API_PORT: ${API_PORT:-1323}
-  #   ports:
-  #     - "${API_PORT:-1323}:1323"
-  #   restart: unless-stopped
+  waveforms:
+    build:
+      context: .
+      dockerfile: cmd/waveforms/Dockerfile
+    container_name: waveform_analysis
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audius}
+      AUDIUS_URL: ${AUDIUS_URL}
+      DELEGATE_PRIVATE_KEY: ${DELEGATE_PRIVATE_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    restart: unless-stopped
 
 volumes:
   postgres_data:

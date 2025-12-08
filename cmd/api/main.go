@@ -1,9 +1,9 @@
 package main
 
 import (
-	"audius/pkg/api"
 	"log/slog"
 	"os"
+	"phoenix/pkg/api"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -18,7 +18,7 @@ func main() {
 	appKey := os.Getenv("AUDIUS_API_KEY")
 	environment := os.Getenv("ENVIRONMENT")
 	if environment == "" {
-		environment = "development" // Default to development
+		environment = "production"
 	}
 
 	level := &slog.LevelVar{}

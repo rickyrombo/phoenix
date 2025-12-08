@@ -1,11 +1,11 @@
 package main
 
 import (
-	"audius/pkg/indexer"
 	"context"
 	"log/slog"
 	"os"
 	"os/signal"
+	"phoenix/pkg/indexer"
 	"syscall"
 
 	_ "github.com/joho/godotenv/autoload"
