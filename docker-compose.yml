@@ -18,6 +18,7 @@ services:
       retries: 5
 
   api:
+    image: mpasell/phoenix-api:latest
     build:
       context: .
       dockerfile: cmd/api/Dockerfile
@@ -38,6 +39,7 @@ services:
     restart: unless-stopped
 
   indexer:
+    image: mpasell/phoenix-indexer:latest
     build:
       context: .
       dockerfile: cmd/indexer/Dockerfile
@@ -52,6 +54,7 @@ services:
     restart: unless-stopped
 
   waveforms:
+    image: mpasell/phoenix-waveforms:latest
     build:
       context: .
       dockerfile: cmd/waveforms/Dockerfile
@@ -67,14 +70,14 @@ services:
     restart: unless-stopped
 
   web:
+    image: mpasell/phoenix-web:latest
     container_name: web
     build:
       context: ./web
       dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
-        VITE_AUDIUS_APP_KEY: ${AUDIUS_API_KEY}
-        VITE_AUDIUS_APP_NAME: ${AUDIUS_APP_NAME:-Phoenix}
+    environment:
+      VITE_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+      VITE_AUDIUS_APP_KEY: ${AUDIUS_API_KEY}
     ports:
       - "${WEB_PORT:-3000}:80"
     depends_on:

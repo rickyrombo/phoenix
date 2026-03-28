@@ -9,13 +9,8 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 
-ARG VITE_API_BASE_URL
-ARG VITE_AUDIUS_APP_KEY
-ARG VITE_AUDIUS_APP_NAME
-
-ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
-ENV VITE_AUDIUS_APP_KEY=${VITE_AUDIUS_APP_KEY}
-ENV VITE_AUDIUS_APP_NAME=${VITE_AUDIUS_APP_NAME}
+ENV VITE_API_BASE_URL=__VITE_API_BASE_URL__
+ENV VITE_AUDIUS_APP_KEY=__VITE_AUDIUS_APP_KEY__
 
 ENV NODE_ENV=production
 RUN npm run build
@@ -26,7 +21,10 @@ FROM nginx:alpine AS runner
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
