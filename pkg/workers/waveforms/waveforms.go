@@ -111,16 +111,24 @@ func (j *Job) Run(ctx context.Context) error {
 			go func(t waveformTaskRow) {
 				defer wg.Done()
 				defer func() { <-sem }()
-				err := j.ProcessCID(ctx, t.TrackCID)
-				if err != nil {
-					j.logger.Error("failed to process track cid", "error", err, "cid", t.TrackCID)
+				var err error
+
+				// Process track CID if it exists and is not empty
+				if t.TrackCID != nil && *t.TrackCID != "" {
+					err = j.ProcessCID(ctx, *t.TrackCID)
+					if err != nil {
+						j.logger.Error("failed to process track cid", "error", err, "cid", *t.TrackCID)
+					}
 				}
+
+				// Process preview CID if it exists and is not empty
 				if t.PreviewCID != nil && *t.PreviewCID != "" {
 					err = j.ProcessCID(ctx, *t.PreviewCID)
 					if err != nil {
 						j.logger.Error("failed to process preview cid", "error", err, "cid", *t.PreviewCID)
 					}
 				}
+
 				if err != nil {
 					j.logger.Error("failed to process waveform task", "error", err)
 					offset += 1 // skip errored record
@@ -134,17 +142,23 @@ func (j *Job) Run(ctx context.Context) error {
 func (j *Job) ProcessTrack(ctx context.Context, trackID int) error {
 	sql := `SELECT track_cid, preview_cid FROM tracks WHERE id = $1 LIMIT 1;`
 
-	var trackCID, previewCID string
+	var trackCID *string
+	var previewCID *string
 	err := j.pool.QueryRow(ctx, sql, trackID).Scan(&trackCID, &previewCID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch track cids: %w", err)
 	}
-	cids := []string{trackCID, previewCID}
-	for _, cid := range cids {
-		if cid == "" {
-			continue
+
+	// Process track CID if it exists and is not empty
+	if trackCID != nil && *trackCID != "" {
+		if err := j.ProcessCID(ctx, *trackCID); err != nil {
+			return err
 		}
-		if err := j.ProcessCID(ctx, cid); err != nil {
+	}
+
+	// Process preview CID if it exists and is not empty
+	if previewCID != nil && *previewCID != "" {
+		if err := j.ProcessCID(ctx, *previewCID); err != nil {
 			return err
 		}
 	}
@@ -201,7 +215,7 @@ func (j *Job) ProcessCID(ctx context.Context, cid string) error {
 }
 
 type waveformTaskRow struct {
-	TrackCID   string  `db:"track_cid"`
+	TrackCID   *string `db:"track_cid"`
 	PreviewCID *string `db:"preview_cid"`
 }
 
